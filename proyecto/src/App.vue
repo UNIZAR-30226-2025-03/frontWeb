@@ -7,17 +7,27 @@
 
     <div class="container">
       <div class="header">
-        <!-- Imagen que activa el menú -->
-        <img 
-          class="image-left" 
-          :src="previewIcon" 
-          alt="Preview" 
-          @click="toggleMenu" 
-        />
-        
+
+    
+          <!-- Imagen que activa el menú -->
+          <img 
+            class="image-left" 
+            :src="previewIcon" 
+            alt="Preview" 
+            @click="toggleMenu" 
+          />
+      
         <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" />
-        
-        <img class="image-right" :src="userIcon" alt="User" />
+
+        <router-link to="/login">
+        <img 
+          class="image-right" 
+          :src="userIcon" 
+          alt="User" 
+          @click="openLogin"
+        />
+
+      </router-link>
       </div>
       <router-view/>
       <!-- Barra de canción -->
@@ -43,7 +53,7 @@
       </div>
 
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
-      <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
+      <div v-if="isMenuOpen || isLoginOpen" class="overlay" @click="closeMenu"></div>
 
       <!-- Menú en semicírculo desde la esquina superior izquierda -->
       <div v-if="isMenuOpen" class="menu-container">
@@ -61,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { provide, ref } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
@@ -76,8 +86,11 @@ import starIcon from '@/assets/star.svg';
 import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
 
+
 // Variables reactivas
 const isMenuOpen = ref(false);
+const isLoginOpen = ref(false);
+provide('LoginOpen', isLoginOpen)
 const isPlaying = ref(false);
 const progress = ref(0);
 const menuIcons = ref([
@@ -87,6 +100,7 @@ const menuIcons = ref([
   { src: albumIcon, alt: 'Álbum' }
 ]);
 
+
 // Métodos
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
@@ -94,6 +108,10 @@ function toggleMenu() {
 
 function closeMenu() {
   isMenuOpen.value = false;
+}
+
+function openLogin() {
+  isLoginOpen.value = true;
 }
 
 function togglePlay() {
