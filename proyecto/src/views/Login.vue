@@ -1,7 +1,7 @@
 <template>
   <!-- Repasar css -->
-  <div class="login-container" @click="closeLogin" href="">
-    <div class="login-box">
+  <div class="login-container" @click="closeLogin" >
+    <div class="login-box" @click.stop >
       
       <label for="uname"><b>Username</b></label>
       <input type="text" placeholder="Usuario" name="uname" required>
@@ -15,6 +15,12 @@
       </label>
       
       <span class="psw"> <a href="#">Has olvidado la contraseña?</a></span>
+      <router-link to="/signin" >
+        <span class="link" > Registrarse </span>
+      </router-link>
+
+     
+ 
       
       <!-- Revisar si se quiere con boton o sin el -->
       <img 
@@ -37,14 +43,11 @@
 
   const router = useRouter();
 
-  const goToHome = () => {
-    router.push('/');
-  };
   const isLoginOpen=inject('LoginOpen')
 
   const closeLogin=()=>{
     isLoginOpen.value=false;
-    goToHome();
+    router.push('/');
   }
   </script>
   
@@ -114,6 +117,13 @@ button {
 span.psw {
   float: right;
   padding-top: 16px;
+}
+a{
+  color: #0b57d0;
+}
+.link{
+  text-decoration: underline;
+  color:#0b57d0;
 }
 
 /* Responsivo: Ajuste en pantallas pequeñas */

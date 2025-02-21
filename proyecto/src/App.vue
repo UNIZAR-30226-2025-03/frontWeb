@@ -85,6 +85,7 @@ import friendsIcon from '@/assets/following.svg';
 import starIcon from '@/assets/star.svg';
 import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
+import router from './router';
 
 
 // Variables reactivas
