@@ -53,7 +53,7 @@
       </div>
 
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
-      <div v-if="isMenuOpen || isLoginOpen" class="overlay" @click="closeMenu"></div>
+      <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
 
       <!-- Menú en semicírculo desde la esquina superior izquierda -->
       <div v-if="isMenuOpen" class="menu-container">
@@ -90,8 +90,6 @@ import router from './router';
 
 // Variables reactivas
 const isMenuOpen = ref(false);
-const isLoginOpen = ref(false);
-provide('LoginOpen', isLoginOpen)
 const isPlaying = ref(false);
 const progress = ref(0);
 const menuIcons = ref([
@@ -109,10 +107,6 @@ function toggleMenu() {
 
 function closeMenu() {
   isMenuOpen.value = false;
-}
-
-function openLogin() {
-  isLoginOpen.value = true;
 }
 
 function togglePlay() {

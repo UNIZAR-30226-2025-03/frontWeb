@@ -1,138 +1,121 @@
 <template>
-  <!-- Repasar css -->
-  <div class="login-container" @click="closeLogin" >
-    <div class="login-box" @click.stop >
-      
-      <label for="uname"><b>Username</b></label>
-      <input type="text" placeholder="Usuario" name="uname" required>
+  <div class="login-container">
+    <div class="login-box">
+      <h2>Bienvenido a GoBeat</h2>
 
-      <label for="psw"><b>Password</b></label>
-      <input type="password" placeholder="Contraseña" name="psw" required>
+      <label for="email">Correo Electrónico</label>
+      <input type="email" placeholder="Introduce tu correo" name="email" required />
 
-      <button type="submit">Aceptar</button>
-      <label style="color: black;">
-        <input type="checkbox" checked="checked" name="remember"> Remember me
-      </label>
-      
-      <span class="psw"> <a href="#">Has olvidado la contraseña?</a></span>
-      <router-link to="/signin" >
-        <span class="link" > Registrarse </span>
-      </router-link>
+      <label for="password">Contraseña</label>
+      <input type="password" placeholder="Introduce tu contraseña" name="password" required />
 
-     
- 
-      
-      <!-- Revisar si se quiere con boton o sin el -->
-      <img 
-          class= "closebtn"
-          :src="xicon" 
-          alt="salir" 
-          @click="closeLogin"
-        />
-        
+      <a href="#" class="forgot-password">He olvidado mi contraseña</a>
+
+      <button class="login-btn">INICIA SESIÓN</button>
+      <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
     </div>
-
-   
   </div>
-  </template>
-  
-  <script setup>
-  import xicon from '@/assets/x.svg';
-  import {inject} from "vue";
-  import { useRouter } from 'vue-router';
+</template>
 
-  const router = useRouter();
+<script setup>
+import { useRouter } from 'vue-router';
 
-  const isLoginOpen=inject('LoginOpen')
+const router = useRouter();
 
-  const closeLogin=()=>{
-    isLoginOpen.value=false;
-    router.push('/');
-  }
-  </script>
-  
-  <style scoped>
- /* Contenedor que centra el login en la pantalla */
+const handleLogin = () => {
+  // Lógica de autenticación
+};
+
+const handleRegister = () => {
+  router.push('/Signin');
+};
+</script>
+
+<style scoped>
 .login-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.95); 
+  z-index: 9999; 
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh; /* Ocupar toda la pantalla */
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1101;
-  
 }
 
-/* Caja del formulario */
 .login-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px;
-  width: 100%;
-  max-width: 400px; /* Ajusta el tamaño del formulario */
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-  
+  text-align: center;
+  background-color: #1a1a1a;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+  width: 90%;
+  max-width: 450px;
 }
 
-/* Ajusta los inputs */
-input[type=text], input[type=password] {
+h2 {
+  color: #ffa500;
+  margin-bottom: 1.5rem;
+}
+
+label {
+  color: #ffa500;
+  text-align: left;
+  display: block;
+  margin-top: 1rem;
+}
+
+input[type="email"], input[type="password"] {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border: 1px solid #ffa500;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: #fff;
+}
+
+input::placeholder {
+  color: #ccc;
+}
+
+.forgot-password {
+  display: block;
+  text-align: right;
+  margin-top: 0.5rem;
+  color: #ffa500;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+button {
   width: 100%;
   padding: 12px;
-  margin: 8px 0;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-}
-
-/* Botón de login */
-button {
-  background-color: #04AA6D;
-  color: white;
-  padding: 14px 20px;
-  margin: 8px 0;
+  margin-top: 1rem;
   border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: bold;
   cursor: pointer;
-  width: 100%;
 }
 
-/* Estilos del botón de cancelar */
-.closebtn {
-  position: absolute;
-  top: 62vh; /* Ajusta según sea necesario */
-  right: 40vw;
-  width: 40px;
-  height: auto;
-  cursor: pointer;
-  
+.login-btn {
+  background-color: #ffc107;
 }
 
-/* Ajuste para el texto de "Forgot password" */
-span.psw {
-  float: right;
-  padding-top: 16px;
-}
-a{
-  color: #0b57d0;
-}
-.link{
-  text-decoration: underline;
-  color:#0b57d0;
+.register-btn {
+  background-color: #ff5722;
 }
 
-/* Responsivo: Ajuste en pantallas pequeñas */
+button:hover {
+  opacity: 0.8;
+}
+
 @media screen and (max-width: 400px) {
   .login-box {
     width: 90%;
   }
 }
-
-  
-  </style>
-  
+</style>
