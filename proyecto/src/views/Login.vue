@@ -9,7 +9,7 @@
       <label for="password">Contraseña</label>
       <input type="password" placeholder="Introduce tu contraseña" name="password" required />
 
-      <a href="#" class="forgot-password">He olvidado mi contraseña</a>
+      <a href="/Pwd" class="forgot-password">He olvidado mi contraseña</a>
 
       <button class="login-btn">INICIA SESIÓN</button>
       <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
@@ -113,9 +113,4 @@ button:hover {
   opacity: 0.8;
 }
 
-@media screen and (max-width: 400px) {
-  .login-box {
-    width: 90%;
-  }
-}
 </style>

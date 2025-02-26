@@ -14,7 +14,7 @@
       <input type="user" placeholder="Introduce tu nombre de usuario" name="user" required />
 
       <label for="born">Fecha de nacimiento</label>
-      <input type="born" placeholder="Introduce tu fecha de nacimiennto" name="born" required />
+      <input type="born" placeholder="Introduce tu fecha de nacimiento" name="born" required />
 
       <button class="register-btn">REGISTRAR</button>
       
@@ -69,7 +69,7 @@ label {
 }
 
 input[type="name"], input[type="email"], input[type="user"], input[type="born"]{
-  width: 100%;
+  width: 95%;
   padding: 10px;
   margin-top: 8px;
   border: 1px solid #ffa500;
@@ -92,9 +92,9 @@ input::placeholder {
 }
 
 button {
-  width: 100%;
+  width: 60%;
   padding: 12px;
-  margin-top: 1rem;
+  margin-top: 2rem;
   border: none;
   border-radius: 4px;
   color: #fff;
@@ -114,9 +114,4 @@ button:hover {
   opacity: 0.8;
 }
 
-@media screen and (max-width: 400px) {
-  .login-box {
-    width: 90%;
-  }
-}
 </style>
