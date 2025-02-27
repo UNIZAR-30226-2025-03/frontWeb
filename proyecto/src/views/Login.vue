@@ -15,7 +15,7 @@
       <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
       <!-- BORRAR CUANDO SE IMPLEMENTE EL LOG IN-->
       <router-link to="/home"> 
-          <span>Boton temporal home</span>
+          <span>Boton temporal home home home home</span>
       </router-link>
     </div>
   </div>
