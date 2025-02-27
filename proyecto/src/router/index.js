@@ -6,8 +6,8 @@ import Signin from '../views/Signin.vue';
 import Pwd from '../views/Pwd.vue';
 
 const routes = [
-  { path: '/', component: Home }, // Ruta principal
-  { path: '/login', component: Login},
+  { path: '/', component: Login }, // Ruta principal
+  { path: '/home', component: Home},
   { path: '/signin', component: Signin},
   { path: '/pwd', component: Pwd}
 ];

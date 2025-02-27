@@ -3,9 +3,9 @@
     <!-- Sección Escuchado Recientemente -->
     <section class="recently-played">
       <h2>Escuchado Recientemente</h2>
-      <div class="grid-container">
-        <div v-for="(item, index) in recentlyPlayed" :key="index" class="playlist-item">
-          <input type="text" :value="item.title" readonly />
+      <div class="grid-icons">
+        <div v-for="(item, index) in recentlyPlayed" :key="index" class="recommendation-item">
+            <div class="icon-placeholder"> ♬ </div>
         </div>
       </div>
     </section>
@@ -33,15 +33,13 @@ import { ref } from 'vue';
 const recentlyPlayed = ref([
   { title: 'playlist1' },
   { title: 'playlist2' },
-  { title: 'playlist3' },
-  { title: 'playlist4' },
-  { title: 'playlist5' },
-  { title: 'playlist6' }
+  { title: 'playlist3' }
 ]);
 
 const recommendations = ref([
   { title: 'Éxitos 90s' },
   { title: 'Icon Name' },
+
   { title: 'Icon Name' },
   { title: 'Icon Name' },
   { title: 'Icon Name' },
@@ -55,7 +53,7 @@ const recommendations = ref([
   flex-direction: column;
   padding: 16px;
   align-items: center;
-  color: white;
+  color:  #ffa500;
 }
 
 .recently-played, .recommendations {
@@ -78,18 +76,18 @@ const recommendations = ref([
   text-align: left;
   padding-left: 6 px;
   font-weight: bold;
-  border-radius: 8px;
-
+  border-radius: 16px;
   cursor: pointer;
+  color:  #ffa500;
+  background-color:  #121212;
 
-  color: black;
-	background: white;
 }
 
 .divider {
   background: white;
   width: 65%;
   margin: 16px auto;
+  
 }
 
 .grid-icons {

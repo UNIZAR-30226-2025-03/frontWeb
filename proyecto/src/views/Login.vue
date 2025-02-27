@@ -13,6 +13,10 @@
 
       <button class="login-btn">INICIA SESIÓN</button>
       <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
+      <!-- BORRAR CUANDO SE IMPLEMENTE EL LOG IN-->
+      <router-link to="/home"> 
+          <span>Boton temporal home</span>
+      </router-link>
     </div>
   </div>
 </template>
@@ -38,7 +42,7 @@ const handleRegister = () => {
   left: 0;
   width: 100%;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.95); 
+  background-color: #1a1a1a; 
   z-index: 9999; 
   display: flex;
   justify-content: center;

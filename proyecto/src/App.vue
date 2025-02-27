@@ -1,8 +1,8 @@
 <template>
   <div id="app">
     <nav>
-      <router-link to="/">Home</router-link>
-      <router-link to="/login">Login</router-link>
+      <router-link to="/">Login</router-link>
+      <router-link to="/login">Home</router-link>
     </nav>
 
     <div class="container">
@@ -19,7 +19,7 @@
       
         <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" />
 
-        <router-link to="/login">
+        <router-link to="/">
         <img 
           class="image-right" 
           :src="userIcon" 
@@ -127,7 +127,7 @@ function getIconPosition(index, total) {
 .container {
   width: 100vw;
   height: 100vh;
-  background-color: black;
+  background-color:  #1a1a1a;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -143,7 +143,7 @@ function getIconPosition(index, total) {
   left: 0;
   right: 0;
   padding: 10px 15px;
-  background-color: black;
+  background-color: #1d1c1c;
   z-index: 1000;
 }
 
