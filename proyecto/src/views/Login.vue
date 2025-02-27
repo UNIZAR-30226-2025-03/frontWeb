@@ -4,10 +4,10 @@
       <h2>Bienvenido a GoBeat</h2>
 
       <label for="email">Correo Electrónico</label>
-      <input type="email" placeholder="Introduce tu correo" name="email" required />
+      <input type="email"  v-model="email" placeholder="Introduce tu correo" name="email" required />
 
       <label for="password">Contraseña</label>
-      <input type="password" placeholder="Introduce tu contraseña" name="password" required />
+      <input type="password" v-model="password" placeholder="Introduce tu contraseña" name="password" required />
 
       <a href="/Pwd" class="forgot-password">He olvidado mi contraseña</a>
 
@@ -15,16 +15,27 @@
       <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
       <!-- BORRAR CUANDO SE IMPLEMENTE EL LOG IN-->
       <router-link to="/home"> 
-          <span>Boton temporal home home home home</span>
+          <span @click="closeLogin">Boton temporal home</span>
       </router-link>
     </div>
   </div>
 </template>
 
 <script setup>
+import {inject, onMounted, ref} from "vue";
 import { useRouter } from 'vue-router';
 
+const email = ref("");
+const password = ref("");
+
 const router = useRouter();
+
+const isLoginOpen=inject('LoginOpen')
+
+const closeLogin=()=>{
+  isLoginOpen.value=false;
+  //router.push('/home');
+}
 
 const handleLogin = () => {
   // Lógica de autenticación
@@ -33,6 +44,35 @@ const handleLogin = () => {
 const handleRegister = () => {
   router.push('/Signin');
 };
+
+//login
+onMounted(async () => {
+  try {
+    const response = await fetch('http://48.209.24.188:3000/auth/login', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        Email: email.value, // 🔹 Accedemos correctamente al valor
+        Password: password.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error en la autenticación');
+    }
+
+    console.log('Login exitoso:', data);
+    errorMessage.value = '';
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
+});
 </script>
 
 <style scoped>
