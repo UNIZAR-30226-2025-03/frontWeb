@@ -32,7 +32,7 @@
     left: 0;
     width: 100%;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.95); 
+    background-color: #1a1a1a;
     z-index: 9999; 
     display: flex;
     justify-content: center;
@@ -43,7 +43,7 @@
     text-align: center;
     background-color: #1a1a1a;
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: 25px;
     box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
     width: 100%;
     max-width: 500px;
@@ -66,15 +66,15 @@
   }
   
   input::placeholder {
-    color: #ccc;
+    color: #ababa5;
   }
   
   button {
-    width: 100%;
+    width: 50%;
     padding: 12px;
     margin-top: 1rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 10px;
     color: #fff;
     font-weight: bold;
     cursor: pointer;

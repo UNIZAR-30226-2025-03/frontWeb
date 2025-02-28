@@ -93,7 +93,7 @@ onMounted(async () => {
   text-align: center;
   background-color: #1a1a1a;
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: 25px;
   box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
   width: 90%;
   max-width: 450px;
@@ -112,7 +112,7 @@ label {
 }
 
 input[type="email"], input[type="password"] {
-  width: 100%;
+  width: 95%;
   padding: 10px;
   margin-top: 8px;
   border: 1px solid #ffa500;
@@ -122,7 +122,7 @@ input[type="email"], input[type="password"] {
 }
 
 input::placeholder {
-  color: #ccc;
+  color: #ababa5;
 }
 
 .forgot-password {

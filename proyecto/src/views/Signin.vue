@@ -16,6 +16,13 @@
       <label for="born">Fecha de nacimiento</label>
       <input type="born" placeholder="Introduce tu fecha de nacimiento" name="born" required />
 
+      <label for="pwd">Contraseña </label>
+      <input type="pwd" placeholder="Introduce tu contraseña" name="pwd" required />
+
+      <label for="confirm_pwd">Confirmar contraseña </label>
+      <input type="confirm_pwd" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
+
+
       <button class="register-btn">REGISTRAR</button>
       
     </div>
@@ -39,7 +46,7 @@
   left: 0;
   width: 100%;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.95); 
+  background-color: #1a1a1a;
   z-index: 9999; 
   display: flex;
   justify-content: center;
@@ -50,15 +57,16 @@
   text-align: center;
   background-color: #1a1a1a;
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: 20px;
   box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
   width: 90%;
   max-width: 450px;
+  max-height: 85vh;
 }
 
 h2 {
   color: #ffa500;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 label {
@@ -68,7 +76,7 @@ label {
   margin-top: 1rem;
 }
 
-input[type="name"], input[type="email"], input[type="user"], input[type="born"]{
+input{
   width: 95%;
   padding: 10px;
   margin-top: 8px;
@@ -79,7 +87,7 @@ input[type="name"], input[type="email"], input[type="user"], input[type="born"]{
 }
 
 input::placeholder {
-  color: #ccc;
+  color: #ababa5;
 }
 
 .forgot-password {
@@ -94,7 +102,7 @@ input::placeholder {
 button {
   width: 60%;
   padding: 12px;
-  margin-top: 2rem;
+  margin-top: 1.25rem;
   border: none;
   border-radius: 4px;
   color: #fff;
