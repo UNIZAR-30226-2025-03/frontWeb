@@ -27,8 +27,6 @@ const password = ref("");
 const errorMessage = ref("");
 const router = useRouter();
 
-
-
 const handleRegister = () => {
   router.push('/Signin');
 };
