@@ -4,39 +4,69 @@
     <div class="login-box">
       <h2>Crear cuenta</h2>
 
-      <label for="name">Nombre y apellidos</label>
-      <input type="name" placeholder="Introduce tu nombre y apellidos" name="name" required />
-
       <label for="email">Correo Electrónico</label>
-      <input type="email" placeholder="Introduce tu correo" name="email" required />
+      <input type="email" v-model="email"placeholder="Introduce tu correo" name="email" required />
 
       <label for="user">Usuario</label>
-      <input type="user" placeholder="Introduce tu nombre de usuario" name="user" required />
+      <input type="user" v-model="user" placeholder="Introduce tu nombre de usuario" name="user" required />
 
       <label for="born">Fecha de nacimiento</label>
-      <input type="born" placeholder="Introduce tu fecha de nacimiento" name="born" required />
+      <input type="born" v-model="fecha" placeholder="Introduce tu fecha de nacimiento" name="born" required />
 
       <label for="pwd">Contraseña </label>
-      <input type="pwd" placeholder="Introduce tu contraseña" name="pwd" required />
+      <input type="password" v-model="password" placeholder="Introduce tu contraseña" name="pwd" required />
 
       <label for="confirm_pwd">Confirmar contraseña </label>
-      <input type="confirm_pwd" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
+      <input type="password" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
 
 
-      <button class="register-btn">REGISTRAR</button>
+      <button @click="handleRegister" class="register-btn">REGISTRAR</button>
       
     </div>
   </div>
 </template>
   
   <script setup>
-  import xicon from '@/assets/x.svg';
-  import {inject} from "vue";
+  import {ref} from "vue";
   import { useRouter } from 'vue-router';
-
+  const email = ref("");
+  const password = ref("");
+  const user = ref("");
+  const fecha = ref("");
+  
+  const errorMessage = ref("");
   const router = useRouter();
+  
+  const handleRegister = async () => {
+  try {
+    const response = await fetch('http://48.209.24.188:3000/users/register', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        Email: email.value, // 🔹 Accedemos correctamente al valor
+        Password: password.value,
+        Nick: user.value,
+        FechaNacimiento: fecha.value
+      })
+    });
 
-  </script>
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error en el registro');
+    }
+
+    console.log('Registro exitoso:', data);
+    errorMessage.value = 'error';
+    router.push('/');
+
+  } catch (error) {
+    console.error('Error:', error);
+}}
+</script>
   
 
 <style scoped>

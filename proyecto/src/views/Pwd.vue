@@ -4,25 +4,48 @@
         <h2>Recuperar contraseña</h2>
         <span>Intrduce tu correo electrónico y te enviaremos instrucciones para recuperar tu contraseña </span>
   
-        <input type="email" placeholder="Introduce tu correo" name="email" required />
+        <input type="email" v-model="email" placeholder="Introduce tu correo" name="email" required />
   
-        <button>ENVIAR</button>
+        <button @click="handlerPwd">ENVIAR</button>
       </div>
     </div>
   </template>
   
   <script setup>
+  import {ref} from "vue";
   import { useRouter } from 'vue-router';
+  const email = ref("");
   
+  const errorMessage = ref("");
   const router = useRouter();
   
-  const handleLogin = () => {
-    // Lógica de autenticación
-  };
-  
-  const handleRegister = () => {
-    router.push('/Signin');
-  };
+  const handlerPwd = async () => {
+  try {
+    const response = await fetch('http://48.209.24.188:3000/auth/forgot-password', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        Email: email.value // 🔹 Accedemos correctamente al valor
+        
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error en la solicitud');
+    }
+
+    console.log('solicitud exitosa:', data);
+    errorMessage.value = 'error';
+    router.push('/');
+
+  } catch (error) {
+    console.error('Error:', error);
+}}
   </script>
   
   <style scoped>

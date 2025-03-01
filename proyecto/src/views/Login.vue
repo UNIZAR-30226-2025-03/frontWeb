@@ -11,42 +11,30 @@
 
       <a href="/Pwd" class="forgot-password">He olvidado mi contraseña</a>
 
-      <button class="login-btn">INICIA SESIÓN</button>
+      <button @click="handleLogin" class="login-btn">INICIA SESIÓN</button>
       <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
-      <!-- BORRAR CUANDO SE IMPLEMENTE EL LOG IN-->
-      <router-link to="/home"> 
-          <span @click="closeLogin">Boton temporal home</span>
-      </router-link>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import {inject, onMounted, ref} from "vue";
+import {inject, ref} from "vue";
 import { useRouter } from 'vue-router';
 
 const email = ref("");
 const password = ref("");
-
+const errorMessage = ref("");
 const router = useRouter();
 
-const isLoginOpen=inject('LoginOpen')
 
-const closeLogin=()=>{
-  isLoginOpen.value=false;
-  //router.push('/home');
-}
-
-const handleLogin = () => {
-  // Lógica de autenticación
-};
 
 const handleRegister = () => {
   router.push('/Signin');
 };
 
 //login
-onMounted(async () => {
+  const handleLogin = async () => {
   try {
     const response = await fetch('http://48.209.24.188:3000/auth/login', {
       method: 'POST',
@@ -67,12 +55,14 @@ onMounted(async () => {
     }
 
     console.log('Login exitoso:', data);
-    errorMessage.value = '';
+    errorMessage.value = 'error';
+    router.push('/home');
+
   } catch (error) {
     console.error('Error:', error);
   }
-
-});
+  
+};
 </script>
 
 <style scoped>
