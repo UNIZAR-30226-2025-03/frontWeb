@@ -100,13 +100,6 @@ button {
   color: #fff;
   font-weight: bold;
   cursor: pointer;
-}
-
-.login-btn {
-  background-color: #ffc107;
-}
-
-.register-btn {
   background-color: #ff5722;
 }
 
