@@ -1,14 +1,9 @@
 <template>
   <div id="app">
-    <nav>
-      <router-link to="/">Login</router-link>
-      <router-link to="/login">Home</router-link>
-    </nav>
 
     <div class="container">
       <div class="header">
 
-    
           <!-- Imagen que activa el menú -->
           <img 
             class="image-left" 

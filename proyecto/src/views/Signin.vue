@@ -4,32 +4,69 @@
     <div class="login-box">
       <h2>Crear cuenta</h2>
 
-      <label for="name">Nombre y apellidos</label>
-      <input type="name" placeholder="Introduce tu nombre y apellidos" name="name" required />
-
       <label for="email">Correo Electrónico</label>
-      <input type="email" placeholder="Introduce tu correo" name="email" required />
+      <input type="email" v-model="email"placeholder="Introduce tu correo" name="email" required />
 
       <label for="user">Usuario</label>
-      <input type="user" placeholder="Introduce tu nombre de usuario" name="user" required />
+      <input type="user" v-model="user" placeholder="Introduce tu nombre de usuario" name="user" required />
 
       <label for="born">Fecha de nacimiento</label>
-      <input type="born" placeholder="Introduce tu fecha de nacimiento" name="born" required />
+      <input type="born" v-model="fecha" placeholder="Introduce tu fecha de nacimiento" name="born" required />
 
-      <button class="register-btn">REGISTRAR</button>
+      <label for="pwd">Contraseña </label>
+      <input type="password" v-model="password" placeholder="Introduce tu contraseña" name="pwd" required />
+
+      <label for="confirm_pwd">Confirmar contraseña </label>
+      <input type="password" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
+
+
+      <button @click="handleRegister" class="register-btn">REGISTRAR</button>
       
     </div>
   </div>
 </template>
   
   <script setup>
-  import xicon from '@/assets/x.svg';
-  import {inject} from "vue";
+  import {ref} from "vue";
   import { useRouter } from 'vue-router';
-
+  const email = ref("");
+  const password = ref("");
+  const user = ref("");
+  const fecha = ref("");
+  
+  const errorMessage = ref("");
   const router = useRouter();
+  
+  const handleRegister = async () => {
+  try {
+    const response = await fetch('http://48.209.24.188:3000/users/register', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        Email: email.value, // 🔹 Accedemos correctamente al valor
+        Password: password.value,
+        Nick: user.value,
+        FechaNacimiento: fecha.value
+      })
+    });
 
-  </script>
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error en el registro');
+    }
+
+    console.log('Registro exitoso:', data);
+    errorMessage.value = 'error';
+    router.push('/');
+
+  } catch (error) {
+    console.error('Error:', error);
+}}
+</script>
   
 
 <style scoped>
@@ -39,7 +76,7 @@
   left: 0;
   width: 100%;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.95); 
+  background-color: #1a1a1a;
   z-index: 9999; 
   display: flex;
   justify-content: center;
@@ -50,15 +87,16 @@
   text-align: center;
   background-color: #1a1a1a;
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: 20px;
   box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
   width: 90%;
   max-width: 450px;
+  max-height: 85vh;
 }
 
 h2 {
   color: #ffa500;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 label {
@@ -68,7 +106,7 @@ label {
   margin-top: 1rem;
 }
 
-input[type="name"], input[type="email"], input[type="user"], input[type="born"]{
+input{
   width: 95%;
   padding: 10px;
   margin-top: 8px;
@@ -79,7 +117,7 @@ input[type="name"], input[type="email"], input[type="user"], input[type="born"]{
 }
 
 input::placeholder {
-  color: #ccc;
+  color: #ababa5;
 }
 
 .forgot-password {
@@ -94,7 +132,7 @@ input::placeholder {
 button {
   width: 60%;
   padding: 12px;
-  margin-top: 2rem;
+  margin-top: 1.25rem;
   border: none;
   border-radius: 4px;
   color: #fff;

@@ -4,25 +4,48 @@
         <h2>Recuperar contraseña</h2>
         <span>Intrduce tu correo electrónico y te enviaremos instrucciones para recuperar tu contraseña </span>
   
-        <input type="email" placeholder="Introduce tu correo" name="email" required />
+        <input type="email" v-model="email" placeholder="Introduce tu correo" name="email" required />
   
-        <button>ENVIAR</button>
+        <button @click="handlerPwd">ENVIAR</button>
       </div>
     </div>
   </template>
   
   <script setup>
+  import {ref} from "vue";
   import { useRouter } from 'vue-router';
+  const email = ref("");
   
+  const errorMessage = ref("");
   const router = useRouter();
   
-  const handleLogin = () => {
-    // Lógica de autenticación
-  };
-  
-  const handleRegister = () => {
-    router.push('/Signin');
-  };
+  const handlerPwd = async () => {
+  try {
+    const response = await fetch('http://48.209.24.188:3000/auth/forgot-password', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        Email: email.value // 🔹 Accedemos correctamente al valor
+        
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Error en la solicitud');
+    }
+
+    console.log('solicitud exitosa:', data);
+    errorMessage.value = 'error';
+    router.push('/');
+
+  } catch (error) {
+    console.error('Error:', error);
+}}
   </script>
   
   <style scoped>
@@ -32,7 +55,7 @@
     left: 0;
     width: 100%;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.95); 
+    background-color: #1a1a1a;
     z-index: 9999; 
     display: flex;
     justify-content: center;
@@ -43,7 +66,7 @@
     text-align: center;
     background-color: #1a1a1a;
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: 25px;
     box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
     width: 100%;
     max-width: 500px;
@@ -66,15 +89,15 @@
   }
   
   input::placeholder {
-    color: #ccc;
+    color: #ababa5;
   }
   
   button {
-    width: 100%;
+    width: 50%;
     padding: 12px;
     margin-top: 1rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 10px;
     color: #fff;
     font-weight: bold;
     cursor: pointer;
