@@ -5,28 +5,60 @@
         <span>Intrduce tu nueva contraseña y confírmala </span>
         
         <label for="pwd">Nueva contraseña</label>
-        <input type="pwd" placeholder="Introduce tu nueva contraseña" name="pwd" required />
+        <input type="pwd" v-model="pwd" placeholder="Introduce tu nueva contraseña" name="pwd" required />
         
         <label for="confirm_pwd">Confirmar contraseña</label>
         <input type="confirm_pwd" placeholder="Confirma tu nueva contraseña" name="confirm_pwd" required />
         
-        <button>CONFIRMAR</button>
+        <button @click="handlerPwd">CONFIRMAR</button>
       </div>
     </div>
   </template>
   
   <script setup>
-  import { useRouter } from 'vue-router';
-  
-  const router = useRouter();
-  
-  const handleLogin = () => {
-    // Lógica de autenticación
-  };
-  
-  const handleRegister = () => {
-    router.push('/Signin');
-  };
+
+  import {ref,onMounted } from "vue";
+  import { useRouter, useRoute } from 'vue-router';
+  const router = useRouter(); // las rutas del index
+  const route = useRoute(); // route es la ruta del url
+
+  const pwd = ref("");
+  const errorMessage = ref(""); 
+  const token = ref("");
+
+  onMounted(() => {
+  token.value = route.query.token;
+  console.log('Token recibido:', token.value);
+});
+
+  const handlerPwd = async () => {
+    try {
+      const response = await fetch('http://48.209.24.188:3000/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          Token: token.value,
+          NewPassword: pwd.value 
+
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Error en el cambio de contraseña');
+      }
+
+      console.log('cambio de contraseña exitoso:', data);
+      errorMessage.value = 'error';
+      router.push('/');
+
+    } catch (error) {
+      console.error('Error:', error);
+  }}
   </script>
   
   <style scoped>

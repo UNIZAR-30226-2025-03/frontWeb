@@ -11,7 +11,7 @@ const routes = [
   { path: '/home', component: Home},
   { path: '/signin', component: Signin},
   { path: '/pwd', component: Pwd},
-  { path: '/change_pwd', component: Change_pwd}
+  { path: '/reset-password', component: Change_pwd}
 ];
 
 const router = createRouter({

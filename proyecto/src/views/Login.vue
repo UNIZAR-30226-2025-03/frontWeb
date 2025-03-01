@@ -22,17 +22,8 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
 
-const router = useRouter();
 
-const handleLogin = () => {
-  // Lógica de autenticación
-};
-
-const handleRegister = () => {
-  router.push('/Signin');
-};
 </script>
 
 <style scoped>
