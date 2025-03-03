@@ -1,5 +1,17 @@
 <template>
   <div class="homepage-container">
+
+    <!-- Seccion canciones de lista actual-->
+    <div class="container">
+      <div class="sidebar">
+        Sidebar
+      </div>
+      <div class="content">
+        Contenido principal
+      </div>
+      
+  </div>
+  
     <!-- Sección Escuchado Recientemente -->
     <section class="recently-played">
       <h2>Escuchado Recientemente</h2>
@@ -63,6 +75,25 @@ const recommendations = ref([
   margin-bottom: 16px;
 }
 
+.sidebar {
+  width: 250px;
+  color: white;
+  padding: 20px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background-color: #222222;
+  box-shadow: 10px 0 5px rgba(1, 1, 1, 0.6); /* Sombra en el lado derecho */
+
+}
+
+.content {
+  margin-left: 250px;
+  flex-grow: 1;
+  padding: 20px;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -84,10 +115,21 @@ const recommendations = ref([
 }
 
 .divider {
-  background: white;
-  width: 65%;
+  background: #ffa500;
+  opacity: 1;
+  border: #0A0A0A;
+  border-radius: 25px;
+  height: 1vh;
+  width: 50%;
   margin: 16px auto;
   
+}
+.divider.lat{
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1vw;
 }
 
 .grid-icons {

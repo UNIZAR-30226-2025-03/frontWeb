@@ -5,7 +5,7 @@
       <h2>Crear cuenta</h2>
 
       <label for="email">Correo Electrónico</label>
-      <input type="email" v-model="email"placeholder="Introduce tu correo" name="email" required />
+      <input type="email" v-model="email" placeholder="Introduce tu correo" name="email" required />
 
       <label for="user">Usuario</label>
       <input type="user" v-model="user" placeholder="Introduce tu nombre de usuario" name="user" required />

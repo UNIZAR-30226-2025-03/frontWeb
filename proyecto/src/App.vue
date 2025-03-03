@@ -122,7 +122,7 @@ function getIconPosition(index, total) {
 .container {
   width: 100vw;
   height: 100vh;
-  background-color:  #1a1a1a;
+  background-color:  #222222;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -138,8 +138,9 @@ function getIconPosition(index, total) {
   left: 0;
   right: 0;
   padding: 10px 15px;
-  background-color: #1d1c1c;
+  background-color: #111;
   z-index: 1000;
+  box-shadow: 0px 10px 4px rgba(1, 1, 1, 0.9);
 }
 
 /* Imagenes */
@@ -230,6 +231,8 @@ function getIconPosition(index, total) {
   padding: 10px 0;
   z-index: 1000;
   color: white;
+  box-shadow: 0px -10px 6px rgba(1, 1, 1, 0.9);
+  
 }
 
 /* Controles de música */
