@@ -13,7 +13,7 @@ const routes = [
   { path: '/home', component: Home},
   { path: '/signin', component: Signin},
   { path: '/pwd', component: Pwd},
-  { path: '/test', component: Prueba}
+  { path: '/test', component: Prueba},
   { path: '/reset-password', component: Change_pwd}
 
 ];

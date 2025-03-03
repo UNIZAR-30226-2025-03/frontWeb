@@ -11,33 +11,51 @@
       <input type="user" v-model="user" placeholder="Introduce tu nombre de usuario" name="user" required />
 
       <label for="born">Fecha de nacimiento</label>
-      <input type="born" v-model="fecha" placeholder="Introduce tu fecha de nacimiento" name="born" required />
+      <input type="date" v-model="fecha" name="born" required/>
 
       <label for="pwd">Contraseña </label>
       <input type="password" v-model="password" placeholder="Introduce tu contraseña" name="pwd" required />
 
       <label for="confirm_pwd">Confirmar contraseña </label>
-      <input type="password" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
-
+      <input type="password" v-model="confirmPassword" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
 
       <button @click="handleRegister" class="register-btn">REGISTRAR</button>
       
     </div>
+    <div v-if="showPopup" class="popup-error">
+      {{ popupMessage }}
+    </div>
   </div>
 </template>
   
-  <script setup>
-  import {ref} from "vue";
-  import { useRouter } from 'vue-router';
-  const email = ref("");
-  const password = ref("");
-  const user = ref("");
-  const fecha = ref("");
+<script setup>
+import {ref} from "vue";
+import { useRouter } from 'vue-router';
+const email = ref("");
+const password = ref("");
+const confirmPassword = ref("");
+const user = ref("");
+const fecha = ref("");
+
+const router = useRouter();
+
+const showPopup = ref(false);
+const popupMessage = ref("");
+
+const showErrorPopup = (message) => {
+  popupMessage.value = message;
+  showPopup.value = true;
+
+setTimeout(() => {
+  showPopup.value = false;
+}, 3000); // Cierra el popup después de 3 segundos
+};
   
-  const errorMessage = ref("");
-  const router = useRouter();
-  
-  const handleRegister = async () => {
+const handleRegister = async () => {
+  if (password.value !== confirmPassword.value) {
+    showErrorPopup("Las contraseñas no coinciden");
+    return;
+  }
   try {
     const response = await fetch('http://48.209.24.188:3000/users/register', {
       method: 'POST',
@@ -46,7 +64,7 @@
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        Email: email.value, // 🔹 Accedemos correctamente al valor
+        Email: email.value, 
         Password: password.value,
         Nick: user.value,
         FechaNacimiento: fecha.value
@@ -60,11 +78,10 @@
     }
 
     console.log('Registro exitoso:', data);
-    errorMessage.value = 'error';
     router.push('/');
 
   } catch (error) {
-    console.error('Error:', error);
+    showErrorPopup("Error en el registro: " + error.message);
 }}
 </script>
   
@@ -106,6 +123,13 @@ label {
   margin-top: 1rem;
 }
 
+
+/* Cambiar el icono del calendario */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1); /* Invierte el color del icono */
+  cursor: pointer;
+}
+
 input{
   width: 95%;
   padding: 10px;
@@ -120,21 +144,12 @@ input::placeholder {
   color: #ababa5;
 }
 
-.forgot-password {
-  display: block;
-  text-align: right;
-  margin-top: 0.5rem;
-  color: #ffa500;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
 button {
   width: 60%;
   padding: 12px;
   margin-top: 1.25rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   color: #fff;
   font-weight: bold;
   cursor: pointer;
@@ -143,6 +158,27 @@ button {
 
 button:hover {
   opacity: 0.8;
+}
+
+.popup-error {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 87, 34, 0.9);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  90% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
 
 </style>
