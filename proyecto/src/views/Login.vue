@@ -118,8 +118,26 @@ input::placeholder {
   text-align: right;
   margin-top: 0.5rem;
   color: #ffa500;
-  text-decoration: none;
+  text-decoration: underline;
   font-size: 0.9rem;
+  
+}
+
+
+.forgot-password::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  background-color: #ffa500;
+  transform-origin: left;
+  transition: transform 0.3s ease-in-out;
+}
+
+.forgot-password:hover {
+  color: #ffcc00;
 }
 
 button {

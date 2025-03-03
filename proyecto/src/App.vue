@@ -5,21 +5,12 @@
       <div class="header">
 
           <!-- Imagen que activa el menú -->
-          <img 
-            class="image-left" 
-            :src="previewIcon" 
-            alt="Preview" 
-            @click="toggleMenu" 
-          />
+          <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
       
         <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" />
 
         <router-link to="/">
-        <img 
-          class="image-right" 
-          :src="userIcon" 
-          alt="User" 
-          @click="openLogin"
+        <img class="image-right" :src="userIcon" alt="User" @click="openLogin"
         />
 
       </router-link>
@@ -40,13 +31,13 @@
         </div>
         <div class="progress-container">
           <div class="song-info">
-            <img :src="recordVinylIcon" alt="Song Icon" class="song-icon" />
-            <span class="song-name">Canción en reproducción</span>
+            <!-- Mostrar la portada y el nombre de la canción -->
+            <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
+            <span class="song-name">{{ lastSong.name }}</span>
           </div>
           <input type="range" class="progress-bar" min="0" max="100" v-model="progress" />
         </div>
       </div>
-
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
 
@@ -56,7 +47,8 @@
           <button class="menu-item" 
             v-for="(icon, index) in menuIcons" 
             :key="index" 
-            :style="getIconPosition(index, menuIcons.length)">
+            :style="getIconPosition(index, menuIcons.length)"
+            @click="icon.action">
             <img :src="icon.src" :alt="icon.alt" />
           </button>
         </div>
@@ -66,7 +58,7 @@
 </template>
 
 <script setup>
-import { provide, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
@@ -80,22 +72,71 @@ import friendsIcon from '@/assets/following.svg';
 import starIcon from '@/assets/star.svg';
 import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
+import createList from '@/assets/task-checklist.svg'
 import router from './router';
 
-
 // Variables reactivas
+const lastSong = ref({
+  name: '',
+  cover: '',
+  minute: 0
+});
+
 const isMenuOpen = ref(false);
 const isPlaying = ref(false);
 const progress = ref(0);
+const songDuration = ref(180);     // Duración de la canción en segundos
+const audioPlayer = ref(null);     // Referencia al audio player
+
 const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos' },
   { src: starIcon, alt: 'Favoritos' },
   { src: settingsIcon, alt: 'Configuración' },
-  { src: albumIcon, alt: 'Álbum' }
+  { src: albumIcon, alt: 'Álbum' },
+  { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
+onMounted(async () => {
+  try {
+    const email = 'a@gmail.com'; // adaptar al email con la sesión iniciada
+    const songResponse = await fetch(`http://48.209.24.188:3000/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
+    if (!songResponse.ok) throw new Error('Error al obtener la última canción');
 
-// Métodos
+    const songData = await songResponse.json();
+    
+    // Extraer los datos de la respuesta
+    const songName = songData.Nombre;
+    const songCover = songData.Portada;
+    const songMinute = songData.MinutoEscucha;
+
+    // Asignar los datos a las variables reactivas
+    lastSong.value = {
+      name: songName,
+      cover: songCover,
+      minute: songMinute,
+    };
+
+    // Establecer la barra de progreso de acuerdo con el minuto de escucha
+    progress.value = (lastSong.value.minute / songDuration.value) * 100;
+
+    console.log('Última canción:', lastSong.value);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+});
+
+// Función para alternar entre reproducir y pausar
+function togglePlay() {
+  if (audioPlayer.value.paused) {
+    audioPlayer.value.currentTime = lastSong.value.minute;  // Reproducir desde el minuto guardado
+    audioPlayer.value.play();
+    isPlaying.value = true;
+  } else {
+    audioPlayer.value.pause();
+    isPlaying.value = false;
+  }
+}
+
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
 }
@@ -104,18 +145,20 @@ function closeMenu() {
   isMenuOpen.value = false;
 }
 
-function togglePlay() {
-  isPlaying.value = !isPlaying.value;
-}
-
+// Función para obtener la posición de los íconos en el menú
 function getIconPosition(index, total) {
   const angle = (index / (total - 1)) * (Math.PI / 2);
-  const radius = 100;
+  const radius = 120;
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius;
   return { transform: `translate(${x}px, ${y}px)` };
 }
 </script>
+
+<style scoped>
+/* Estilos CSS previamente proporcionados */
+</style>
+
 
 <style scoped>
 /* Fondo negro */
