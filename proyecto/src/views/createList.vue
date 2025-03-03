@@ -61,7 +61,7 @@
   };
   
   const handleCreateList = async () => {
-    if (!listName.value.trim()) {
+    if (!nombre.value.trim()) {
       showPopupMessage("El nombre de la lista es obligatorio.", "popup-error");
       return;
     }
