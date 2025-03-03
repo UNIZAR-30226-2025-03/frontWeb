@@ -47,7 +47,8 @@
           <button class="menu-item" 
             v-for="(icon, index) in menuIcons" 
             :key="index" 
-            :style="getIconPosition(index, menuIcons.length)">
+            :style="getIconPosition(index, menuIcons.length)"
+            @click="icon.action">
             <img :src="icon.src" :alt="icon.alt" />
           </button>
         </div>
@@ -71,6 +72,7 @@ import friendsIcon from '@/assets/following.svg';
 import starIcon from '@/assets/star.svg';
 import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
+import createList from '@/assets/task-checklist.svg'
 import router from './router';
 
 // Variables reactivas
@@ -90,7 +92,8 @@ const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos' },
   { src: starIcon, alt: 'Favoritos' },
   { src: settingsIcon, alt: 'Configuración' },
-  { src: albumIcon, alt: 'Álbum' }
+  { src: albumIcon, alt: 'Álbum' },
+  { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
 onMounted(async () => {
@@ -145,7 +148,7 @@ function closeMenu() {
 // Función para obtener la posición de los íconos en el menú
 function getIconPosition(index, total) {
   const angle = (index / (total - 1)) * (Math.PI / 2);
-  const radius = 100;
+  const radius = 120;
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius;
   return { transform: `translate(${x}px, ${y}px)` };

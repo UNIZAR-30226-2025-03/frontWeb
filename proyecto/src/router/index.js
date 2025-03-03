@@ -6,6 +6,7 @@ import Signin from '../views/Signin.vue';
 import Pwd from '../views/Pwd.vue';
 import Prueba from '../views/prueba.vue';
 import Change_pwd from '../views/Change_pwd.vue';
+import createList from '../views/createList.vue';
 
 
 const routes = [
@@ -14,7 +15,8 @@ const routes = [
   { path: '/signin', component: Signin},
   { path: '/pwd', component: Pwd},
   { path: '/test', component: Prueba},
-  { path: '/reset-password', component: Change_pwd}
+  { path: '/reset-password', component: Change_pwd},
+  { path: '/createList', component: createList}
 
 ];
 
