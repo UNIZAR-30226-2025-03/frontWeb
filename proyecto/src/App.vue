@@ -24,7 +24,11 @@
 
       </router-link>
       </div>
-      <router-view/>
+
+      <main class="main-content">
+        <router-view />
+      </main>
+
       <!-- Barra de canción -->
       <div class="player-bar">
         <div class="controls">
@@ -134,14 +138,23 @@ function getIconPosition(index, total) {
   align-items: center;
   justify-content: space-between;
   position: fixed;
+  height: 5vh;
   top: 0;
   left: 0;
   right: 0;
   padding: 10px 15px;
-  background-color: #111;
+  background-color: #141414;
+  
   z-index: 1000;
-  box-shadow: 0px 10px 4px rgba(1, 1, 1, 0.9);
+
 }
+
+.main-content {
+  padding-top: 7vh; /* Ajusta según la altura del header */
+  padding-bottom: 12vh; 
+}
+
+
 
 /* Imagenes */
 .image-left, .image-right {
@@ -226,12 +239,13 @@ function getIconPosition(index, total) {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 90px; /* Aumenta la altura para acomodar los controles */
+  height:10vh; /* Aumenta la altura para acomodar los controles */
   background-color: #111;
   padding: 10px 0;
   z-index: 1000;
   color: white;
-  box-shadow: 0px -10px 6px rgba(1, 1, 1, 0.9);
+  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
+  
   
 }
 
