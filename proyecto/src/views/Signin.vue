@@ -22,7 +22,7 @@
       <button @click="handleRegister" class="register-btn">REGISTRAR</button>
       
     </div>
-    <div v-if="showPopup" class="popup-error">
+    <div v-if="showPopup" :class="popupType" class="popup">
       {{ popupMessage }}
     </div>
   </div>
@@ -41,9 +41,11 @@ const router = useRouter();
 
 const showPopup = ref(false);
 const popupMessage = ref("");
+const popupType = ref("popup-error");
 
-const showErrorPopup = (message) => {
+const showPopupMessage = (message, type) => {
   popupMessage.value = message;
+  popupType.value = type;
   showPopup.value = true;
 
 setTimeout(() => {
@@ -52,37 +54,59 @@ setTimeout(() => {
 };
   
 const handleRegister = async () => {
-  if (password.value !== confirmPassword.value) {
-    showErrorPopup("Las contraseñas no coinciden");
+  if (!email.value.trim() || !password.value.trim() || !confirmPassword.value.trim() || !user.value.trim() || !fecha.value.trim()){
+    showPopupMessage("Todos los campos son obligatorios", "popup-error");
+    return;
+  }
+
+  else if (password.value !== confirmPassword.value) {
+    showPopupMessage("Las contraseñas no coinciden", "popup-error");
     return;
   }
   try {
-    const response = await fetch('http://48.209.24.188:3000/users/register', {
-      method: 'POST',
+    // 1️⃣ Verificar si el correo ya está registrado
+    const userResponse = await fetch(
+      `http://48.209.24.188:3000/users/nick?userEmail=${encodeURIComponent(email.value)}`
+    );
+
+    if (userResponse.ok) {
+      const userData = await userResponse.json();
+      if (userData?.Nick) {
+        throw new Error("Ya existe una cuenta con este correo.");
+      }
+    }
+
+    // 2️⃣ Si el usuario no existe, proceder con el registro
+    const response = await fetch("http://48.209.24.188:3000/users/register", {
+      method: "POST",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        Email: email.value, 
+        Email: email.value,
         Password: password.value,
         Nick: user.value,
-        FechaNacimiento: fecha.value
-      })
+        FechaNacimiento: fecha.value,
+      }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Error en el registro');
+      throw new Error(data.message || "Error en el registro");
     }
 
-    console.log('Registro exitoso:', data);
-    router.push('/');
+    showPopupMessage("Registro exitoso", "popup-success");
 
+    // Redirigir al usuario al inicio de sesión
+    setTimeout(() => {
+      router.push("/");
+    }, 2000);
   } catch (error) {
-    showErrorPopup("Error en el registro: " + error.message);
-}}
+    showPopupMessage(error.message, "popup-error");
+  }
+};
 </script>
   
 
@@ -160,18 +184,26 @@ button:hover {
   opacity: 0.8;
 }
 
-.popup-error {
+/* Mensaje emergente */
+.popup {
   position: fixed;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(255, 87, 34, 0.9);
   color: white;
   padding: 10px 20px;
   border-radius: 8px;
   font-weight: bold;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   animation: fadeInOut 3s ease-in-out;
+}
+  
+.popup-error {
+  background: rgba(255, 87, 34, 0.9);
+}
+
+.popup-success {
+  background: rgba(76, 175, 80, 0.9);
 }
 
 @keyframes fadeInOut {
@@ -180,5 +212,4 @@ button:hover {
   90% { opacity: 1; }
   100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
-
 </style>

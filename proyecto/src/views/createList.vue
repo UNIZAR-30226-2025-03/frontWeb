@@ -61,23 +61,23 @@
   };
   
   const handleCreateList = async () => {
-    if (!nombre.value.trim()) {
-      showPopupMessage("El nombre de la lista es obligatorio.", "popup-error");
+    if (!nombre.value.trim() || !descripcion.value.trim() || !genero.value || !privacidad.value) {
+      showPopupMessage("Todos los campos son obligatorios.", "popup-error");
       return;
     }
   
     try {
-      const response = await fetch("http://48.209.24.188:3000/", {
+      const response = await fetch("http://48.209.24.188:3000/playlists", {
         method: "POST",
         headers: {
           "Accept": "application/json",
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          name: nombre.value,
-          description: descripcion.value,
-          gender: genero.value,
-          privacity: privacidad.value
+          nombre: nombre.value,
+          descripcion: descripcion.value,
+          genero: genero.value,
+          privacidad: privacidad.value
         })
       });
   

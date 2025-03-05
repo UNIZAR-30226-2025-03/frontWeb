@@ -13,7 +13,9 @@
 
       <button @click="handleLogin" class="login-btn">INICIA SESIÓN</button>
       <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
-
+    </div>
+    <div v-if="showPopup" :class="popupType" class="popup">
+        {{ popupMessage }}
     </div>
   </div>
 </template>
@@ -27,39 +29,72 @@ const password = ref("");
 const errorMessage = ref("");
 const router = useRouter();
 
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("popup-error");
+
+const showPopupMessage = (message, type) => {
+  popupMessage.value = message;
+  popupType.value = type;
+  showPopup.value = true;
+
+  setTimeout(() => {
+    showPopup.value = false;
+  }, 3000);
+};
+
 const handleRegister = () => {
   router.push('/Signin');
 };
 
-//login
-  const handleLogin = async () => {
+const handleLogin = async () => {
+  if (!email.value.trim() || !password.value.trim()) {
+    showPopupMessage("Correo y contraseña son obligatorios", "popup-error");
+    return;
+  }
+
   try {
-    const response = await fetch('http://48.209.24.188:3000/auth/login', {
-      method: 'POST',
+    // 1️⃣ Verificar si el correo está registrado buscando el nickname
+    const userResponse = await fetch(
+      `http://48.209.24.188:3000/users/nick?userEmail=${encodeURIComponent(email.value)}`
+    );
+
+    if (!userResponse.ok) {
+      throw new Error("No existe una cuenta con este correo.");
+    }
+
+    const userData = await userResponse.json();
+
+    if (!userData || !userData.Nick) {
+      throw new Error("No existe una cuenta con este correo.");
+    }
+
+    // 2️⃣ Si existe el nickname, proceder con el login
+    const loginResponse = await fetch("http://48.209.24.188:3000/auth/login", {
+      method: "POST",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        "Accept": "application/json",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        Email: email.value, // 🔹 Accedemos correctamente al valor
+        Email: email.value,
         Password: password.value
       })
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error en la autenticación');
+    if (!loginResponse.ok) {
+      throw new Error("Credenciales incorrectas. Verifica tu correo y contraseña.");
     }
 
-    console.log('Login exitoso:', data);
-    errorMessage.value = 'error';
-    router.push('/home');
+    showPopupMessage(`Bienvenido, ${userData.Nick}!`, "popup-success");
 
+    // Redirigir al usuario al home
+    setTimeout(() => {
+      router.push("/home");
+    }, 2000);
   } catch (error) {
-    console.error('Error:', error);
+    showPopupMessage(error.message, "popup-error");
   }
-  
 };
 </script>
 
@@ -120,7 +155,6 @@ input::placeholder {
   color: #ffa500;
   text-decoration: underline;
   font-size: 0.9rem;
-  
 }
 
 
@@ -163,4 +197,33 @@ button:hover {
   opacity: 0.8;
 }
 
-</style>
+/* Mensaje emergente */
+.popup {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    animation: fadeInOut 3s ease-in-out;
+  }
+  
+  .popup-error {
+    background: rgba(255, 87, 34, 0.9);
+  }
+  
+  .popup-success {
+    background: rgba(76, 175, 80, 0.9);
+  }
+  
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    90% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  }
+  </style>
+  

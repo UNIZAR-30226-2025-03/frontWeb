@@ -1,32 +1,34 @@
 <template>
     <div class="user-container">
-      <div class="user-box">
-        <h2>Perfil de usuario</h2>
-        <img :src="user.perfil" alt="profile" />
-        <label for="nick">Nickname</label>
-        <div class="nickname-container">
-            <input v-if="editing" v-model="user.nick" class="nickname-input" />
-            <span v-else>{{ user.nick }}</span>
-            <button class="change-btn" @click="toggleEdit">{{ editing ? "Guardar" : "Cambiar" }}</button>
+        <div class="user-box">
+            <h2>Perfil de usuario</h2>
+            <div class="profile-container">
+                <img :src="user.perfil" alt="profile" />
+                <a>Cambiar perfil</a>
+            </div>
+            <label for="nick">Nickname</label>
+            <div class="nickname-container">
+                <input v-if="editing" v-model="user.nick" class="nickname-input" />
+                <span v-else>{{ user.nick }}</span>
+                <button class="change-btn" @click="toggleEdit">{{ editing ? "Guardar" : "Cambiar" }}</button>
+            </div>
+            <label for="born">Fecha de nacimiento</label>
+            <span>{{ user.nacimiento }}</span>
+
+            <label for="privacidad">Privacidad</label>
+            <select v-model="privacidad" required>
+                <option value="public">Público</option>
+                <option value="private">Privado</option>
+                <option value="protected">Protegido</option>
+            </select>
+
+            <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
+            <button class="buttons logout" @click="handleLogout">CERRAR SESIÓN</button>
+            
         </div>
-        <label for="born">Fecha de nacimiento</label>
-        <span>{{ user.nacimiento }}</span>
-
-        <label for="privacidad">Privacidad</label>
-        <select v-model="privacidad" required>
-            <option value="public">Público</option>
-            <option value="private">Privado</option>
-            <option value="protected">Protegido</option>
-        </select>
-
-        <button class="buttons save" @click="handleSave">Guardar cambios</button>
-        <button class="buttons logout" @click="handleLogout">Cerrar sesión</button>
-        
         <div v-if="showPopup" :class="popupType" class="popup">
-        {{ popupMessage }}
-      </div>
-      </div>
-  
+            {{ popupMessage }}
+        </div>
     </div>
   </template>
   
@@ -65,36 +67,35 @@ const editing = ref(false);
 const toggleEdit = () => {
   if (editing.value) {
     console.log("Nuevo nickname:", user.value.nick);
-    // Aquí puedes llamar a una función para guardar el nuevo nickname en el backend
   }
   editing.value = !editing.value;
 };
 
 onMounted(async () => {
     try {
-    const userResponse = await fetch(`http://48.209.24.188:3000/users/get-user?userEmail=${encodeURIComponent(email)}`);
-    if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
+        const userResponse = await fetch(`http://48.209.24.188:3000/users/get-user?userEmail=${encodeURIComponent(email)}`);
+        if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
 
-    const userData = await userResponse.json();
+        const userData = await userResponse.json();
 
-    // Extraer los datos de la respuesta
-    const UserNick = userData.Nick;
-    const UserNacimiento = userData.FechaNacimiento;
-    const UserPerfil = userData.LinkFoto;
-    const UserPrivacidad = userData.BooleanPrivacidad
+        // Extraer los datos de la respuesta
+        const UserNick = userData.Nick;
+        const UserNacimiento = userData.FechaNacimiento;
+        const UserPerfil = userData.LinkFoto;
+        const UserPrivacidad = userData.BooleanPrivacidad
 
-    // Asignar los datos a las variables reactivas
-    user.value = {
-        nick: UserNick,
-        nacimiento: UserNacimiento,
-        perfil: UserPerfil,
-        privacidad: UserPrivacidad
-    };
+        // Asignar los datos a las variables reactivas
+        user.value = {
+            nick: UserNick,
+            nacimiento: UserNacimiento,
+            perfil: UserPerfil,
+            privacidad: UserPrivacidad
+        };
 
-    console.log('Datos de usuario:', user.value);
-    } catch (error) {
-    console.error('Error:', error);
-    }
+        console.log('Datos de usuario:', user.value);
+        } catch (error) {
+        console.error('Error:', error);
+        }
 });
 
 
@@ -196,6 +197,35 @@ input, select {
     background-color: #2a2a2a;
     color: white;
 }
+
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.profile-container img {
+    width: 120px; 
+    height: 120px;
+    border-radius: 50%; 
+    object-fit: cover;
+    border: 2px solid #ffa500; 
+}
+
+.profile-container a {
+    margin-top: 10px;
+    color: #ffa500; 
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none; 
+}
+
+.profile-container a:hover {
+    text-decoration: underline; 
+}
+
 
 .change-btn {
     margin-left: 10px;
