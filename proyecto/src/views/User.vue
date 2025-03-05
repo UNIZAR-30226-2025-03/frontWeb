@@ -1,3 +1,4 @@
+
 <template>
     <div class="user-container">
         <div class="user-box">
@@ -24,7 +25,6 @@
 
             <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
             <button class="buttons logout" @click="handleLogout">CERRAR SESIÓN</button>
-            
         </div>
         <div v-if="showPopup" :class="popupType" class="popup">
             {{ popupMessage }}
@@ -32,30 +32,27 @@
     </div>
   </template>
   
-  <script setup>
-  import { onMounted, ref } from "vue";
-  import { useRouter } from "vue-router";
-  
-  const router = useRouter();
-  const nombre = ref("");
-  const privacidad = ref("public");
-  const email = 'a@gmail.com'; // adaptar al email con la sesión iniciada
-  
-  const showPopup = ref(false);
-  const popupMessage = ref("");
-  const popupType = ref("popup-error");
-  
-  const showPopupMessage = (message, type) => {
+<script setup>
+import { onMounted, ref } from "vue";
+
+const privacidad = ref("public");
+const email = 'a@gmail.com'; // adaptar al email con la sesión iniciada
+
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("popup-error");
+
+const showPopupMessage = (message, type) => {
     popupMessage.value = message;
     popupType.value = type;
     showPopup.value = true;
-  
+
     setTimeout(() => {
-      showPopup.value = false;
+        showPopup.value = false;
     }, 3000);
-  };
-  
-  const user = ref({
+};
+
+const user = ref({
     nick: '',
     perfil: '',
     nacimiento: '',
@@ -93,9 +90,9 @@ onMounted(async () => {
         };
 
         console.log('Datos de usuario:', user.value);
-        } catch (error) {
-        console.error('Error:', error);
-        }
+    } catch (error) {
+    console.error('Error:', error);
+    }
 });
 
 
@@ -118,12 +115,10 @@ const handleSave = async () => {
         throw new Error(data.message || "Error al cambiar el nickname");
     }
 
-    console.log("Nickname cambiado exitosamente:", data);
     showPopupMessage("Nickname actualizado con éxito", "popup-success");
     editing.value = false; // Desactivar modo edición después de guardar
 
 } catch (error) {
-    console.error("Error al actualizar nickname:", error);
     showPopupMessage("Error al actualizar el nickname", "popup-error");
 }
 };
