@@ -1,5 +1,4 @@
 <template>
-  <!-- Repasar css -->
   <div class="login-container">
     <div class="login-box">
       <h2>Crear cuenta</h2>
@@ -20,7 +19,6 @@
       <input type="password" v-model="confirmPassword" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
 
       <button @click="handleRegister" class="register-btn">REGISTRAR</button>
-      
     </div>
     <div v-if="showPopup" :class="popupType" class="popup">
       {{ popupMessage }}
@@ -48,9 +46,9 @@ const showPopupMessage = (message, type) => {
   popupType.value = type;
   showPopup.value = true;
 
-setTimeout(() => {
-  showPopup.value = false;
-}, 3000); // Cierra el popup después de 3 segundos
+  setTimeout(() => {
+    showPopup.value = false;
+  }, 3000); // Cierra el popup después de 3 segundos
 };
   
 const handleRegister = async () => {
