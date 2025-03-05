@@ -32,12 +32,12 @@ const showPopup = ref(false);
 const popupMessage = ref("");
 
 const showErrorPopup = (message) => {
-  popupMessage.value = message;
-  showPopup.value = true;
+popupMessage.value = message;
+showPopup.value = true;
 
-  setTimeout(() => {
-    showPopup.value = false;
-  }, 3000); // Cierra el popup después de 3 segundos
+setTimeout(() => {
+  showPopup.value = false;
+}, 3000); // Cierra el popup después de 3 segundos
 };
 
 onMounted(() => {

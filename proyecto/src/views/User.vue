@@ -1,214 +1,293 @@
 <template>
-  <div class="login-container">
-    <div class="login-box">
-        <h2>Crear cuenta</h2>
+    <div class="user-container">
+        <div class="user-box">
+            <h2>Perfil de usuario</h2>
+            <div class="profile-container">
+                <img :src="user.perfil" alt="profile" />
+                <a>Cambiar perfil</a>
+            </div>
+            <label for="nick">Nickname</label>
+            <div class="nickname-container">
+                <input v-if="editing" v-model="user.nick" class="nickname-input" />
+                <span v-else>{{ user.nick }}</span>
+                <button class="change-btn" @click="toggleEdit">{{ editing ? "Guardar" : "Cambiar" }}</button>
+            </div>
+            <label for="born">Fecha de nacimiento</label>
+            <span>{{ user.nacimiento }}</span>
 
-        <label for="email">Correo Electrónico</label>
-        <input type="email" v-model="email" placeholder="Introduce tu correo" name="email" required />
+            <label for="privacidad">Privacidad</label>
+            <select v-model="privacidad" required>
+                <option value="public">Público</option>
+                <option value="private">Privado</option>
+                <option value="protected">Protegido</option>
+            </select>
 
-        <label for="user">Usuario</label>
-        <input type="user" v-model="user" placeholder="Introduce tu nombre de usuario" name="user" required />
-
-        <label for="born">Fecha de nacimiento</label>
-        <input type="date" v-model="fecha" name="born" required />
-
-        <label for="pwd">Contraseña </label>
-        <input type="password" v-model="password" placeholder="Introduce tu contraseña" name="pwd" required />
-
-        <label for="confirm_pwd">Confirmar contraseña </label>
-        <input type="password" v-model="confirmPassword" placeholder="Confirma tu contraseña" name="confirm_pwd" required />
-
-        <button @click="handleRegister" class="register-btn">REGISTRAR</button>
+            <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
+            <button class="buttons logout" @click="handleLogout">CERRAR SESIÓN</button>
+            
+        </div>
+        <div v-if="showPopup" :class="popupType" class="popup">
+            {{ popupMessage }}
+        </div>
     </div>
-    <div v-if="showPopup" :class="popupType" class="popup">
-        {{ popupMessage }}
-    </div>
-  </div>
-</template>
+  </template>
+  
+  <script setup>
+  import { onMounted, ref } from "vue";
+  import { useRouter } from "vue-router";
+  
+  const router = useRouter();
+  const nombre = ref("");
+  const privacidad = ref("public");
+  const email = 'a@gmail.com'; // adaptar al email con la sesión iniciada
+  
+  const showPopup = ref(false);
+  const popupMessage = ref("");
+  const popupType = ref("popup-error");
+  
+  const showPopupMessage = (message, type) => {
+    popupMessage.value = message;
+    popupType.value = type;
+    showPopup.value = true;
+  
+    setTimeout(() => {
+      showPopup.value = false;
+    }, 3000);
+  };
+  
+  const user = ref({
+    nick: '',
+    perfil: '',
+    nacimiento: '',
+    privacidad: false
+});
 
-<script setup>
-import { ref } from "vue";
-import { useRouter } from 'vue-router';
-const email = ref("");
-const password = ref("");
-const confirmPassword = ref("");
-const user = ref("");
-const fecha = ref("");
+const editing = ref(false);
 
-const router = useRouter();
-
-const showPopup = ref(false);
-const popupMessage = ref("");
-const popupType = ref("popup-error");
-
-const showPopupMessage = (message, type) => {
-  popupMessage.value = message;
-  popupType.value = type;
-  showPopup.value = true;
-
-  setTimeout(() => {
-    showPopup.value = false;
-  }, 3000); // Cierra el popup después de 3 segundos
+const toggleEdit = () => {
+  if (editing.value) {
+    console.log("Nuevo nickname:", user.value.nick);
+  }
+  editing.value = !editing.value;
 };
 
-const handleRegister = async () => {
-  if (!email.value.trim() || !password.value.trim() || !confirmPassword.value.trim() || !user.value.trim() || !fecha.value.trim()) {
-    showPopupMessage("Todos los campos son obligatorios", "popup-error");
-    return;
-  }
+onMounted(async () => {
+    try {
+        const userResponse = await fetch(`http://48.209.24.188:3000/users/get-user?userEmail=${encodeURIComponent(email)}`);
+        if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
 
-  else if (password.value !== confirmPassword.value) {
-    showPopupMessage("Las contraseñas no coinciden", "popup-error");
-    return;
-  }
-  try {
-    // 1️⃣ Verificar si el correo ya está registrado
-    const userResponse = await fetch(
-        `http://48.209.24.188:3000/users/nick?userEmail=${encodeURIComponent(email.value)}`
-    );
-
-    if (userResponse.ok) {
         const userData = await userResponse.json();
-        if (userData?.Nick) {
-            throw new Error("Ya existe una cuenta con este correo.");
-        }
-    }
 
-    // 2️⃣ Si el usuario no existe, proceder con el registro
-    const response = await fetch("http://48.209.24.188:3000/users/register", {
-        method: "POST",
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            Email: email.value,
-            Password: password.value,
-            Nick: user.value,
-            FechaNacimiento: fecha.value,
-        }),
+        // Extraer los datos de la respuesta
+        const UserNick = userData.Nick;
+        const UserNacimiento = userData.FechaNacimiento;
+        const UserPerfil = userData.LinkFoto;
+        const UserPrivacidad = userData.BooleanPrivacidad
+
+        // Asignar los datos a las variables reactivas
+        user.value = {
+            nick: UserNick,
+            nacimiento: UserNacimiento,
+            perfil: UserPerfil,
+            privacidad: UserPrivacidad
+        };
+
+        console.log('Datos de usuario:', user.value);
+        } catch (error) {
+        console.error('Error:', error);
+        }
+});
+
+
+const handleSave = async () => {
+  try {
+    const nuevoNick = user.value.nick;
+    const response = await fetch(`http://48.209.24.188:3000/users/change-nick?userEmail=${encodeURIComponent(email)}&Nick=${encodeURIComponent(nuevoNick)}`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+      })
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-        throw new Error(data.message || "Error en el registro");
+        throw new Error(data.message || "Error al cambiar el nickname");
     }
 
-    showPopupMessage("Registro exitoso", "popup-success");
+    console.log("Nickname cambiado exitosamente:", data);
+    showPopupMessage("Nickname actualizado con éxito", "popup-success");
+    editing.value = false; // Desactivar modo edición después de guardar
 
-    // Redirigir al usuario al inicio de sesión
-    setTimeout(() => {
-        router.push("/");
-    }, 2000);
-  } catch (error) {
-    showPopupMessage(error.message, "popup-error");
-  }
+} catch (error) {
+    console.error("Error al actualizar nickname:", error);
+    showPopupMessage("Error al actualizar el nickname", "popup-error");
+}
 };
 </script>
-
-
+  
 <style scoped>
-.login-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100vh;
-  background-color: #1a1a1a;
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.user-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: #1a1a1a; 
+    z-index: 9999; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
-
-.login-box {
-  text-align: center;
-  background-color: #1a1a1a;
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
-  width: 90%;
-  max-width: 450px;
-  max-height: 85vh;
+  
+.user-box {
+    text-align: center;
+    background-color: #1a1a1a;
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+    width: 100%;
+    max-width: 500px;
 }
-
+  
 h2 {
-  color: #ffa500;
-  margin-bottom: 1.25rem;
+    color: #ffa500;
+    margin-bottom: 1.5rem;
 }
-
+  
 label {
-  color: #ffa500;
-  text-align: left;
-  display: block;
-  margin-top: 1rem;
+    color: #ffa500;
+    text-align: left;
+    display: block;
+    margin-top: 1rem;
+}
+
+span {
+    text-align: left;
+    display: block;
+    margin-top: 10px;
+}
+  
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ffa500;
+    border-radius: 4px;
+    background-color: #2a2a2a;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.nickname-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.nickname-input {
+    flex: 1;
+    padding: 5px;
+    border: 1px solid #ffa500;
+    border-radius: 4px;
+    background-color: #2a2a2a;
+    color: white;
+}
+
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.profile-container img {
+    width: 120px; 
+    height: 120px;
+    border-radius: 50%; 
+    object-fit: cover;
+    border: 2px solid #ffa500; 
+}
+
+.profile-container a {
+    margin-top: 10px;
+    color: #ffa500; 
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none; 
+}
+
+.profile-container a:hover {
+    text-decoration: underline; 
 }
 
 
-/* Cambiar el icono del calendario */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  /* Invierte el color del icono */
-  cursor: pointer;
+.change-btn {
+    margin-left: 10px;
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
 }
 
-input {
-  width: 95%;
-  padding: 10px;
-  margin-top: 8px;
-  border: 1px solid #ffa500;
-  border-radius: 4px;
-  background-color: #2a2a2a;
-  color: #fff;
+.buttons {
+    width: 100%;
+    padding: 12px;
+    margin-top: 1rem;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #ff5722;
 }
 
-input::placeholder {
-  color: #ababa5;
+.buttons.logout {
+    background-color: #ff5722;
 }
 
-button {
-  width: 60%;
-  padding: 12px;
-  margin-top: 1.25rem;
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
-  background-color: #ff5722;
+.buttons.save {
+    background-color: #ffc107;
 }
-
+  
 button:hover {
-  opacity: 0.8;
+    opacity: 0.8;
 }
-
+  
 /* Mensaje emergente */
 .popup {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  animation: fadeInOut 3s ease-in-out;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    animation: fadeInOut 3s ease-in-out;
 }
 
 .popup-error {
-  background: rgba(255, 87, 34, 0.9);
+    background: rgba(255, 87, 34, 0.9);
 }
 
 .popup-success {
-  background: rgba(76, 175, 80, 0.9);
+    background: rgba(76, 175, 80, 0.9);
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  90% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    90% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
 </style>

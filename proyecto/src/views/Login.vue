@@ -9,9 +9,7 @@
       <label for="password">Contraseña</label>
       <input type="password" v-model="password" placeholder="Introduce tu contraseña" name="password" required />
 
-      <div class="forgot-container">
-        <a href="/Pwd" class="forgot-password">He olvidado mi contraseña</a>
-      </div>
+      <a href="/Pwd" class="forgot-password">He olvidado mi contraseña</a>
 
       <button @click="handleLogin" class="login-btn">INICIA SESIÓN</button>
       <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
@@ -28,6 +26,7 @@ import { useRouter } from 'vue-router';
 
 const email = ref("");
 const password = ref("");
+const errorMessage = ref("");
 const router = useRouter();
 
 const showPopup = ref(false);
@@ -149,24 +148,31 @@ input::placeholder {
   color: #ababa5;
 }
 
-.forgot-container {
-  text-align: right; 
-  width: 100%;
-}
-
 .forgot-password {
-  display: inline-block; 
+  display: block;
+  text-align: right;
+  margin-top: 0.5rem;
   color: #ffa500;
   text-decoration: underline;
   font-size: 0.9rem;
-  cursor: pointer;
-  margin-top: 8px;
+}
+
+
+.forgot-password::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 2px;
+  background-color: #ffa500;
+  transform-origin: left;
+  transition: transform 0.3s ease-in-out;
 }
 
 .forgot-password:hover {
   color: #ffcc00;
 }
-
 
 button {
   width: 100%;
@@ -193,31 +199,31 @@ button:hover {
 
 /* Mensaje emergente */
 .popup {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: bold;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  animation: fadeInOut 3s ease-in-out;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    animation: fadeInOut 3s ease-in-out;
   }
   
-.popup-error {
-  background: rgba(255, 87, 34, 0.9);
-}
-
-.popup-success {
-  background: rgba(76, 175, 80, 0.9);
-}
-
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  90% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-}
-</style>
+  .popup-error {
+    background: rgba(255, 87, 34, 0.9);
+  }
+  
+  .popup-success {
+    background: rgba(76, 175, 80, 0.9);
+  }
+  
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    90% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  }
+  </style>
   
