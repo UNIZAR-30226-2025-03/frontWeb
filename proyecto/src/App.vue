@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-
+  
     <div class="container">
       <div class="header">
 
@@ -9,11 +9,8 @@
       
         <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" />
 
-        <router-link to="/">
-        <img class="image-right" :src="userIcon" alt="User" @click="openLogin"
+        <img class="image-right" :src="userIcon" alt="User" @click="openUser"
         />
-
-      </router-link>
       </div>
       <router-view/>
       <!-- Barra de canción -->
@@ -144,6 +141,10 @@ function toggleMenu() {
 function closeMenu() {
   isMenuOpen.value = false;
 }
+
+const openUser = () => {
+  router.push('/User');
+};
 
 // Función para obtener la posición de los íconos en el menú
 function getIconPosition(index, total) {
