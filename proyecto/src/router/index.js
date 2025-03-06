@@ -8,6 +8,7 @@ import Prueba from '../views/prueba.vue';
 import Change_pwd from '../views/Change_pwd.vue';
 import createList from '../views/createList.vue';
 import User from '../views/User.vue';
+import Playlist from '../views/Playlist.vue';
 
 
 const routes = [
@@ -19,6 +20,7 @@ const routes = [
   { path: '/reset-password', component: Change_pwd},
   { path: '/createList', component: createList},
   { path: '/user', component: User},
+  { path: '/playlist', component: Playlist},
 
 ];
 
