@@ -14,6 +14,10 @@
          </div>
 
          <button @click="handleLogin" class="login-btn">INICIA SESIÓN</button>
+         <button @click="loginWithGoogle" class="google-btn">
+            <img :src="googleLogo" alt="Google Logo"/>
+            CONTINUAR CON GOOGLE
+         </button>
          <button @click="handleRegister" class="register-btn">REGÍSTRATE</button>
       </div>
       <div v-if="showPopup" :class="popupType" class="popup">
@@ -24,11 +28,14 @@
 
 <script setup>
 import { ref } from "vue";
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import googleLogo from '@/assets/Google_logo.svg';
 
 const email = ref("");
 const password = ref("");
+const token = ref("");
 const router = useRouter();
+const route = useRoute(); 
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -43,6 +50,7 @@ const showPopupMessage = (message, type) => {
       showPopup.value = false;
    }, 3000);
 };
+
 
 const handleRegister = () => {
    router.push('/Signin');
@@ -86,7 +94,10 @@ const handleLogin = async () => {
       if (!loginResponse.ok) {
          throw new Error("Credenciales incorrectas. Verifica tu correo y contraseña.");
       }
-
+      const Data = await loginResponse.json();
+      console.log(Data);
+      localStorage.setItem("token", Data.accessToken);
+      
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, "popup-success");
 
       // Redirigir al usuario al home
@@ -96,6 +107,10 @@ const handleLogin = async () => {
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
+};
+
+const loginWithGoogle = () => {
+  window.location.href = "https://echobeatapi.duckdns.org/auth/google"; // 🔹 Redirige al backend
 };
 </script>
 
@@ -199,6 +214,31 @@ button {
 
 .register-btn {
    background-color: #ff5722;
+}
+
+.google-btn {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background-color: white;
+   color: black;
+   font-weight: bold;
+   border: 1px solid #ccc;
+   padding: 10px;
+   border-radius: 4px;
+   cursor: pointer;
+   width: 100%;
+   margin-top: 1rem;
+}
+
+.google-logo {
+   width: 20px;
+   height: 20px;
+   margin-right: 10px;
+}
+
+.google-btn:hover {
+   background-color: #f1f1f1;
 }
 
 button:hover {
