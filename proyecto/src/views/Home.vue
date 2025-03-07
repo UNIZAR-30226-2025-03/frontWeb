@@ -45,6 +45,12 @@ const recommendations = ref([
   { title: 'Icon Name' },
   { title: 'Icon Name' }
 ]);
+
+// onMounted(() => {
+//    token.value = route.query.token;
+//    console.log('Token recibido:', token.value);
+// });
+
 </script>
 
 <style scoped>

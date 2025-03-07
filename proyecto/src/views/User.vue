@@ -27,7 +27,7 @@
          </select>
 
          <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
-         <button class="buttons logout" @click="handleLogout">CERRAR SESIÓN</button>
+         <button class="buttons logout" @click="logout">CERRAR SESIÓN</button>
       </div>
       <div v-if="showPopup" :class="popupType" class="popup">
          {{ popupMessage }}
@@ -39,7 +39,7 @@
 import { onMounted, ref } from "vue";
 
 const privacidad = ref("public");
-const email = 'a@gmail.com'; // adaptar al email con la sesión iniciada
+const email = 'adriannamar1406@gmail.com'; // adaptar al email con la sesión iniciada
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -120,6 +120,11 @@ const handleSave = async () => {
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
+};
+
+const logout = () => {
+  localStorage.removeItem("token"); // 🔹 Eliminar el token
+  window.location.href = "/"; // 🔹 Redirigir al login
 };
 </script>
   

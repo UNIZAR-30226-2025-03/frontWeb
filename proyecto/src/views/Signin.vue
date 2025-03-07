@@ -3,6 +3,9 @@
       <div class="login-box">
          <h2>Crear cuenta</h2>
 
+         <label for="name">Nombre</label>
+         <input type="name" v-model="name"placeholder="Introduce tu nombre" name="name" required />
+
          <label for="email">Correo Electrónico</label>
          <input type="email" v-model="email"placeholder="Introduce tu correo" name="email" required />
 
@@ -33,6 +36,7 @@ import { useRouter } from 'vue-router';
 const email = ref("");
 const password = ref("");
 const confirmPassword = ref("");
+const name = ref("");
 const user = ref("");
 const fecha = ref("");
 
@@ -53,7 +57,7 @@ const showPopupMessage = (message, type) => {
 };
   
 const handleRegister = async () => {
-   if (!email.value.trim() || !password.value.trim() || !confirmPassword.value.trim() || !user.value.trim() || !fecha.value.trim()){
+   if (!email.value.trim() || !password.value.trim() || !confirmPassword.value.trim() || !user.value.trim() || !fecha.value.trim() || !name.value.trim()){
       showPopupMessage("Todos los campos son obligatorios", "popup-error");
       return;
    }
@@ -87,6 +91,7 @@ const handleRegister = async () => {
             Password: password.value,
             Nick: user.value,
             FechaNacimiento: fecha.value,
+            NombreCompleto: name.value
          }),
       });
 
