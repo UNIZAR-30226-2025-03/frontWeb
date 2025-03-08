@@ -95,9 +95,9 @@ const handleLogin = async () => {
          throw new Error("Credenciales incorrectas. Verifica tu correo y contraseña.");
       }
       const Data = await loginResponse.json();
-      console.log(Data);
       localStorage.setItem("token", Data.accessToken);
-      
+      localStorage.setItem("email", Data.Email);
+      console.log(Data.Email);
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, "popup-success");
 
       // Redirigir al usuario al home

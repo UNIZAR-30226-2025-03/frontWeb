@@ -5,13 +5,13 @@
       <aside class="sidebar">
         <div class="library">
           <h3>Escuchando </h3>
-          <ul>
-            <li>Canción 1</li>
-            <li>Canción 2</li>
-            <li>Canción 3</li>
-            <li>Canción 4</li>
-            <li>Canción 5</li>
-            <li>Canción 6</li>
+          <ul id="songs-list">
+            <li class="song-item">Canción 1</li>
+            <li class="song-item" >Canción 2</li>
+            <li class="song-item" >Canción 3</li>
+            <li class="song-item" >Canción 4</li>
+            <li class="song-item" >Canción 5</li>
+            <li class="song-item" >Canción 6</li>
           </ul>
         </div>
       </aside>
@@ -47,6 +47,41 @@
 
 <style scoped>
 
+/* Contenedor de la lista de canciones en la sidebar */
+#songs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Espaciado entre canciones */
+}
+
+/* Estilo de cada canción (similar al bloque "Welcome...") */
+.song-item {
+  width: 14vw;
+  height: 5.7vh;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  transition: box-shadow 0.3s ease-in-out;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  
+
+}
+
+/* Efecto hover */
+.song-item:hover {
+    background: #333; /* Cambio de color en hover */
+    transform: scale(1.05); /* Pequeña animación de zoom */
+}
+
+/* Texto del nombre de la canción */
+.song-title {
+    margin: 0;
+    font-size: 14px;
+    flex-grow: 1; /* Ocupar el espacio disponible */
+    text-align: left; /* Alinear texto a la izquierda */
+    padding: 1.5vh 1.5vw; /* Más padding a los lados */
+}
 
 
 
@@ -126,7 +161,7 @@
   gap: 10px;
   padding: 10px;
   justify-content: flex-start;
-  gap: 2vh 5vw;
+  gap: 2vh 1.5vw;
 }
 
 .playlist-item {
@@ -178,8 +213,6 @@
   text-overflow: ellipsis;
   
 }
-
-
 
 
 .recommendations {
@@ -243,6 +276,7 @@
     border-top-left-radius: 16px;
     object-fit: cover;
     flex: 1;
+    min-height: 180px;
 }
 
 /* Título sobre la imagen */
@@ -294,7 +328,7 @@
 <script setup>
   import { ref, onMounted } from 'vue';
   
-  const email = 'a@gmail.com';
+  //const email =  localStorage.getItem(email);
   const playlists = ref([]);//Playlist propias del usario
   const lastSong = ref([]);
   //Recoge datos referentes a playlists y cancion
@@ -302,6 +336,7 @@
   onMounted(async () => {
     try {
       
+       // Obtener playlist propias
       const playlistResponse = await fetch("https://reqres.in/api/users?page=1&per_page=12");
       if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
       
