@@ -35,7 +35,6 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
    const token = localStorage.getItem("token"); // O usa cookies si es más seguro
    console.log('El token es: ', token);   
-   console.log('To y from ', to, from);
    if (to.matched.some(record => record.meta.requiresAuth) && !token) { 
      next("/"); // 🔹 Si no tiene token, lo manda al login
    } else {

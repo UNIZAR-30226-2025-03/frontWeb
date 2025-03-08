@@ -95,7 +95,7 @@ const menuIcons = ref([
 
 onMounted(async () => {
   try {
-    const email = 'a@gmail.com'; // adaptar al email con la sesión iniciada
+    const email = '874912@unizar.es@gmail.com'; // adaptar al email con la sesión iniciada
     const songResponse = await fetch(`http://48.209.24.188:3000/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
     if (!songResponse.ok) throw new Error('Error al obtener la última canción');
 

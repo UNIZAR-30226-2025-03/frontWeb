@@ -20,10 +20,10 @@
          <span>{{ user.nacimiento }}</span>
 
          <label for="privacidad">Privacidad</label>
-         <select v-model="privacidad" required>
-            <option value="public">Público</option>
-            <option value="private">Privado</option>
-            <option value="protected">Protegido</option>
+         <select v-model="user.privacidad" required>
+            <option value="publico">Público</option>
+            <option value="privado">Privado</option>
+            <option value="protegido">Protegido</option>
          </select>
 
          <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
@@ -38,8 +38,7 @@
 <script setup>
 import { onMounted, ref } from "vue";
 
-const privacidad = ref("public");
-const email = 'adriannamar1406@gmail.com'; // adaptar al email con la sesión iniciada
+const email = 'diego@gmail.com'; // adaptar al email con la sesión iniciada
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -59,10 +58,29 @@ const user = ref({
    nick: '',
    perfil: '',
    nacimiento: '',
-   privacidad: false
+   privacidad: ''
 });
 
+let initialUser = ref({}); // Copia inicial de los datos del usuario
 const editing = ref(false);
+
+const hasChanges = () => {
+   return (
+      user.value.nick !== initialUser.value.nick || 
+      user.value.privacidad !== initialUser.value.privacidad 
+      // Cuando agregues la foto, inclúyela aquí
+   );
+};
+
+const formatDate = (dateString) => {
+   const date = new Date(dateString);
+   const day = String(date.getDate()).padStart(2, '0');  // Añadir cero si es un solo dígito
+   const month = String(date.getMonth() + 1).padStart(2, '0'); // Los meses en JavaScript son 0-indexados
+   const year = date.getFullYear();
+
+   return `${day}/${month}/${year}`; // Devolver en formato dd/mm/yyyy
+};
+
 
 const toggleEdit = () => {
    if (editing.value) {
@@ -80,9 +98,9 @@ onMounted(async () => {
 
       // Extraer los datos de la respuesta
       const UserNick = userData.Nick;
-      const UserNacimiento = userData.FechaNacimiento;
+      const UserNacimiento = formatDate(userData.FechaNacimiento); 
       const UserPerfil = userData.LinkFoto;
-      const UserPrivacidad = userData.BooleanPrivacidad
+      const UserPrivacidad = userData.Privacidad
 
       // Asignar los datos a las variables reactivas
       user.value = {
@@ -92,6 +110,8 @@ onMounted(async () => {
          privacidad: UserPrivacidad
       };
 
+      initialUser.value = JSON.parse(JSON.stringify(user.value)); // Copia inicial de los datos del usuario
+
       console.log('Datos de usuario:', user.value);
    } catch (error) {
       console.error('Error:', error);
@@ -100,27 +120,54 @@ onMounted(async () => {
 
 
 const handleSave = async () => {
-   try {
-      const nuevoNick = user.value.nick;
-      const response = await fetch(`https://echobeatapi.duckdns.org/users/change-nick?userEmail=${encodeURIComponent(email)}&Nick=${encodeURIComponent(nuevoNick)}`, {
-         method: 'POST',
-         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-         },
-      });
+   if (!hasChanges()) {
+      showPopupMessage("No hay cambios para guardar", "popup-error");
+      return;
+   }
 
-      if (!response.ok) {
-         throw new Error("Error al actualizar el nickname");
+   try {
+      if (user.value.nick !== initialUser.value.nick) {
+         const response = await fetch(`https://echobeatapi.duckdns.org/users/change-nick?userEmail=${encodeURIComponent(email)}&Nick=${encodeURIComponent(user.value.nick)}`, {
+            method: 'POST',
+            headers: {
+               'Accept': 'application/json',
+               'Content-Type': 'application/json'
+            },
+         });
+
+         if (!response.ok) throw new Error("Error al actualizar el nickname");
+
+         showPopupMessage("Nickname actualizado con éxito", "popup-success");
+         initialUser.value.nick = user.value.nick; // Actualizar el estado inicial
       }
 
-      showPopupMessage("Nickname actualizado con éxito", "popup-success");
-      editing.value = false; // Desactivar modo edición después de guardar
+      if (user.value.privacidad !== initialUser.value.privacidad) {
+         const privacyResponse = await fetch("https://echobeatapi.duckdns.org/users/update-privacy", { 
+            method: "POST",
+            headers: {
+               "Accept": "application/json",
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+               Email: email,
+               Privacy: user.value.privacidad
+            })
+         });
+
+         if (!privacyResponse.ok) throw new Error("Error al actualizar privacidad");
+
+         const privacyData = await privacyResponse.json();
+         user.value.privacidad = privacyData.newPrivacy;
+         initialUser.value.privacidad = user.value.privacidad; // Actualizar el estado inicial
+
+         showPopupMessage(privacyData.message, "popup-success");
+      }
 
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
 };
+
 
 const logout = () => {
   localStorage.removeItem("token"); // 🔹 Eliminar el token
