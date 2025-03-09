@@ -12,7 +12,11 @@
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"
         />
       </div>
-      <router-view/>
+
+      <main class="main-content">
+        <router-view />
+      </main>
+
       <!-- Barra de canción -->
       <div class="player-bar">
         <div class="controls">
@@ -166,7 +170,7 @@ function getIconPosition(index, total) {
 .container {
   width: 100vw;
   height: 100vh;
-  background-color:  #1a1a1a;
+  background-color:  #222222;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -178,13 +182,23 @@ function getIconPosition(index, total) {
   align-items: center;
   justify-content: space-between;
   position: fixed;
+  height: 5vh;
   top: 0;
   left: 0;
   right: 0;
   padding: 10px 15px;
-  background-color: #1d1c1c;
+  background-color: #141414;
+  
   z-index: 1000;
+
 }
+
+.main-content {
+  padding-top: 7vh; /* Ajusta según la altura del header */
+  padding-bottom: 12vh; 
+}
+
+
 
 /* Imagenes */
 .image-left, .image-right {
@@ -269,11 +283,14 @@ function getIconPosition(index, total) {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 90px; /* Aumenta la altura para acomodar los controles */
+  height:10vh; /* Aumenta la altura para acomodar los controles */
   background-color: #111;
   padding: 10px 0;
   z-index: 1000;
   color: white;
+  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
+  
+  
 }
 
 /* Controles de música */
