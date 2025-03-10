@@ -22,9 +22,9 @@
          <label for="privacidad">Privacidad</label>
          <select v-model="privacidad" required>
             <option disabled value=""> Selecciona para quién será visible la lista </option>
-            <option value="public">Público</option>
-            <option value="private">Privado</option>
-            <option value="protected">Protegido</option>
+            <option value="publico">Público</option>
+            <option value="privado">Privado</option>
+            <option value="protegido">Protegido</option>
          </select>
 
          <button @click="handleCreateList">CREAR</button>
