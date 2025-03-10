@@ -21,10 +21,10 @@
          <span>{{ user.nacimiento }}</span>
 
          <label for="privacidad">Privacidad</label>
-         <select v-model="privacidad" required>
-            <option value="public">Público</option>
-            <option value="private">Privado</option>
-            <option value="protected">Protegido</option>
+         <select v-model="user.privacidad" required>
+            <option value="publico">Público</option>
+            <option value="privado">Privado</option>
+            <option value="protegido">Protegido</option>
          </select>
 
          <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
@@ -60,9 +60,10 @@ const user = ref({
    nick: '',
    perfil: '',
    nacimiento: '',
-   privacidad: false
+   privacidad: ''
 });
 
+let initialUser = ref({}); // Copia inicial de los datos del usuario
 const editing = ref(false);
 
 const hasChanges = () => {
@@ -103,7 +104,6 @@ const handleFileChange = (event) => {
    }
 };
 
-
 const toggleEdit = () => {
    if (editing.value) {
       console.log("Nuevo nickname:", user.value.nick);
@@ -111,14 +111,6 @@ const toggleEdit = () => {
    editing.value = !editing.value;
 };
 
-const fileToBase64 = (file) => {
-   return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result); // Mantener el formato completo
-      reader.onerror = (error) => reject(error);
-   });
-};
 
 
 onMounted(async () => {
@@ -130,9 +122,9 @@ onMounted(async () => {
 
       // Extraer los datos de la respuesta
       const UserNick = userData.Nick;
-      const UserNacimiento = userData.FechaNacimiento;
+      const UserNacimiento = formatDate(userData.FechaNacimiento); 
       const UserPerfil = userData.LinkFoto;
-      const UserPrivacidad = userData.BooleanPrivacidad
+      const UserPrivacidad = userData.Privacidad
 
       // Asignar los datos a las variables reactivas
       user.value = {
@@ -142,6 +134,7 @@ onMounted(async () => {
          privacidad: UserPrivacidad
       };
 
+      initialUser.value = JSON.parse(JSON.stringify(user.value)); // Copia inicial de los datos del usuario
       console.log('Datos de usuario:', user.value);
    } catch (error) {
       console.error('Error:', error);
@@ -157,19 +150,37 @@ const handleSave = async () => {
 
    try {
       if (selectedFile.value) {
-         const base64String = await fileToBase64(selectedFile.value);
-         console.log("Datos enviados a la API:", base64String);
+         const fileExtension = selectedFile.value.split('.').pop();
+         const mimeTypes = {
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            png: 'image/png',
+            webp: 'image/webp',
+         };
+
+         const fileType = mimeTypes[fileExtension.toLowerCase()] || 'image/jpeg';
+
+      
+         const formData = new FormData();
+         formData.append('Email', email);
+         formData.append('file', {
+            uri: imageUri,
+            name: profile.${fileExtension},
+            type: fileType,
+         });
+
+
+         console.log("Archivo a subir:", selectedFile.value);
+         console.log("FormData:", formData);
+
+
          const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", { 
             method: "POST",
-            headers: {
-               "Accept": "application/json",
-               "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-               Email: email,
-               file: { uri: base64String } 
+            headers: {},
+            body: 
+               formData,
             })
-         });
+         
          if (!profileResponse.ok) {
             const errorData = await profileResponse.text(); // Ver el error en texto
             throw new Error("Error al subir la imagen: " + errorData);
