@@ -198,8 +198,6 @@ function getIconPosition(index, total) {
   padding-bottom: 12vh; 
 }
 
-
-
 /* Imagenes */
 .image-left, .image-right {
   width: 40px;

@@ -6,7 +6,8 @@
          
          <div class="profile-container">
             <img :src="user.perfil" alt="profile" />
-            <a>Cambiar perfil</a>
+            <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" hidden />
+            <a @click="triggerFileInput">Cambiar perfil</a>
          </div>
          
          <label for="nick">Nickname</label>
@@ -39,6 +40,9 @@
 import { onMounted, ref } from "vue";
 
 const email = 'diego@gmail.com'; // adaptar al email con la sesión iniciada
+
+const fileInput = ref(null);
+const selectedFile = ref(null);
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -82,12 +86,33 @@ const formatDate = (dateString) => {
 };
 
 
+// Función para abrir el selector de archivos
+const triggerFileInput = () => {
+   fileInput.value.click();
+};
+
+// Función para manejar la selección de un archivo
+const handleFileChange = (event) => {
+   const file = event.target.files[0];
+   if (file) {
+      selectedFile.value = file;
+
+      // Vista previa de la imagen seleccionada
+      const reader = new FileReader();
+      reader.onload = (e) => {
+         user.value.perfil = e.target.result;
+      };
+      reader.readAsDataURL(file);
+   }
+};
+
 const toggleEdit = () => {
    if (editing.value) {
       console.log("Nuevo nickname:", user.value.nick);
    }
    editing.value = !editing.value;
 };
+
 
 onMounted(async () => {
    try {
@@ -120,12 +145,42 @@ onMounted(async () => {
 
 
 const handleSave = async () => {
-   if (!hasChanges()) {
+   if (!hasChanges() && !selectedFile.value) {
       showPopupMessage("No hay cambios para guardar", "popup-error");
       return;
    }
 
    try {
+      if (selectedFile.value) {
+      
+        const formData = new FormData();
+         formData.append('Email', email);
+         formData.append('file', { "uri": selectedFile.value });
+
+         console.log("Archivo a subir:", selectedFile.value);
+         console.log("FormData:", formData);
+
+
+         const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", { 
+            method: "POST",
+            headers: {},
+            body: 
+               formData,
+            })
+         
+         if (!profileResponse.ok) {
+            const errorData = await profileResponse.text(); // Ver el error en texto
+            throw new Error("Error al subir la imagen: " + errorData);
+         }
+
+         const profiledata = await response.json();
+         // user.value.perfil = profiledata.imageUrl; // Actualizar la imagen de perfil con la nueva URL
+         // initialUser.value.perfil = data.imageUrl; 
+
+         showPopupMessage("Imagen actualizada con éxito", "popup-success");
+
+      }
+      
       if (user.value.nick !== initialUser.value.nick) {
          const response = await fetch(`https://echobeatapi.duckdns.org/users/change-nick?userEmail=${encodeURIComponent(email)}&Nick=${encodeURIComponent(user.value.nick)}`, {
             method: 'POST',
@@ -153,6 +208,7 @@ const handleSave = async () => {
                Privacy: user.value.privacidad
             })
          });
+         
 
          if (!privacyResponse.ok) throw new Error("Error al actualizar privacidad");
 
