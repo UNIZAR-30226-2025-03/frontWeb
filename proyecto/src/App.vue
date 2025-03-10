@@ -186,15 +186,12 @@ function getIconPosition(index, total) {
   z-index: 1000;
 }
 
-<<<<<<< Updated upstream
-=======
+
 .main-content {
   padding-top: 5vh; /* Ajusta según la altura del header */
   padding-bottom: 12vh; 
 }
 
-
->>>>>>> Stashed changes
 /* Imagenes */
 .image-left, .image-right {
   width: 40px;
