@@ -150,24 +150,10 @@ const handleSave = async () => {
 
    try {
       if (selectedFile.value) {
-         const fileExtension = selectedFile.value.split('.').pop();
-         const mimeTypes = {
-            jpg: 'image/jpeg',
-            jpeg: 'image/jpeg',
-            png: 'image/png',
-            webp: 'image/webp',
-         };
-
-         const fileType = mimeTypes[fileExtension.toLowerCase()] || 'image/jpeg';
-
-      
-         const formData = new FormData();
+         
+        const formData = new FormData();
          formData.append('Email', email);
-         formData.append('file', {
-            uri: imageUri,
-            name: profile.${fileExtension},
-            type: fileType,
-         });
+         formData.append('file', { "uri": selectedFile.value });
 
 
          console.log("Archivo a subir:", selectedFile.value);
