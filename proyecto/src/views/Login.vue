@@ -95,9 +95,9 @@ const handleLogin = async () => {
          throw new Error("Credenciales incorrectas. Verifica tu correo y contraseña.");
       }
       const Data = await loginResponse.json();
-      console.log(Data);
       localStorage.setItem("token", Data.accessToken);
-      
+      localStorage.setItem("email", Data.Email);
+      console.log(Data.Email);
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, "popup-success");
 
       // Redirigir al usuario al home
@@ -224,22 +224,13 @@ button {
    color: black;
    font-weight: bold;
    border: 1px solid #ccc;
-   padding: 10px;
+   padding: 1px;
    border-radius: 4px;
    cursor: pointer;
    width: 100%;
    margin-top: 1rem;
 }
 
-.google-logo {
-   width: 20px;
-   height: 20px;
-   margin-right: 10px;
-}
-
-.google-btn:hover {
-   background-color: #f1f1f1;
-}
 
 button:hover {
    opacity: 0.8;

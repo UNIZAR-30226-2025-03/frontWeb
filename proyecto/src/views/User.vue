@@ -40,8 +40,10 @@
 import { onMounted, ref } from "vue";
 
 const email = 'diego@gmail.com'; // adaptar al email con la sesión iniciada
+
 const fileInput = ref(null);
 const selectedFile = ref(null);
+
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
@@ -112,7 +114,6 @@ const toggleEdit = () => {
 };
 
 
-
 onMounted(async () => {
    try {
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(email)}`);
@@ -135,6 +136,7 @@ onMounted(async () => {
       };
 
       initialUser.value = JSON.parse(JSON.stringify(user.value)); // Copia inicial de los datos del usuario
+
       console.log('Datos de usuario:', user.value);
    } catch (error) {
       console.error('Error:', error);
@@ -150,11 +152,10 @@ const handleSave = async () => {
 
    try {
       if (selectedFile.value) {
-         
+      
         const formData = new FormData();
          formData.append('Email', email);
          formData.append('file', { "uri": selectedFile.value });
-
 
          console.log("Archivo a subir:", selectedFile.value);
          console.log("FormData:", formData);
@@ -177,6 +178,7 @@ const handleSave = async () => {
          // initialUser.value.perfil = data.imageUrl; 
 
          showPopupMessage("Imagen actualizada con éxito", "popup-success");
+
       }
       
       if (user.value.nick !== initialUser.value.nick) {
@@ -221,6 +223,7 @@ const handleSave = async () => {
       showPopupMessage(error.message, "popup-error");
    }
 };
+
 
 const logout = () => {
   localStorage.removeItem("token"); // 🔹 Eliminar el token
