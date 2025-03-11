@@ -44,6 +44,7 @@
             <option value="protegido">Protegido</option>
          </select>
 
+         <button class="gender-btn" @click="handleChangeGender">CAMBIAR PREFERENCIAS DE GÉNERO</button>
          <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
          <button class="buttons logout" @click="logout">CERRAR SESIÓN</button>
       </div>
@@ -56,7 +57,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 
-const email = 'diego@gmail.com'; // adaptar al email con la sesión iniciada
+const email =  localStorage.getItem("email");
 
 const fileInput = ref(null);
 const selectedFile = ref(null);
@@ -104,7 +105,9 @@ const toggleEdit = (field) => {
 const hasChanges = () => {
    return (
       user.value.nick !== initialUser.value.nick || 
-      user.value.privacidad !== initialUser.value.privacidad 
+      user.value.privacidad !== initialUser.value.privacidad ||
+      user.value.nombre != initialUser.value.nombre ||
+      user.value.nacimiento != initialUser.value.nacimiento
    );
 };
 
@@ -116,19 +119,19 @@ const formatDate = (dateString) => {
    const month = String(date.getMonth() + 1).padStart(2, '0');
    const year = date.getFullYear();
 
-   return `${day}/${month}/${year}`; // 🔹 Formato dd-mm-yyyy
+   return `${day}/${month}/${year}`; // Formato dd-mm-yyyy
 };
 
 const formattedNacimiento = computed({
    get() {
       if (!user.value.nacimiento) return "";
       const [day, month, year] = user.value.nacimiento.split("/");
-      return `${year}-${month}-${day}`; // 🔹 Convertimos dd/mm/yyyy ➝ yyyy-mm-dd
+      return `${year}-${month}-${day}`; //  Convertir dd/mm/yyyy ➝ yyyy-mm-dd
    },
    set(value) {
       if (!value) return;
       const [year, month, day] = value.split("-");
-      user.value.nacimiento = `${day}/${month}/${year}`; // 🔹 Convertimos yyyy-mm-dd ➝ dd/mm/yyyy
+      user.value.nacimiento = `${day}/${month}/${year}`; // Convertir yyyy-mm-dd ➝ dd/mm/yyyy
    }
 });
 
@@ -157,7 +160,6 @@ const handleFileChange = (event) => {
       reader.readAsDataURL(file);
    }
 };
-
 
 
 onMounted(async () => {
@@ -267,11 +269,59 @@ const handleSave = async () => {
             console.log(privacyData.message);
          }
 
+         if (user.value.nombre !== initialUser.value.nombre) {
+            const nameResponse = await fetch("https://echobeatapi.duckdns.org/users/update-fullname", { 
+               method: "POST",
+               headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json"
+               },
+               body: JSON.stringify({
+                  userEmail: email,
+                  nombreReal: user.value.nombre
+               })
+            });
+            
+            if (!nameResponse.ok) throw new Error("Error al actualizar el nombre completo");
+
+            const nameData = await nameResponse.json();
+            user.value.nombre = nameData.NombreCompleto;
+            initialUser.value.nombre = user.value.NombreCompleto; // Actualizar el estado inicial
+
+            console.log(nameData.message);
+         }
+
+         if (user.value.nacimiento !== initialUser.value.nacimiento) {
+            const formattedDateForAPI = formattedNacimiento.value; // Esto ya está en yyyy-mm-dd
+            console.log('Fecha de nacimiento: ', formattedDateForAPI);
+            const birthResponse = await fetch("https://echobeatapi.duckdns.org/users/update-birthdate", { 
+               method: "POST",
+               headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json"
+               },
+               body: JSON.stringify({
+                  userEmail: email,
+                  birthdate: formattedDateForAPI //  Enviar el formato correcto
+               })
+            });
+
+            if (!birthResponse.ok) throw new Error("Error al actualizar la fecha de nacimiento");
+
+            const birthData = await birthResponse.json();
+            user.value.nacimiento = formatDate(birthData.FechaNacimiento); // Convertir de vuelta a dd/mm/yyyy
+            initialUser.value.nacimiento = user.value.nacimiento;          // Actualizar el estado inicial
+
+            console.log(birthData.message);
+         }
+
 
       } catch (error) {
          showPopupMessage(error.message, "popup-error");
       }
-      showPopupMessage("Cambios guardados con éxito", "popup-success")
+      showPopupMessage("Cambios guardados con éxito", "popup-success");
+      initialUser.value = JSON.parse(JSON.stringify(user.value));
+      selectedFile.value = null; // Resetear el archivo seleccionado
    }
 };
 
@@ -283,6 +333,7 @@ const logout = () => {
 </script>
   
 <style scoped>
+
 .user-container {
    position: fixed;
    top: 0;
@@ -294,6 +345,7 @@ const logout = () => {
    display: flex;
    justify-content: center;
    align-items: center;
+   padding: 10px; 
 }
   
 .user-box {
@@ -304,6 +356,18 @@ const logout = () => {
    box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
    width: 100%;
    max-width: 500px;
+   max-height: 88vh; /* Ajuste para scroll */
+   overflow-y: scroll; /* Mantiene el scroll */
+   
+}
+
+/* Para Webkit (Chrome, Safari, Edge) */
+.user-box::-webkit-scrollbar {
+   width: 0px; /* Hace la barra de desplazamiento invisible */
+}
+
+.user-box::-webkit-scrollbar-thumb {
+   background: transparent; /* También puedes ocultar el "thumb" (parte movible) */
 }
   
 h2 {
@@ -328,6 +392,7 @@ input, select {
    width: 100%;
    padding: 10px;
    margin-top: 10px;
+   margin-bottom: 10px;
    border: 1px solid #ffa500;
    border-radius: 4px;
    background-color: #2a2a2a;
@@ -415,6 +480,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .buttons.save {
    background-color: #ffc107;
+}
+
+.gender-btn {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background-color: white;
+   color: black;
+   font-weight: bold;
+   border: 1px solid #ccc;
+   padding: 12px;
+   border-radius: 4px;
+   cursor: pointer;
+   width: 100%;
+   margin-top: 1rem;
 }
   
 button:hover {
