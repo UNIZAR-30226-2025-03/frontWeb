@@ -8,12 +8,16 @@
             <img :src="user.perfil" alt="profile" />
             
             <!-- Desplegable para elegir entre subir o seleccionar una imagen predeterminada -->
-            <label for="profile-action">Cambiar perfil</label>
-            <select id="profile-action" v-model="profileAction">
-               <option disabled value="">Selecciona una opción</option>
-               <option value="upload">Subir nueva imagen</option>
-               <option value="select">Elegir predeterminada</option>
-            </select>
+            <!-- Cambiar perfil solo se muestra cuando se hace clic -->
+            <label for="profile-action" @click="toggleProfileActionVisibility">Cambiar perfil</label>
+            <!-- Mostrar el select solo si profileActionVisible es verdadero -->
+            <div v-if="profileActionVisible">
+               <select id="profile-action" v-model="profileAction">
+                  <option disabled value="">Selecciona una opción</option>
+                  <option value="upload">Subir nueva imagen</option>
+                  <option value="select">Elegir predeterminada</option>
+               </select>
+            </div>
 
             <!-- Si elige 'upload' se muestra el input para subir una imagen -->
             <div v-if="profileAction === 'upload'">
@@ -25,14 +29,10 @@
                <h3>Selecciona una imagen</h3>
                <div class="image-grid">
                   <img 
-                     v-for="image in defaultImages" 
-                     :key="image" 
-                     :src="image" 
-                     @click="selectDefaultImage(image)"
-                     class="selectable-image"
+                     v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
                   />
                </div>
-               <button @click="showImageSelection = false">Cerrar</button>
+               <button @click="closeImageSelection">Cerrar</button>
             </div>
          </div>
 
@@ -89,6 +89,7 @@ const fileInput = ref(null);
 const selectedFile = ref(null);
 const profileAction = ref(""); // Acción seleccionada (subir imagen o elegir predeterminada)
 const showImageSelection = ref(false); // Modal para seleccionar imagen predeterminada
+const profileActionVisible = ref(false);
 const defaultImages = ref([]);  // Aquí se guardarán las imágenes predeterminadas
 
 const router = useRouter();
@@ -137,7 +138,7 @@ const hasChanges = () => {
       user.value.nick !== initialUser.value.nick || 
       user.value.privacidad !== initialUser.value.privacidad ||
       user.value.nombre != initialUser.value.nombre ||
-      user.value.nacimiento != initialUser.value.nacimiento
+      user.value.nacimiento != initialUser.value.nacimiento 
    );
 };
 
@@ -145,6 +146,10 @@ const handleChangeGender = () => {
    router.push('/gender');
 };
 
+const toggleProfileActionVisibility = () => {
+   // Alternar la visibilidad del select
+   profileActionVisible.value = !profileActionVisible.value;
+};
 
 const formatDate = (dateString) => {
    if (!dateString) return '';  // Evita errores si la fecha es nula
@@ -184,27 +189,29 @@ const triggerFileInput = () => {
 // Función para manejar la selección de un archivo
 const handleFileChange = (event) => {
    const file = event.target.files[0];
-   if (file) {
-      selectedFile.value = file;
+   if (!file) return;
 
-      // Vista previa de la imagen seleccionada
-      const reader = new FileReader();
-      reader.onload = (e) => {
-         user.value.perfil = e.target.result;
-      };
-      reader.readAsDataURL(file);
-   }
+   selectedFile.value = file;
+
+   // Generar vista previa de la imagen
+   const reader = new FileReader();
+   reader.onload = (e) => {
+      user.value.perfil = e.target.result;
+   };
+   reader.readAsDataURL(file);
 };
+
 
 // 🔹 Función para seleccionar una imagen predeterminada
 const selectDefaultImage = (imageUrl) => {
    user.value.perfil = imageUrl;
-   profileAction.value = 'upload'; // Vuelve a la opción de 'Subir nueva imagen'
+   profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
 // 🔹 Cerrar el modal de selección de imagen
 const closeImageSelection = () => {
    showImageSelection.value = false;
+   profileAction.value = "";
 };
 
 onMounted(async () => {
@@ -246,7 +253,7 @@ onMounted(async () => {
 
 
 const handleSave = async () => {
-   if (!hasChanges() && !selectedFile.value) {
+   if (!hasChanges() && !selectedFile.value && user.value.perfil === initialUser.value.perfil) {
       showPopupMessage("No hay cambios para guardar", "popup-error");
       return;
    }
@@ -256,7 +263,7 @@ const handleSave = async () => {
          
             const formData = new FormData();
             formData.append('Email', email);
-            formData.append('file', selectedFile.value );
+            formData.append('file', selectedFile.value);
 
             console.log("Archivo a subir:", selectedFile.value);
             console.log("FormData:", formData);
@@ -280,6 +287,28 @@ const handleSave = async () => {
 
             console.log("Imagen actualizada con éxito");
 
+         }
+
+         else if (user.value.perfil !== initialUser.value.perfil) {
+            console.log(user.value.perfil);
+            const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", {
+               method: "POST",
+               headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json"
+               },
+               body: JSON.stringify({
+                  emailUsuario: email,
+                  file: user.value.perfil, // Enviar la URL de la imagen predeterminada
+               }),
+            });
+
+            if (!profileResponse.ok) {
+               const errorData = await profileResponse.text();
+               throw new Error("Error al actualizar la imagen: " + errorData);
+            }
+
+            console.log("Imagen predeterminada actualizada correctamente");
          }
          
          if (user.value.nick !== initialUser.value.nick) {
@@ -483,18 +512,19 @@ input, select {
    border: 2px solid #ffa500; 
 }
 
-.profile-container a {
-   margin-top: 10px;
-   color: #ffa500; 
-   font-weight: bold;
-   cursor: pointer;
-   text-decoration: none; 
+.profile-container label {
+   color: #ffa500; /* Color inicial */
+   text-align: left;
+   display: block;
+   margin-top: 0.5rem;
+   cursor: pointer; /* Cambia el cursor para indicar que es interactivo */
+   transition: color 0.3s ease, text-decoration 0.3s ease; /* Transición suave */
 }
 
-.profile-container a:hover {
-   text-decoration: underline; 
+.profile-container label:hover {
+   opacity: 0.8;
+   text-decoration: underline; /* Subraya el texto al pasar el ratón */
 }
-
 
 .change-btn {
    margin-left: 10px;
@@ -505,7 +535,6 @@ input, select {
    border-radius: 4px;
    cursor: pointer;
    font-weight: bold;
-   margin-top: 10px;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
