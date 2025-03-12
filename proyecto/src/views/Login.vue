@@ -28,14 +28,12 @@
 
 <script setup>
 import { ref } from "vue";
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import googleLogo from '@/assets/Google_logo.svg';
 
 const email = ref("");
 const password = ref("");
-const token = ref("");
 const router = useRouter();
-const route = useRoute(); 
 
 const showPopup = ref(false);
 const popupMessage = ref("");

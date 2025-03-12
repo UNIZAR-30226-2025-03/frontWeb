@@ -56,7 +56,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 
-const email = 'diego@gmail.com'; // adaptar al email con la sesión iniciada
+const email = localStorage.getItem("email"); // adaptar al email con la sesión iniciada
 
 const fileInput = ref(null);
 const selectedFile = ref(null);

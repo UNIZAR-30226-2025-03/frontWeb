@@ -1,58 +1,62 @@
 <template>
-   
-     <div class="playlist-container">
-       <div class="playlist-header">
-         <img :src="playlist.cover" alt="Cover" class="playlist-cover" />
-         <div class="playlist-info">
-           <h1>{{ playlist.name }}</h1>
-           <p>{{ playlist.author }}</p>
-           <p>{{ playlist.description }}</p>
-           <p>{{ playlist.genre }} - {{ playlist.likes }} Likes</p>
-         </div>
-       </div>
- 
-       <div class="playlist-actions">
-         <button>🔀</button>
-         <button>▶️</button>
-         <input v-model="searchTerm" placeholder="Buscar canción" />
-         <select v-model="sortOption" @change="sortSongs">
-           <option value="default">Predefinido</option>
-           <option value="artist">Artista</option>
-           <option value="plays">Reproducciones</option>
-           <option value="album">Álbum</option>
-         </select>
-       </div>
- 
-       <ul class="song-list">
-         <li v-for="(song, index) in filteredSongs" :key="song.id" class="song-item">
-           <div class="song-info">
-             <!-- Nombre y Artista + Duración -->
-             <div class="song-name-artist">
-               <p>{{ song.name }} - {{ song.artist }} ({{ song.duration }})</p>
-             </div>
- 
-             <!-- Álbum -->
-             <div class="song-album">
-               <p v-if="playlist.type === 'playlist'">Álbum: {{ song.album }}</p>
-             </div>
- 
-             <!-- Reproducciones -->
-             <div class="song-plays">
-               <p>Reproducciones: {{ song.plays }}</p>
-             </div>
- 
-             <!-- Botones -->
-             <div class="song-buttons">
-               <button>❤️</button>
-               <button>▶️</button>
-               <button v-if="isOwner" @click="moveUp(index)">⬆️</button>
-               <button v-if="isOwner" @click="moveDown(index)">⬇️</button>
-             </div>
-           </div>
-         </li>
-       </ul>
-     </div>
-  
+   <div class="layout">
+     
+    <div class="playlist-container">
+        <div class="playlist-header">
+          <img :src="playlist.cover" alt="Cover" class="playlist-cover" />
+          <div class="playlist-info">
+            <h1>{{ playlist.name }}</h1>
+            <p>{{ playlist.author }}</p>
+            <p>{{ playlist.description }}</p>
+            <p>{{ playlist.genre }} - {{ playlist.likes }} Likes</p>
+          </div>
+        </div>
+        
+
+        <div class="song-container">
+          <div class="playlist-actions">
+            <button class="button-action">🔀</button>
+            <button class="button-action">▶️</button>
+            <input v-model="searchTerm" placeholder="Buscar canción" />
+            <select v-model="sortOption" @change="sortSongs">
+              <option value="default">Predefinido</option>
+              <option value="artist">Artista</option>
+              <option value="plays">Reproducciones</option>
+              <option value="album">Álbum</option>
+            </select>
+          </div>
+    
+          <ul class="song-list">
+            <li v-for="(song, index) in filteredSongs" :key="song.id" class="song-item">
+              <div class="song-info">
+                <!-- Nombre y Artista + Duración -->
+                <div class="song-name-artist">
+                  <p>{{ song.name }} - {{ song.artist }} ({{ song.duration }})</p>
+                </div>
+    
+                <!-- Álbum -->
+                <div class="song-album">
+                  <p v-if="playlist.type === 'playlist'">Álbum: {{ song.album }}</p>
+                </div>
+    
+                <!-- Reproducciones -->
+                <div class="song-plays">
+                  <p>Reproducciones: {{ song.plays }}</p>
+                </div>
+    
+                <!-- Botones -->
+                <div class="song-buttons">
+                  <button>❤️</button>
+                  <button>▶️</button>
+                  <button v-if="isOwner" @click="moveUp(index)">⬆️</button>
+                  <button v-if="isOwner" @click="moveDown(index)">⬇️</button>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
  </template>
  
  <script setup>
@@ -77,7 +81,11 @@
      { id: 8, name: 'Canción 8', artist: 'Artista C', album: 'Álbum Y', duration: '3:15', plays: 110 },
      { id: 9, name: 'Canción 9', artist: 'Artista D', album: 'Álbum Z', duration: '4:20', plays: 75 },
      { id: 10, name: 'Canción 10', artist: 'Artista A', album: 'Álbum X', duration: '3:40', plays: 130 },
-     { id: 11, name: 'Canción 11', artist: 'Artista A', album: 'Álbum X', duration: '3:40', plays: 130 }
+     { id: 11, name: 'Canción 11', artist: 'Artista A', album: 'Álbum X', duration: '3:40', plays: 130 },
+     { id: 12, name: 'Canción 12', artist: 'Artista A', album: 'Álbum X', duration: '3:40', plays: 130 },
+     { id: 13, name: 'Canción 13', artist: 'Artista A', album: 'Álbum X', duration: '3:40', plays: 130 },
+     { id: 14, name: 'Canción 14', artist: 'Artista A', album: 'Álbum X', duration: '3:40', plays: 130 },
+     { id: 15, name: 'Canción 15', artist: 'Artista A', album: 'Álbum X', duration: '3:40', plays: 130 }
    ]
  });
  
@@ -119,128 +127,153 @@
  </script>
  
  <style scoped>
+ .layout {
+  display: flex;
+  height: 100vh;
+  background: linear-gradient(180deg, #141414 15%,#4a1e04 40%,#8a3a10 60%, #ffb347 100%); /* Ajuste del gradiente para reducir el negro */
+  color: white;
+  background-attachment: fixed;
+  } 
+
+  .song-action{
+   align-items: center;
+  }
+
  .playlist-container {
+  align-items: center;
   width: 100%;
-  height: calc(100vh - 22vh); /* Restamos la altura de la barra de reproducción */
+  height: calc(100vh - 21vh);
   padding: 20px;
-  background-color: #333;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
   overflow-y: auto;
   margin-top: 6px;
+ 
+  /*background: linear-gradient(180deg, #141414 20%, #8a3a10 40%, #ffb347 100%);*/
+  scrollbar-width: none; /* Oculta la barra de desplazamiento en Firefox */
+  -ms-overflow-style: none; /* Oculta la barra de desplazamiento en Internet Explorer y Edge */
+  background-attachment: fixed;
 }
 
 .playlist-header {
   display: flex;
-  align-items: center; /* Centra verticalmente la portada y la información */
-  gap: 20px; /* Añade espacio entre la portada y la información */
-  justify-content: center; /* Centra horizontalmente los elementos */
-  flex-wrap: wrap; /* Permite que los elementos se ajusten cuando el espacio es pequeño */
-  margin-bottom: 30px; /* Espacio debajo de la cabecera */
+  align-items: center;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 30px; 
 }
 
 .playlist-info {
   color: white;
-  text-align: left; /* Cambiado a left para mantener los textos alineados a la izquierda */
-  max-width: 500px; /* Limita el ancho de la información */
+  text-align: left;
+  max-width: 500px;
 }
 
 .playlist-info h1 {
   margin: 10px 0;
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: bold;
 }
 
 .playlist-info p {
   margin: 5px 0;
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .playlist-actions {
   display: flex;
-  justify-content: center;  /* Centra los elementos */
+  justify-content: center;
   align-items: center;
-  gap: 20px;  /* Espaciado entre los elementos */
+  gap: 20px;
   margin-bottom: 20px;
-  width: 100%; /* Asegura que ocupe todo el ancho disponible */
+  width: 100%;
 }
 
 .playlist-actions input,
 .playlist-actions select,
 .playlist-actions button {
-  background-color: #444;
+  background-color: #ffb347;
   border: none;
-  padding: 8px;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: 10px;
   color: white;
+  font-weight: bold;
+  transition: background 0.3s, border 0.3s;
 }
 
 .playlist-actions input {
-  width: 200px;  /* Tamaño fijo para la barra de búsqueda */
+  width: 220px;
+  background-color: #d4752b;
+  
+}
+.playlist-actions input::placeholder {
+  color: #2d1405; /* Color del placeholder dorado para mejor visibilidad */
+  opacity: 0.5;
 }
 
 .playlist-actions select {
-  width: 150px;  /* Tamaño fijo para el select */
+  width: 160px;
+  background-color: #d4752b;
+  color: #2d1405;
 }
 
 .playlist-actions button {
-  padding: 10px 15px;  /* Un poco más de tamaño en los botones */
+  background-color: #d4752b;
+}
+
+.playlist-actions button:hover {
+  background-color: #ffb347;
 }
  
 .song-list {
-  width: 90%;
-  max-height: calc(100vh - 240px); /* Deja espacio para la barra de reproducción y otros márgenes */
-  overflow-y: auto;
+  width: 95%;
+  margin-bottom: 4vh;
 }
  
  .song-list li {
-   margin: 10px 0;
-   background-color: #444;
-   padding: 10px;
-   border-radius: 8px;
+   margin: 12px 0;
+   background-color: #2d1405;
+   padding: 14px;
+   border-radius: 12px;
    list-style: none;
+   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3); 
  }
  
  .song-info {
    display: flex;
    justify-content: space-between;
    align-items: center;
+   padding: 6px;
  }
  
  .song-name-artist,
  .song-album,
  .song-plays,
  .song-buttons {
-   width: 20%; /* Ajusta el tamaño de cada columna */
+   width: 22%;
    text-align: center;
+   
  }
  
  h1 {
    margin-top: 60px;
  }
- 
- .button {
-   background-color: #333;
-   border: none;
-   padding: 8px;
-   border-radius: 8px;
-   cursor: pointer;
-   transition: background 0.3s;
+ .song-buttons button{
+  background-color: transparent;
+  border: transparent;
+  border-radius: 50%;
+  width: 40px; height: 40px
  }
- 
- .button:hover {
-   background-color: #555;
- }
- 
- .button img {
-   width: 22px;
-   height: 22px;
-   filter: brightness(0) invert(1);
- }
+ .song-buttons button:hover {
+  background-color: #d4752b; /* Naranja más oscuro en hover */
+}
+
  
  .controls-container {
    display: flex;
-   gap: 12px;
+   gap: 14px;
    align-items: center;
  }
+
  </style>
  
