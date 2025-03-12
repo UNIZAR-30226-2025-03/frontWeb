@@ -6,8 +6,34 @@
          
          <div class="profile-container">
             <img :src="user.perfil" alt="profile" />
-            <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" hidden />
-            <a @click="triggerFileInput">Cambiar perfil</a>
+            
+            <!-- Desplegable para elegir entre subir o seleccionar una imagen predeterminada -->
+            <label for="profile-action">Cambiar perfil</label>
+            <select id="profile-action" v-model="profileAction">
+               <option disabled value="">Selecciona una opción</option>
+               <option value="upload">Subir nueva imagen</option>
+               <option value="select">Elegir predeterminada</option>
+            </select>
+
+            <!-- Si elige 'upload' se muestra el input para subir una imagen -->
+            <div v-if="profileAction === 'upload'">
+               <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
+            </div>
+
+            <!-- Si elige 'select' se muestra el modal para elegir una imagen predeterminada -->
+            <div v-if="profileAction === 'select'" class="image-selection-modal">
+               <h3>Selecciona una imagen</h3>
+               <div class="image-grid">
+                  <img 
+                     v-for="image in defaultImages" 
+                     :key="image" 
+                     :src="image" 
+                     @click="selectDefaultImage(image)"
+                     class="selectable-image"
+                  />
+               </div>
+               <button @click="showImageSelection = false">Cerrar</button>
+            </div>
          </div>
 
          <label for="name">Nombre</label>
@@ -56,12 +82,16 @@
   
 <script setup>
 import { computed, onMounted, ref } from "vue";
-
+import { useRouter } from 'vue-router';
 const email =  localStorage.getItem("email");
 
 const fileInput = ref(null);
 const selectedFile = ref(null);
+const profileAction = ref(""); // Acción seleccionada (subir imagen o elegir predeterminada)
+const showImageSelection = ref(false); // Modal para seleccionar imagen predeterminada
+const defaultImages = ref([]);  // Aquí se guardarán las imágenes predeterminadas
 
+const router = useRouter();
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
@@ -110,6 +140,11 @@ const hasChanges = () => {
       user.value.nacimiento != initialUser.value.nacimiento
    );
 };
+
+const handleChangeGender = () => {
+   router.push('/gender');
+};
+
 
 const formatDate = (dateString) => {
    if (!dateString) return '';  // Evita errores si la fecha es nula
@@ -161,9 +196,19 @@ const handleFileChange = (event) => {
    }
 };
 
+// 🔹 Función para seleccionar una imagen predeterminada
+const selectDefaultImage = (imageUrl) => {
+   user.value.perfil = imageUrl;
+   profileAction.value = 'upload'; // Vuelve a la opción de 'Subir nueva imagen'
+};
+
+// 🔹 Cerrar el modal de selección de imagen
+const closeImageSelection = () => {
+   showImageSelection.value = false;
+};
 
 onMounted(async () => {
-   try {
+   try { 
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(email)}`);
       if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
 
@@ -188,6 +233,12 @@ onMounted(async () => {
       initialUser.value = JSON.parse(JSON.stringify(user.value)); // Copia inicial de los datos del usuario
 
       console.log('Datos de usuario:', user.value);
+
+      const ImageResponse = await fetch("https://echobeatapi.duckdns.org/users/default-photos");
+      if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
+      defaultImages.value = await ImageResponse.json();
+      console.log('Canciones predeterminadas', defaultImages.value)
+   
    } catch (error) {
       console.error('Error:', error);
    }
@@ -499,6 +550,41 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   
 button:hover {
    opacity: 0.8;
+}
+
+.image-selection-modal {
+   position: fixed;
+   top: 25%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   background: #1a1a1a;
+   padding: 20px;
+   border-radius: 10px;
+   box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+   text-align: center;
+   z-index: 1000;
+}
+
+.image-grid {
+   display: flex;
+   gap: 10px;
+   flex-wrap: wrap;
+   justify-content: center;
+   margin: 10px 0;
+}
+
+.selectable-image {
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   cursor: pointer;
+   transition: 0.3s;
+   object-fit: cover;
+}
+
+.selectable-image:hover {
+   transform: scale(1.1);
+   border: 2px solid #ffa500;
 }
   
 /* Mensaje emergente */
