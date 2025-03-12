@@ -20,7 +20,7 @@
       <section class="recently-played">
         <h2>Bienvendio {{ nombre }}</h2>
         <div class="playlist-container">
-          <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item">
+          <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item" @click="handleClick(playlist.Id)" >
             <div class="playlist-image">
               <img 
                 :src="playlist.lista?.Portada" 
@@ -328,7 +328,11 @@
 
 <script setup>
   import { ref, onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
   import default_img from  '@/assets/kebab.jpg';
+
+  const router = useRouter();
+
   const email =  localStorage.getItem("email");
   console.log("email: ", email);
   const songs = ref([]);
@@ -340,6 +344,11 @@
     console.log("Reproduciendo canción:", song);
 
     // 1. Reproducir la canción 
+  };
+
+  const handleClick = (id) => {
+    console.log("Playlist seleccionada:", id);
+    router.push({ path: '/playlist', query: { id: id } });
   };
  
   onMounted(async () => {
