@@ -143,7 +143,7 @@ const hasChanges = () => {
 };
 
 const handleChangeGender = () => {
-   router.push('/gender');
+   router.push({ path: "/genres", query: { from: "user" } });
 };
 
 const toggleProfileActionVisibility = () => {

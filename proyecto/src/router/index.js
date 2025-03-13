@@ -24,7 +24,7 @@ const routes = [
   { path: '/user', component: User},
   { path: '/playlist', component: Playlist},
   { path: '/auth/callback', component: autenticacion},
-  { path: '/gender', component: Generos}
+  { path: '/genres', component: Generos}
 
 ];
 

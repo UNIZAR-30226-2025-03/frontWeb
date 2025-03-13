@@ -22,16 +22,17 @@
    </div>
  </template>
  
- <script setup>
- import { onMounted, ref } from 'vue';
- import { useRouter } from 'vue-router';
- const email =  localStorage.getItem("email");
- const router = useRouter();
- // Inicializamos los géneros y las selecciones
- const genres = ref([]);
- const selectedGenres = ref([]);
- const initialGenres = ref([]);
- const showPopup = ref(false);
+<script setup>
+import { onMounted, ref } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+const email =  localStorage.getItem("email");
+const router = useRouter();
+const route = useRoute();
+// Inicializamos los géneros y las selecciones
+const genres = ref([]);
+const selectedGenres = ref([]);
+const initialGenres = ref([]);
+const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
 
@@ -45,26 +46,27 @@ const showPopupMessage = (message, type) => {
    }, 3000);
 };
 
- 
- // Función para alternar la selección de géneros
- const toggleGenre = (genreName) => {
-  const genre = genres.value.find(g => g.NombreGenero === genreName);
-  if (!genre) return;
 
-  if (selectedGenres.value.includes(genreName)) {
-    // Quitar selección
-    selectedGenres.value = selectedGenres.value.filter(g => g !== genreName);
-    genre.seleccionado = false; // Actualizamos el objeto directamente
-  } else if (selectedGenres.value.length < 3) {
-    // Agregar selección si hay espacio
-    selectedGenres.value.push(genreName);
-    genre.seleccionado = true; // Actualizamos el objeto directamente
-  }
+// Función para alternar la selección de géneros
+const toggleGenre = (genreName) => {
+const genre = genres.value.find(g => g.NombreGenero === genreName);
+if (!genre) return;
+
+if (selectedGenres.value.includes(genreName)) {
+   // Quitar selección
+   selectedGenres.value = selectedGenres.value.filter(g => g !== genreName);
+   genre.seleccionado = false; // Actualizamos el objeto directamente
+} else if (selectedGenres.value.length < 3) {
+   // Agregar selección si hay espacio
+   selectedGenres.value.push(genreName);
+   genre.seleccionado = true; // Actualizamos el objeto directamente
+}
 };
 
  // Cargar los géneros desde la API y establecer los géneros seleccionados
  onMounted(async () => {
   try {
+   console.log('Correo: ', email);
     const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
     if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
 
@@ -73,12 +75,12 @@ const showPopupMessage = (message, type) => {
     console.log("Géneros cargados:", genres.value);
 
     // Guardamos los géneros iniciales
-    initialGenres.value = JSON.parse(JSON.stringify(genres.value)); // Copiar profundo
-
-    // Establecemos los géneros seleccionados iniciales
-    selectedGenres.value = genres.value
+    initialGenres.value = genres.value
       .filter(g => g.seleccionado)
       .map(g => g.NombreGenero);
+
+    // Establecemos los géneros seleccionados iniciales
+    selectedGenres.value = [...initialGenres.value];
 
     console.log("Géneros seleccionados al inicio:", selectedGenres.value);
 
@@ -88,43 +90,50 @@ const showPopupMessage = (message, type) => {
 });
 
  // Función para guardar los cambios
- const handleSave = async () => {
+const handleSave = async () => {
    const currentSelectedGenres = genres.value.filter(g => g.seleccionado).map(g => g.NombreGenero);
 
-   // Comparar si hubo cambios
-   if (JSON.stringify(currentSelectedGenres) !== JSON.stringify(initialGenres.value.map(g => g.NombreGenero))) {
-     // Si hay cambios, hacer la llamada a la API
-     try {
-       const response = await fetch(`https://echobeatapi.duckdns.org/genero/add`, {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({
-           userEmail: email,
-           generos: currentSelectedGenres
-         })
-       });
+  // Comparación de arrays sin importar el orden
+   const hasChanges = currentSelectedGenres.length !== initialGenres.value.length ||
+      currentSelectedGenres.some(genre => !initialGenres.value.includes(genre));
 
-       if (response.ok) {
-         console.log("Generos actualizados correctamente");
-         // Actualizamos los géneros iniciales para evitar nuevas comparaciones
-         initialGenres.value = JSON.parse(JSON.stringify(genres.value));
-       } else {
-         showPopupMessage('Error al actualizar los géneros', 'popup-error');
-       }
-       showPopupMessage('Preferencias actualizadas correctamente', 'popup-success')
-       // Redirigir al usuario al perfil
+   if (hasChanges) {
+      try {
+         const response = await fetch(`https://echobeatapi.duckdns.org/genero/add`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ userEmail: email, generos: currentSelectedGenres })
+         });
+
+         if (response.ok) {
+         console.log("Géneros actualizados correctamente");
+
+         // Actualizamos `initialGenres` después del éxito
+         initialGenres.value = [...currentSelectedGenres];
+
+         showPopupMessage('Preferencias actualizadas correctamente', 'popup-success');
+
+         // Redirigir según el origen
          setTimeout(() => {
-         router.push("/user");
-      }, 2000);
-     } catch (error) {
-       console.log('Error al guardar los géneros');
-     }
+           if (route.query.from === 'register') {
+             router.push("/");
+           } else {
+             router.push("/user");
+           }
+         }, 2000);
+         
+         } else {
+         showPopupMessage('Error al actualizar los géneros', 'popup-error');
+         }
+      } catch (error) {
+         console.log('Error al guardar los géneros');
+         showPopupMessage('Error de conexión', 'popup-error');
+      }
    } else {
-     showPopupMessage('No ha habido cambios para guardar', 'popup-error');
+      showPopupMessage('No ha habido cambios para guardar', 'popup-error');
    }
 };
+
 
 </script>
  
