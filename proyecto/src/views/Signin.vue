@@ -103,7 +103,7 @@ const handleRegister = async () => {
 
       // Redirigir al usuario al inicio de sesión
       setTimeout(() => {
-         router.push("/");
+         router.push("/gender");
       }, 2000);
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
