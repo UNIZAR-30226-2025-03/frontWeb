@@ -260,14 +260,11 @@ const handleSave = async () => {
    else {
       try {
          if (selectedFile.value) {
-         
             const formData = new FormData();
             formData.append('Email', email);
             formData.append('file', selectedFile.value);
 
             console.log("Archivo a subir:", selectedFile.value);
-            console.log("FormData:", formData);
-
 
             const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", { 
                method: "POST",
@@ -278,7 +275,7 @@ const handleSave = async () => {
             
             if (!profileResponse.ok) {
                const errorData = await profileResponse.text(); // Ver el error en texto
-               throw new Error("Error al subir la imagen: " + errorData);
+               throw new Error("Error al subir la imagen");
             }
 
             const profiledata = await profileResponse.json();
@@ -286,26 +283,24 @@ const handleSave = async () => {
             // initialUser.value.perfil = data.imageUrl; 
 
             console.log("Imagen actualizada con éxito");
-
          }
 
          else if (user.value.perfil !== initialUser.value.perfil) {
-            console.log(user.value.perfil);
+            const formData = new FormData();
+            formData.append('Email', email);
+            formData.append('file', user.value.perfil);
+
+            console.log("Archivo a subir:", user.value.perfil);
             const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", {
                method: "POST",
-               headers: {
-                  "Accept": "application/json",
-                  "Content-Type": "application/json"
-               },
-               body: JSON.stringify({
-                  emailUsuario: email,
-                  file: user.value.perfil, // Enviar la URL de la imagen predeterminada
-               }),
-            });
+               headers: {},
+               body: 
+                  formData,
+               })
 
             if (!profileResponse.ok) {
-               const errorData = await profileResponse.text();
-               throw new Error("Error al actualizar la imagen: " + errorData);
+               console.log("Error con la imagen predeterminada")
+               throw new Error("Error al actualizar la imagen ");
             }
 
             console.log("Imagen predeterminada actualizada correctamente");
