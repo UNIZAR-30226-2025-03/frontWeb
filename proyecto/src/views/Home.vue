@@ -20,7 +20,7 @@
       <section class="recently-played">
         <h2>Bienvenido {{ nombre }}</h2>
         <div class="playlist-container">
-          <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item">
+          <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item" @click="handleClick(playlist.Id)" >
             <div class="playlist-image">
               <img 
                 :src="playlist.lista?.Portada" 
@@ -328,10 +328,14 @@
 
 <script setup>
   import { ref, onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
   import default_img from  '@/assets/kebab.jpg';
+
+  const router = useRouter();
+
   const email =  localStorage.getItem("email");
+  console.log("email: ", email);
   const songs = ref([]);
-  console.log("email: ",email);
   const playlists = ref([]);//Playlist propias del usario
   const id = ref(0);
   const nombre = ref();
@@ -341,13 +345,23 @@
 
     // 1. Reproducir la canción 
   };
+
+  const handleClick = (id) => {
+    console.log("Playlist seleccionada:", id);
+    router.push({ path: '/playlist', query: { id: id } });
+  };
  
   onMounted(async () => {
     try {
-      //Cambiarlo y guardar el nick en localstorage?¿¿
       const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
       const nickData = await nick.json();
       nombre.value = nickData.Nick;
+    } catch (error) {
+      console.error('Nick Error:', error);
+    }
+
+
+    try {
        // Obtener playlist propias
       const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user?userEmail=${encodeURIComponent(email)}`);
       if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
@@ -358,12 +372,17 @@
     
       console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
 
+      } catch (error) {
+        console.error('Playlist Error:', error);
+      }
 
+      try {
        // Obtener recomendaciones
       const container = document.getElementById("recomendations-container");
       const response = await fetch(`https://echobeatapi.duckdns.org/genero/preferencia?userEmail=${encodeURIComponent(email)}`);
+      if (!response.ok) throw new Error('Error al obtener las recomendaciones del usuario');
       const data = await response.json();
-
+     
       data.forEach(genero => {
           const listElement = document.createElement("div");
           listElement.classList.add("recomendations-item");
@@ -381,7 +400,7 @@
             } else {
                 this.style.display = "none"; // Si la imagen de respaldo falla, oculta la imagen
             }
-        };
+          };
 
           const titleElement = document.createElement("p");
           titleElement.textContent = genero.NombreGenero;
@@ -391,19 +410,23 @@
           listElement.appendChild(titleElement);
           container.appendChild(listElement);
       });
-    // Obtener ultima canción escuchda
-    
+    } catch (error) {
+      console.error('Generos Error:', error);
+    }
 
+    try {
+    // Obtener ultima canción escuchda  
     const lastListResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-lists?userEmail=${encodeURIComponent(email)}`);
-    if (!lastListResponse.ok) throw new Error('Error al obtener las playlist del usuario');
+    if (!lastListResponse.ok) throw new Error('Error al obtener la ultima canción del usuario');
     
     const lastListData = await lastListResponse.json();
     id.value = lastListData.UltimaListaEscuchada;
 
     // Obtener caciones de la ultima playlist 
+    // CAMBIAR PARA PONER CON LA COLA
     if (id.value) {
     const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${id.value}/songs`);
-    if (!songsResponse.ok) throw new Error('Error al obtener las playlist del usuario');
+    if (!songsResponse.ok) throw new Error('Error la cola');
       
       const songsData = await songsResponse.json();
       console.log("songsData: ", songsData);
@@ -413,7 +436,7 @@
         console.warn("No se encontró una última playlist escuchada.");
     }
     } catch (error) {
-    console.error('Error:', error);
+      console.error('Cola Error:', error);
     }
   });
 

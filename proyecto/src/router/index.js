@@ -22,7 +22,7 @@ const routes = [
   { path: '/reset-password', component: Change_pwd},
   { path: '/createList', component: createList},
   { path: '/user', component: User},
-  { path: '/playlist', component: Playlist},
+  { path: '/playlist', component: Playlist, props: true },
   { path: '/auth/callback', component: autenticacion},
   { path: '/genres', component: Generos}
 
