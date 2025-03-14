@@ -1,145 +1,131 @@
 <template>
-   <div class="layout">
-     
+  <div class="layout">
     <div class="playlist-container">
-        <div class="playlist-header">
-          <img 
-          :src="default_img" 
-          alt="Playlist"
-          @error="handleImageError($event)"
-          >
-          <div class="playlist-info">
-            <h1>{{ playlist.name }}</h1>
-            <p>{{ playlist.author }}</p>
-            <p>{{ playlist.description }}</p>
-            <p>{{ playlist.genre }} - {{ playlist.likes }} Likes</p>
-          </div>
+      <div class="playlist-header">
+        <img :src="default_img" alt="Playlist" @error="handleImageError($event)">
+        <div class="playlist-info">
+          <h1>{{ playlistInfo.Nombre }}</h1>
+          <p>{{ playlistInfo.NumCanciones }} canciones</p>
+          <p>{{ playlistInfo.Descripcion }}</p>
+          <p>{{ playlistInfo.NumLikes }} Likes</p>
         </div>
-        
+      </div>
 
-        <div class="song-container">
-          <div class="playlist-actions">
-            <button class="button-action">🔀</button>
-            <button class="button-action">▶️</button>
-            <input v-model="searchTerm" placeholder="Buscar canción" />
-            <select v-model="sortOption" @change="sortSongs">
-              <option value="default">Predefinido</option>
-              <option value="artist">Artista</option>
-              <option value="plays">Reproducciones</option>
-              <option value="album">Álbum</option>
-            </select>
-          </div>
-          <hr >
-          <ul class="song-list">
-            <li v-for="(song, index) in playlist" :key="index" class="song-item">
+      <div class="song-container">
+        <div class="playlist-actions">
+          <button class="button-action" @click="randomClick">
+            <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
+          </button>
+          <input v-model="searchTerm" placeholder="Buscar canción" />
+        </div>
+
+        <hr>
+
+        <draggable v-model="playlist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
+          <template #item="{ element, index }">
+            <li class="song-item" :key="element.id || index">
               <div class="song-info">
                 <div class="song-cover">
-                  <img :src="song.portada" 
-                  :alt="song.nombre"
-                  @error="handleImageError($event)"
-                  >
-                   
+                  <img :src="element.portada" :alt="element.nombre" @error="handleImageError($event)" />
                 </div>
-                <!-- Nombre y Artista + Duración -->
+
                 <div class="song-name-artist">
-                  <p>{{ song.nombre }}   {{ song.duracion }} s</p>
+                  <p>{{ element.nombre }} {{ element.duracion }} s</p>
                 </div>
-    
-                <!-- Álbum -->
+
                 <div class="song-album">
-                  <p v-if="playlist.type === 'playlist'">Álbum: {{ song.album }}</p>
+                  <p v-if="playlistInfo.type === 'playlist'">Álbum: {{ element.album }}</p>
                 </div>
-    
-                <!-- Reproducciones -->
+
                 <div class="song-plays">
-                  <p>Reproducciones: {{ song.numReproducciones }}</p>
+                  <p>Reproducciones: {{ element.numReproducciones }}</p>
                 </div>
-    
-                <!-- Botones -->
+
                 <div class="song-buttons">
                   <button>❤️</button>
                   <button>▶️</button>
-                  <button v-if="isOwner" @click="moveUp(index)">⬆️</button>
-                  <button v-if="isOwner" @click="moveDown(index)">⬇️</button>
                 </div>
               </div>
             </li>
-          </ul>
-        </div>
+          </template>
+        </draggable>
       </div>
     </div>
- </template>
+  </div>
+</template>
+
  
- <script setup>
- import { ref, computed, onMounted } from 'vue';
- import { useRoute } from 'vue-router';
- import default_img from  '@/assets/kebab.jpg';
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
+import draggable from 'vuedraggable';
+import randomIcon from '@/assets/random-button.png';
+import default_img from '@/assets/kebab.jpg';
+import playIcon from '@/assets/play-circle.svg';
+
+// Variables para CSS y HTML
+const isGlowing = ref(false);
 
 const route = useRoute();
 const Id = route.query.id;
 
 console.log('ID de la playlist:', Id);
 
- const playlist = ref([]); 
- const searchTerm = ref('');
- const sortOption = ref('default');
- const isOwner = ref(true);
+const playlistInfo = ref({}); // Inicializado como objeto vacío
+const playlist = ref([]); // Inicializado como array vacío
+const searchTerm = ref('');
 
- onMounted(async () => {
+onMounted(async () => {
   try {
+    // OBTENER INFO DE LA PLAYLIST
+    const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${Id}`);
+    if (!infoResponse.ok) throw new Error('Error al obtener la información de la playlist');
+    
+    playlistInfo.value = await infoResponse.json();
+    console.log("✅ PlaylistInfo cargada: ", playlistInfo.value);
+
+    //  OBTENER CANCIONES DE LA PLAYLIST
     const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
     if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
-    const songsData = await songsResponse.json();
-    console.log("songs.data: ", songsData);
-    playlist.value = Array.isArray(songsData.canciones) ? songsData.canciones : [songsData.canciones];
-    console.log("playlist: ", playlist.value);
-  } catch (error) {
-    console.error('songs Error:', error);
-  }
-    
 
+    const songsData = await songsResponse.json();
+    console.log("✅ SongsData recibido: ", songsData);
+
+    // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
+    if (!songsData || !Array.isArray(songsData.canciones)) {
+      throw new Error('Las canciones no llegaron en formato de array');
+    }
+
+    // ASIGNAR LAS CANCIONES A `playlist`
+    playlist.value = songsData.canciones;
+    console.log("✅ Playlist final cargada:", playlist.value);
+
+  } catch (error) {
+    console.error('Error al cargar la playlist:', error);
+  }
 });
 
-// Imagen de remplazo
+onUnmounted(() => {
+  console.log("Saliendo de la página...");
+  // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
+});
+
+// Imagen de reemplazo
 const handleImageError = (event) => {
   event.target.src = default_img; // Reemplaza la imagen con la default
 };
 
-const filteredSongs = computed(() => {
-   let localsongs = playlist.value;
-   if (searchTerm.value) {
-    localsongs = localsongs.filter(song => song.name.toLowerCase().includes(searchTerm.value.toLowerCase()));
-   }
-   return localsongs;
- });
- 
- function sortSongs() {
-   if (sortOption.value === 'artist') {
-     playlist.value.canciones.sort((a, b) => a.artist.localeCompare(b.artist) || a.name.localeCompare(b.name));
-   } else if (sortOption.value === 'plays') {
-     playlist.value.canciones.sort((a, b) => b.plays - a.plays);
-   } else if (sortOption.value === 'album') {
-     playlist.value.canciones.sort((a, b) => a.album.localeCompare(b.album));
-   }
- }
- 
- function moveUp(index) {
-   if (index > 0) {
-     const songs = playlist.value.canciones;
-     [songs[index - 1], songs[index]] = [songs[index], songs[index - 1]];
-   }
- }
- 
- function moveDown(index) {
-   if (index < playlist.value.canciones.length - 1) {
-     const songs = playlist.value.canciones;
-     [songs[index], songs[index + 1]] = [songs[index + 1], songs[index]];
-   }
- }
+// Gestión al hacer clic en el botón aleatorio
+const randomClick = () => {
+  isGlowing.value = !isGlowing.value;
+};
 
-  </script>
+</script>
+
  
 <style scoped>
+
+
   hr{
  
     border-color:#8a3a10 ;
@@ -196,17 +182,28 @@ const filteredSongs = computed(() => {
     color: white;
     text-align: left;
     max-width: 500px;
+
+
   }
 
   .playlist-info h1 {
     margin: 10px 0;
-    font-size: 2.2rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 2.8rem;
     font-weight: bold;
+    color: #ffb347;  /* Naranja brillante */
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); /* Sombra para mejor legibilidad */
+    letter-spacing: 1px;
   }
 
   .playlist-info p {
     margin: 5px 0;
-    font-size: 1.1rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 400;
+    color: #d4d4d4; /* Gris claro para legibilidad */
+    opacity: 0.8; /* Hace que el texto sea un poco más suave */
+    margin: 4px 0; /* Espaciado entre líneas */
   }
 
   .playlist-actions {
@@ -251,10 +248,6 @@ const filteredSongs = computed(() => {
     background-color: transparent;
   }
 
-  .playlist-actions button:hover {
-    background-color: #ffb347;
-  }
-  
   .song-list {
     width: 95%;
     margin-bottom: 4vh;
@@ -301,6 +294,26 @@ const filteredSongs = computed(() => {
   border-radius: 8px; /* Mantiene el mismo borde redondeado */
 }
 
+.button-action {
+    width: 50px;  /* Ajusta según el tamaño deseado */
+    height: 50px; /* Ajusta según el tamaño deseado */
+    background-color: transparent;
+   
+  }
+
+
+  .button-action img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Asegura que la imagen no se deforme */
+    cursor: pointer;
+  }
+
+  .glow-effect {
+    mix-blend-mode: screen; /* Hace que las partes oscuras del icono se iluminen */
+    filter: drop-shadow(0px 0px 8px rgba(255, 165, 0, 0.8)); /* Agrega brillo */
+  }
+
 .song-titles {
   display: flex;
   justify-content: space-between; /* Distribuye los títulos de manera uniforme */
@@ -337,7 +350,7 @@ const filteredSongs = computed(() => {
   }
   .song-buttons button:hover {
   
-    background-color: #d4752b; /* Naranja más oscuro en hover */
+    background-color: #2d1405; /* Naranja más oscuro en hover */
   }
 
   
@@ -346,6 +359,28 @@ const filteredSongs = computed(() => {
     gap: 14px;
     align-items: center;
   }
+
+  /* Animación de movimiento */
+.slide-fade-move {
+  transition: transform 0.4s ease-in-out, opacity 0.3s;
+}
+
+/* Animación de entrada y salida */
+.slide-fade-enter-active, .slide-fade-leave-active {
+  transition: all 0.3s ease-in-out;
+}
+
+.slide-fade-enter-from, .slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-15px);
+}
+
+.drag-ghost {
+  opacity: 0.5;
+  background: #8a3a10;
+  transform: scale(1.05);
+}
+
 
 </style>
  
