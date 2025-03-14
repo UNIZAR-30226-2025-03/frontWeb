@@ -18,7 +18,7 @@
     <main class="content">
       <!-- Sección Escuchado Recientemente -->
       <section class="recently-played">
-        <h2>Bienvendio {{ nombre }}</h2>
+        <h2>Bienvenido {{ nombre }}</h2>
         <div class="playlist-container">
           <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item">
             <div class="playlist-image">

@@ -98,12 +98,13 @@ const handleRegister = async () => {
       if (!response.ok) {
          throw new Error("Error en el registro");
       }
+      localStorage.setItem("email",email.value);
 
       showPopupMessage("Registro exitoso", "popup-success");
 
       // Redirigir al usuario al inicio de sesión
       setTimeout(() => {
-         router.push("/");
+         router.push({ path: "/genres", query: { from: "register" } });
       }, 2000);
    } catch (error) {
       showPopupMessage(error.message, "popup-error");

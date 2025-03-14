@@ -6,8 +6,34 @@
          
          <div class="profile-container">
             <img :src="user.perfil" alt="profile" />
-            <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" hidden />
-            <a @click="triggerFileInput">Cambiar perfil</a>
+            
+            <!-- Desplegable para elegir entre subir o seleccionar una imagen predeterminada -->
+            <!-- Cambiar perfil solo se muestra cuando se hace clic -->
+            <label for="profile-action" @click="toggleProfileActionVisibility">Cambiar perfil</label>
+            <!-- Mostrar el select solo si profileActionVisible es verdadero -->
+            <div v-if="profileActionVisible">
+               <select id="profile-action" v-model="profileAction">
+                  <option disabled value="">Selecciona una opción</option>
+                  <option value="upload">Subir nueva imagen</option>
+                  <option value="select">Elegir predeterminada</option>
+               </select>
+            </div>
+
+            <!-- Si elige 'upload' se muestra el input para subir una imagen -->
+            <div v-if="profileAction === 'upload'">
+               <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
+            </div>
+
+            <!-- Si elige 'select' se muestra el modal para elegir una imagen predeterminada -->
+            <div v-if="profileAction === 'select'" class="image-selection-modal">
+               <h3>Selecciona una imagen</h3>
+               <div class="image-grid">
+                  <img 
+                     v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
+                  />
+               </div>
+               <button @click="closeImageSelection">Cerrar</button>
+            </div>
          </div>
 
          <label for="name">Nombre</label>
@@ -44,6 +70,7 @@
             <option value="protegido">Protegido</option>
          </select>
 
+         <button class="gender-btn" @click="handleChangeGender">CAMBIAR PREFERENCIAS DE GÉNERO</button>
          <button class="buttons save" @click="handleSave">GUARDAR CAMBIOS</button>
          <button class="buttons logout" @click="logout">CERRAR SESIÓN</button>
       </div>
@@ -55,12 +82,17 @@
   
 <script setup>
 import { computed, onMounted, ref } from "vue";
-
-const email = 'diego@gmail.com'; // adaptar al email con la sesión iniciada
+import { useRouter } from 'vue-router';
+const email =  localStorage.getItem("email");
 
 const fileInput = ref(null);
 const selectedFile = ref(null);
+const profileAction = ref(""); // Acción seleccionada (subir imagen o elegir predeterminada)
+const showImageSelection = ref(false); // Modal para seleccionar imagen predeterminada
+const profileActionVisible = ref(false);
+const defaultImages = ref([]);  // Aquí se guardarán las imágenes predeterminadas
 
+const router = useRouter();
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
@@ -104,8 +136,19 @@ const toggleEdit = (field) => {
 const hasChanges = () => {
    return (
       user.value.nick !== initialUser.value.nick || 
-      user.value.privacidad !== initialUser.value.privacidad 
+      user.value.privacidad !== initialUser.value.privacidad ||
+      user.value.nombre != initialUser.value.nombre ||
+      user.value.nacimiento != initialUser.value.nacimiento 
    );
+};
+
+const handleChangeGender = () => {
+   router.push({ path: "/genres", query: { from: "user" } });
+};
+
+const toggleProfileActionVisibility = () => {
+   // Alternar la visibilidad del select
+   profileActionVisible.value = !profileActionVisible.value;
 };
 
 const formatDate = (dateString) => {
@@ -116,19 +159,19 @@ const formatDate = (dateString) => {
    const month = String(date.getMonth() + 1).padStart(2, '0');
    const year = date.getFullYear();
 
-   return `${day}/${month}/${year}`; // 🔹 Formato dd-mm-yyyy
+   return `${day}/${month}/${year}`; // Formato dd-mm-yyyy
 };
 
 const formattedNacimiento = computed({
    get() {
       if (!user.value.nacimiento) return "";
       const [day, month, year] = user.value.nacimiento.split("/");
-      return `${year}-${month}-${day}`; // 🔹 Convertimos dd/mm/yyyy ➝ yyyy-mm-dd
+      return `${year}-${month}-${day}`; //  Convertir dd/mm/yyyy ➝ yyyy-mm-dd
    },
    set(value) {
       if (!value) return;
       const [year, month, day] = value.split("-");
-      user.value.nacimiento = `${day}/${month}/${year}`; // 🔹 Convertimos yyyy-mm-dd ➝ dd/mm/yyyy
+      user.value.nacimiento = `${day}/${month}/${year}`; // Convertir yyyy-mm-dd ➝ dd/mm/yyyy
    }
 });
 
@@ -146,22 +189,33 @@ const triggerFileInput = () => {
 // Función para manejar la selección de un archivo
 const handleFileChange = (event) => {
    const file = event.target.files[0];
-   if (file) {
-      selectedFile.value = file;
+   if (!file) return;
 
-      // Vista previa de la imagen seleccionada
-      const reader = new FileReader();
-      reader.onload = (e) => {
-         user.value.perfil = e.target.result;
-      };
-      reader.readAsDataURL(file);
-   }
+   selectedFile.value = file;
+
+   // Generar vista previa de la imagen
+   const reader = new FileReader();
+   reader.onload = (e) => {
+      user.value.perfil = e.target.result;
+   };
+   reader.readAsDataURL(file);
 };
 
 
+// 🔹 Función para seleccionar una imagen predeterminada
+const selectDefaultImage = (imageUrl) => {
+   user.value.perfil = imageUrl;
+   profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
+};
+
+// 🔹 Cerrar el modal de selección de imagen
+const closeImageSelection = () => {
+   showImageSelection.value = false;
+   profileAction.value = "";
+};
 
 onMounted(async () => {
-   try {
+   try { 
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(email)}`);
       if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
 
@@ -186,6 +240,12 @@ onMounted(async () => {
       initialUser.value = JSON.parse(JSON.stringify(user.value)); // Copia inicial de los datos del usuario
 
       console.log('Datos de usuario:', user.value);
+
+      const ImageResponse = await fetch("https://echobeatapi.duckdns.org/users/default-photos");
+      if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
+      defaultImages.value = await ImageResponse.json();
+      console.log('Canciones predeterminadas', defaultImages.value)
+   
    } catch (error) {
       console.error('Error:', error);
    }
@@ -193,21 +253,18 @@ onMounted(async () => {
 
 
 const handleSave = async () => {
-   if (!hasChanges() && !selectedFile.value) {
+   if (!hasChanges() && !selectedFile.value && user.value.perfil === initialUser.value.perfil) {
       showPopupMessage("No hay cambios para guardar", "popup-error");
       return;
    }
    else {
       try {
          if (selectedFile.value) {
-         
             const formData = new FormData();
             formData.append('Email', email);
-            formData.append('file', selectedFile.value );
+            formData.append('file', selectedFile.value);
 
             console.log("Archivo a subir:", selectedFile.value);
-            console.log("FormData:", formData);
-
 
             const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", { 
                method: "POST",
@@ -218,7 +275,7 @@ const handleSave = async () => {
             
             if (!profileResponse.ok) {
                const errorData = await profileResponse.text(); // Ver el error en texto
-               throw new Error("Error al subir la imagen: " + errorData);
+               throw new Error("Error al subir la imagen");
             }
 
             const profiledata = await profileResponse.json();
@@ -226,7 +283,27 @@ const handleSave = async () => {
             // initialUser.value.perfil = data.imageUrl; 
 
             console.log("Imagen actualizada con éxito");
+         }
 
+         else if (user.value.perfil !== initialUser.value.perfil) {
+            const formData = new FormData();
+            formData.append('Email', email);
+            formData.append('file', user.value.perfil);
+
+            console.log("Archivo a subir:", user.value.perfil);
+            const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", {
+               method: "POST",
+               headers: {},
+               body: 
+                  formData,
+               })
+
+            if (!profileResponse.ok) {
+               console.log("Error con la imagen predeterminada")
+               throw new Error("Error al actualizar la imagen ");
+            }
+
+            console.log("Imagen predeterminada actualizada correctamente");
          }
          
          if (user.value.nick !== initialUser.value.nick) {
@@ -267,22 +344,71 @@ const handleSave = async () => {
             console.log(privacyData.message);
          }
 
+         if (user.value.nombre !== initialUser.value.nombre) {
+            const nameResponse = await fetch("https://echobeatapi.duckdns.org/users/update-fullname", { 
+               method: "POST",
+               headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json"
+               },
+               body: JSON.stringify({
+                  userEmail: email,
+                  nombreReal: user.value.nombre
+               })
+            });
+            
+            if (!nameResponse.ok) throw new Error("Error al actualizar el nombre completo");
+
+            const nameData = await nameResponse.json();
+            user.value.nombre = nameData.NombreCompleto;
+            initialUser.value.nombre = user.value.NombreCompleto; // Actualizar el estado inicial
+
+            console.log(nameData.message);
+         }
+
+         if (user.value.nacimiento !== initialUser.value.nacimiento) {
+            const formattedDateForAPI = formattedNacimiento.value; // Esto ya está en yyyy-mm-dd
+            console.log('Fecha de nacimiento: ', formattedDateForAPI);
+            const birthResponse = await fetch("https://echobeatapi.duckdns.org/users/update-birthdate", { 
+               method: "POST",
+               headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json"
+               },
+               body: JSON.stringify({
+                  userEmail: email,
+                  birthdate: formattedDateForAPI //  Enviar el formato correcto
+               })
+            });
+
+            if (!birthResponse.ok) throw new Error("Error al actualizar la fecha de nacimiento");
+
+            const birthData = await birthResponse.json();
+            user.value.nacimiento = formatDate(birthData.FechaNacimiento); // Convertir de vuelta a dd/mm/yyyy
+            initialUser.value.nacimiento = user.value.nacimiento;          // Actualizar el estado inicial
+
+            console.log(birthData.message);
+         }
+
 
       } catch (error) {
          showPopupMessage(error.message, "popup-error");
       }
-      showPopupMessage("Cambios guardados con éxito", "popup-success")
+      showPopupMessage("Cambios guardados con éxito", "popup-success");
+      initialUser.value = JSON.parse(JSON.stringify(user.value));
+      selectedFile.value = null; // Resetear el archivo seleccionado
    }
 };
 
 
 const logout = () => {
-  localStorage.removeItem("token"); // 🔹 Eliminar el token
+  localStorage.clear(); // 🔹 Eliminar el token
   window.location.href = "/"; // 🔹 Redirigir al login
 };
 </script>
   
 <style scoped>
+
 .user-container {
    position: fixed;
    top: 0;
@@ -294,6 +420,7 @@ const logout = () => {
    display: flex;
    justify-content: center;
    align-items: center;
+   padding: 10px; 
 }
   
 .user-box {
@@ -304,6 +431,18 @@ const logout = () => {
    box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
    width: 100%;
    max-width: 500px;
+   max-height: 88vh; /* Ajuste para scroll */
+   overflow-y: scroll; /* Mantiene el scroll */
+   
+}
+
+/* Para Webkit (Chrome, Safari, Edge) */
+.user-box::-webkit-scrollbar {
+   width: 0px; /* Hace la barra de desplazamiento invisible */
+}
+
+.user-box::-webkit-scrollbar-thumb {
+   background: transparent; /* También puedes ocultar el "thumb" (parte movible) */
 }
   
 h2 {
@@ -328,6 +467,7 @@ input, select {
    width: 100%;
    padding: 10px;
    margin-top: 10px;
+   margin-bottom: 10px;
    border: 1px solid #ffa500;
    border-radius: 4px;
    background-color: #2a2a2a;
@@ -367,18 +507,19 @@ input, select {
    border: 2px solid #ffa500; 
 }
 
-.profile-container a {
-   margin-top: 10px;
-   color: #ffa500; 
-   font-weight: bold;
-   cursor: pointer;
-   text-decoration: none; 
+.profile-container label {
+   color: #ffa500; /* Color inicial */
+   text-align: left;
+   display: block;
+   margin-top: 0.5rem;
+   cursor: pointer; /* Cambia el cursor para indicar que es interactivo */
+   transition: color 0.3s ease, text-decoration 0.3s ease; /* Transición suave */
 }
 
-.profile-container a:hover {
-   text-decoration: underline; 
+.profile-container label:hover {
+   opacity: 0.8;
+   text-decoration: underline; /* Subraya el texto al pasar el ratón */
 }
-
 
 .change-btn {
    margin-left: 10px;
@@ -389,7 +530,6 @@ input, select {
    border-radius: 4px;
    cursor: pointer;
    font-weight: bold;
-   margin-top: 10px;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
@@ -416,9 +556,59 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .buttons.save {
    background-color: #ffc107;
 }
+
+.gender-btn {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background-color: white;
+   color: black;
+   font-weight: bold;
+   border: 1px solid #ccc;
+   padding: 12px;
+   border-radius: 4px;
+   cursor: pointer;
+   width: 100%;
+   margin-top: 1rem;
+}
   
 button:hover {
    opacity: 0.8;
+}
+
+.image-selection-modal {
+   position: fixed;
+   top: 25%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   background: #1a1a1a;
+   padding: 20px;
+   border-radius: 10px;
+   box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+   text-align: center;
+   z-index: 1000;
+}
+
+.image-grid {
+   display: flex;
+   gap: 10px;
+   flex-wrap: wrap;
+   justify-content: center;
+   margin: 10px 0;
+}
+
+.selectable-image {
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   cursor: pointer;
+   transition: 0.3s;
+   object-fit: cover;
+}
+
+.selectable-image:hover {
+   transform: scale(1.1);
+   border: 2px solid #ffa500;
 }
   
 /* Mensaje emergente */

@@ -57,6 +57,7 @@
  
  <script setup>
  import { ref, computed } from 'vue';
+ import recordVinylIcon from '@/assets/record-vinyl.svg';
  
  const playlist = ref({
    name: 'Mi Playlist',
@@ -65,7 +66,7 @@
    genre: 'Pop',
    likes: 120,
    type: 'playlist',
-   cover: 'https://via.placeholder.com/150',
+   cover: recordVinylIcon,
    songs: [
      { id: 1, name: 'Canción 1', artist: 'Artista A', album: 'Álbum X', duration: '3:45', plays: 100 },
      { id: 2, name: 'Canción 2', artist: 'Artista B', album: 'Álbum Y', duration: '4:12', plays: 80 },
@@ -136,6 +137,14 @@
   justify-content: center; /* Centra horizontalmente los elementos */
   flex-wrap: wrap; /* Permite que los elementos se ajusten cuando el espacio es pequeño */
   margin-bottom: 30px; /* Espacio debajo de la cabecera */
+}
+
+.playlist-cover {
+  width: 100%;
+  max-width: 200px; /* Limita el tamaño máximo de la imagen */
+  height: 200px; /* Ajusta la altura de la imagen */
+  object-fit: cover; /* Hace que la imagen se ajuste a las dimensiones sin distorsionarse */
+  border-radius: 8px; /* Bordes redondeados opcionales */
 }
 
 .playlist-info {

@@ -110,7 +110,7 @@ const handleLogin = async () => {
 };
 
 const loginWithGoogle = () => {
-  window.location.href = "https://echobeatapi.duckdns.org/auth/google"; // 🔹 Redirige al backend
+   window.location.href = "https://echobeatapi.duckdns.org/auth/google"; // 🔹 Redirige al backend
 };
 </script>
 
