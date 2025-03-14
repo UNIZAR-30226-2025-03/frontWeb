@@ -98,6 +98,7 @@ const handleRegister = async () => {
       if (!response.ok) {
          throw new Error("Error en el registro");
       }
+      localStorage.setItem("email",email.value);
 
       showPopupMessage("Registro exitoso", "popup-success");
 

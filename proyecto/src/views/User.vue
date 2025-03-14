@@ -402,7 +402,7 @@ const handleSave = async () => {
 
 
 const logout = () => {
-  localStorage.removeItem("token"); // 🔹 Eliminar el token
+  localStorage.clear(); // 🔹 Eliminar el token
   window.location.href = "/"; // 🔹 Redirigir al login
 };
 </script>
