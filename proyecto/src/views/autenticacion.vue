@@ -13,7 +13,7 @@ export default {
     // 🔹 Capturar el token desde la URL
     const token = route.query.token;
     if (token) {
-      localStorage.setItem("token", token); // 🔹 Guardar el token
+      localStorage.setItem("token", token); 
       router.push("/home"); // 🔹 Redirigir al home
     } else {
       router.push("/login"); // 🔹 Si falla, volver al login

@@ -83,6 +83,7 @@ const lastSong = ref({
   minute: 0
 });
 
+const email =  localStorage.getItem("email");
 const isMenuOpen = ref(false);
 const isPlaying = ref(false);
 const progress = ref(0);
@@ -96,12 +97,6 @@ const menuIcons = ref([
   { src: albumIcon, alt: 'Álbum' },
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
-
-// onMounted(async () => {
-//   try {
-//     const email = '874912@unizar.es@gmail.com'; // adaptar al email con la sesión iniciada
-//     const songResponse = await fetch(`http://48.209.24.188:3000/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
-//     if (!songResponse.ok) throw new Error('Error al obtener la última canción');
 
 //     const songData = await songResponse.json();
     

@@ -10,6 +10,7 @@ import createList from '../views/createList.vue';
 import User from '../views/User.vue';
 import Playlist from '../views/Playlist.vue';
 import autenticacion from '../views/autenticacion.vue';
+import Generos from '../views/Generos.vue';
 
 
 const routes = [
@@ -23,6 +24,7 @@ const routes = [
   { path: '/user', component: User},
   { path: '/playlist', component: Playlist, props: true },
   { path: '/auth/callback', component: autenticacion},
+  { path: '/genres', component: Generos}
 
 ];
 

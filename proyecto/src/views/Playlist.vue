@@ -153,7 +153,6 @@ const randomClick = () => {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
     overflow-y: auto;
     margin-top: 6px;
-  
     /*background: linear-gradient(180deg, #141414 20%, #8a3a10 40%, #ffb347 100%);*/
     scrollbar-width: none; /* Oculta la barra de desplazamiento en Firefox */
     -ms-overflow-style: none; /* Oculta la barra de desplazamiento en Internet Explorer y Edge */
@@ -175,6 +174,7 @@ const randomClick = () => {
   height: 12vw;
   object-fit: cover; /* Hace que la imagen llene el div sin deformarse */
   border-radius: 8px; /* Mantiene el mismo borde redondeado */
+
 }
 
 
@@ -287,11 +287,13 @@ const randomClick = () => {
   border-radius: 8px; /* Bordes redondeados opcionales */
 }
 
+
 .song-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover; /* Hace que la imagen llene el div sin deformarse */
   border-radius: 8px; /* Mantiene el mismo borde redondeado */
+
 }
 
 .button-action {
