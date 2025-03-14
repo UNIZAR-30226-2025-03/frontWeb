@@ -98,33 +98,28 @@ const menuIcons = ref([
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
-onMounted(async () => {
-  try {
-    const songResponse = await fetch(`http://48.209.24.188:3000/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
-    if (!songResponse.ok) throw new Error('Error al obtener la última canción');
-
-    const songData = await songResponse.json();
+//     const songData = await songResponse.json();
     
-    // Extraer los datos de la respuesta
-    const songName = songData.Nombre;
-    const songCover = songData.Portada;
-    const songMinute = songData.MinutoEscucha;
+//     // Extraer los datos de la respuesta
+//     const songName = songData.Nombre;
+//     const songCover = songData.Portada;
+//     const songMinute = songData.MinutoEscucha;
 
-    // Asignar los datos a las variables reactivas
-    lastSong.value = {
-      name: songName,
-      cover: songCover,
-      minute: songMinute,
-    };
+//     // Asignar los datos a las variables reactivas
+//     lastSong.value = {
+//       name: songName,
+//       cover: songCover,
+//       minute: songMinute,
+//     };
 
-    // Establecer la barra de progreso de acuerdo con el minuto de escucha
-    progress.value = (lastSong.value.minute / songDuration.value) * 100;
+//     // Establecer la barra de progreso de acuerdo con el minuto de escucha
+//     progress.value = (lastSong.value.minute / songDuration.value) * 100;
 
-    console.log('Última canción:', lastSong.value);
-  } catch (error) {
-    console.error('Error:', error);
-  }
-});
+//     console.log('Última canción:', lastSong.value);
+//   } catch (error) {
+//     console.error('Error:', error);
+//   }
+// });
 
 // Función para alternar entre reproducir y pausar
 function togglePlay() {
