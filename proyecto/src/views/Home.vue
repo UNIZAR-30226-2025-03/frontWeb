@@ -363,7 +363,7 @@
 
     try {
        // Obtener playlist propias
-      const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user?userEmail=${encodeURIComponent(email)}`);
+      const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user/${encodeURIComponent(email)}`);
       if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
       
       const playlistData = await playlistResponse.json();
