@@ -98,7 +98,16 @@ const menuIcons = ref([
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
+<<<<<<< Updated upstream
 //     const songData = await songResponse.json();
+=======
+onMounted(async () => {
+  try {
+    const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
+    if (!songResponse.ok) throw new Error('Error al obtener la última canción');
+
+    const songData = await songResponse.json();
+>>>>>>> Stashed changes
     
 //     // Extraer los datos de la respuesta
 //     const songName = songData.Nombre;
