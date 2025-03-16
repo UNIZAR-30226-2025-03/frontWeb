@@ -7,7 +7,14 @@
           <!-- Imagen que activa el menú -->
           <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
       
-        <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" />
+        <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
+        <select v-model="searchOption" @change="fetchResults" >
+           <option>Todo</option>
+           <option value="artistas">Artista</option>
+           <option value="canciones">Canción</option>
+           <option value="albums">Álbum</option>
+           <option value="listas">Lista</option>
+         </select>
 
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"
         />
@@ -16,6 +23,59 @@
       <main class="main-content">
         <router-view />
       </main>
+      <pre>{{ results }}</pre>
+      <div v-if="isLoading">Cargando resultados...</div>
+         <div v-else-if="!results.artistas.length && !results.canciones.length && !results.albums.length && !results.listas.length">
+         No se encontraron resultados.
+         </div>
+         <div v-if="results && (results.artistas?.length || results.canciones?.length || results.albums?.length || results.listas?.length)" class="results-container">
+         <!-- Artistas -->
+         <div v-if="results.artistas && results.artistas.length">
+            <h2>Artistas</h2>
+            <div class="grid">
+               <div v-for="artista in results.artistas" :key="artista.Nombre" class="card">
+                  <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
+                  <h3>{{ artista.Nombre }}</h3>
+                  <p>{{ artista.Biografia }}</p>
+                  <p><strong>Oyentes Totales:</strong> {{ artista.NumOyentesTotales }}</p>
+               </div>
+            </div>
+         </div>
+
+         <!-- Canciones -->
+         <div v-if="results.canciones?.length && (searchOption.value === 'canciones' || searchOption.value === '')">
+            <h2>Canciones</h2>
+            <div class="grid">
+            <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="card">
+               <img :src="cancion.Portada" alt="Canción" />
+               <h3>{{ cancion.Nombre }}</h3>
+               <p>Género: {{ cancion.Genero }}</p>
+            </div>
+            </div>
+         </div>
+
+         <!-- Álbumes -->
+         <div v-if="results.albums?.length && (searchOption.value === 'albums' || searchOption.value === '')">
+            <h2>Álbumes</h2>
+            <div class="grid">
+            <div v-for="album in results.albums" :key="album.Nombre" class="card">
+               <h3>{{ album.Nombre }}</h3>
+               <p>Lanzamiento: {{ album.FechaLanzamiento }}</p>
+            </div>
+            </div>
+         </div>
+
+         <!-- Listas -->
+         <div v-if="results.listas?.length && (searchOption.value === 'listas' || searchOption.value === '')">
+            <h2>Listas</h2>
+            <div class="grid">
+            <div v-for="lista in results.listas" :key="lista.Nombre" class="card">
+               <h3>{{ lista.Nombre }}</h3>
+               <p>{{ lista.Descripcion }}</p>
+            </div>
+            </div>
+         </div>
+      </div>
 
       <!-- Barra de canción -->
       <div class="player-bar">
@@ -59,15 +119,15 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { watchEffect, ref } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
 import userIcon from '@/assets/circle-user.svg';
-import previousIcon from '@/assets/previous-square.svg';
+import previousIcon from '@/assets/skip_previous.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
-import nextIcon from '@/assets/step-forward.svg';
+import nextIcon from '@/assets/skip_next.svg';
 import recordVinylIcon from '@/assets/record-vinyl.svg';
 import friendsIcon from '@/assets/following.svg';
 import starIcon from '@/assets/star.svg';
@@ -88,7 +148,16 @@ const isMenuOpen = ref(false);
 const isPlaying = ref(false);
 const progress = ref(0);
 const songDuration = ref(180);     // Duración de la canción en segundos
+const isLoading = ref(false);
 const audioPlayer = ref(null);     // Referencia al audio player
+const searchOption = ref('Todo');
+const currentSearch = ref('');
+const results = ref({
+  artistas: [],
+  canciones: [],
+  albums: [],
+  listas: []
+});
 
 const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos' },
@@ -98,16 +167,16 @@ const menuIcons = ref([
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
-<<<<<<< Updated upstream
-//     const songData = await songResponse.json();
-=======
-onMounted(async () => {
-  try {
-    const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
-    if (!songResponse.ok) throw new Error('Error al obtener la última canción');
 
-    const songData = await songResponse.json();
->>>>>>> Stashed changes
+//     const songData = await songResponse.json();
+
+// onMounted(async () => {
+//   try {
+//     const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
+//     if (!songResponse.ok) throw new Error('Error al obtener la última canción');
+
+//     const songData = await songResponse.json();
+
     
 //     // Extraer los datos de la respuesta
 //     const songName = songData.Nombre;
@@ -162,6 +231,45 @@ function getIconPosition(index, total) {
   const y = Math.sin(angle) * radius;
   return { transform: `translate(${x}px, ${y}px)` };
 }
+
+let searchTimeout;
+
+const fetchResults = async () => {
+   if (searchTimeout) clearTimeout(searchTimeout);
+   searchTimeout = setTimeout(async () => {
+      if (!currentSearch.value) {
+         results.value = { artistas: [], canciones: [], albums: [], listas: [] };
+         return;
+   }
+   isLoading.value = true;
+   console.log("Texto de búsqueda:", currentSearch.value);
+   console.log("Filtro seleccionado:", searchOption.value);
+
+      try { 
+         // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
+         const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
+         const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=${encodeURIComponent(tipo)}`);
+         if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
+
+         results.value = await response.json();
+         console.log("Respuesta de la API:", results.value);
+         console.log("Artistas:", JSON.parse(JSON.stringify(results.value.artistas)));
+         console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
+         console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
+         console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
+
+         console.log("Artistas:", results.value.artistas.length); // Verifica cuántos artistas hay
+         console.log("Canciones:", results.value.canciones.length); // Verifica cuántas canciones hay
+         console.log("Álbumes:", results.value.albums.length); // Verifica cuántos álbumes hay
+         console.log("Listas:", results.value.listas.length); // Verifica cuántas listas hay
+
+      } catch (error) {
+         console.error('Error:', error);
+      }
+   }, 500); // Espera 500ms antes de hacer la petición
+};
+
+
 </script>
 
 <style scoped>
@@ -275,6 +383,87 @@ function getIconPosition(index, total) {
   z-index: 1100;
 }
 
+.results-container {
+  width: 90%;
+  margin-top: 20px;
+}
+
+/* Contenedor principal que se ajusta para los elementos */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Columnas flexibles */
+  gap: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Cada tarjeta de artista */
+.card {
+  position: relative; /* Necesario para la superposición del texto sobre la imagen */
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Efecto de hover para tarjetas */
+.card:hover {
+  transform: scale(1.05); /* Aumenta ligeramente el tamaño al pasar el ratón */
+}
+
+/* Imagen de perfil */
+.card img {
+  width: 100%;
+  height: 200px; /* Altura fija para las imágenes */
+  object-fit: cover; /* Mantiene la imagen con buena proporción */
+  border-bottom: 3px solid #ddd; /* Línea para separar la imagen del contenido */
+}
+
+/* Superposición del texto sobre la imagen */
+.card .info {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro semitransparente */
+  color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Mostrar la superposición cuando el ratón pasa por encima */
+.card:hover .info {
+  opacity: 1; /* Hace visible el texto al pasar el ratón */
+}
+
+/* Nombre del artista */
+.card h3 {
+  margin-top: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* Biografía (si está disponible) */
+.card p {
+  color: #555;
+  font-size: 0.9rem;
+  margin-top: 5px;
+  padding: 0 10px;
+}
+
+/* Asegurarse de que el texto de la biografía no sea muy largo */
+.card p {
+  word-wrap: break-word;
+}
+
+
 /* 🔥 ESTILOS DE LA BARRA DE REPRODUCCIÓN 🔥 */
 .player-bar {
   display: flex;
@@ -347,7 +536,7 @@ function getIconPosition(index, total) {
 
 /* Barra de progreso */
 .progress-bar {
-  width: 50%;
+  width: 30%;
   height: 4px;
   background: #444;
   border-radius: 2px;
