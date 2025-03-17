@@ -8,7 +8,7 @@
          <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
          <div class="busqueda">
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
-            <div class="search-results" v-if="currentSearch">
+            <div class="search-results" v-if="currentSearch && !isLoading">
                <template v-if="hasResults">
                   <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
                      <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
@@ -251,13 +251,11 @@ const fetchResults = async () => {
          console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
          console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
 
-         console.log("Artistas:", results.value.artistas.length); // Verifica cuántos artistas hay
-         console.log("Canciones:", results.value.canciones.length); // Verifica cuántas canciones hay
-         console.log("Álbumes:", results.value.albums.length); // Verifica cuántos álbumes hay
-         console.log("Listas:", results.value.listas.length); // Verifica cuántas listas hay
-
       } catch (error) {
          console.error('Error:', error);
+
+      } finally {
+         isLoading.value = false; // ✅ Desactivamos el estado de carga cuando termina
       }
    // }, 500); // Espera 500ms antes de hacer la petición
 };
