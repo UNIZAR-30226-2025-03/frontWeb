@@ -6,16 +6,35 @@
 
           <!-- Imagen que activa el menú -->
           <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
-      
-        <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
-        <select v-model="searchOption" @change="fetchResults" >
-           <option>Todo</option>
-           <option value="artistas">Artista</option>
-           <option value="canciones">Canción</option>
-           <option value="albums">Álbum</option>
-           <option value="listas">Lista</option>
-         </select>
+         <div class="busqueda">
+            <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
+            <div class="search-results" v-if="currentSearch && hasResults">
+               <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
+                  <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
+                  <span>{{ artista.Nombre }}</span>
+               </div>
 
+               <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item">
+                  <img :src="cancion.Portada" alt="Canción" />
+                  <span>{{ cancion.Nombre }}</span>
+               </div>
+
+               <div v-for="album in results.albums" :key="album.Nombre" class="result-item">
+                  <span>🎵 {{ album.Nombre }} (Álbum)</span>
+               </div>
+
+               <div v-for="lista in results.listas" :key="lista.Nombre" class="result-item">
+                  <span>📜 {{ lista.Nombre }} (Lista)</span>
+               </div>
+               </div>
+            <select v-model="searchOption" @change="fetchResults" >
+               <option>Todo</option>
+               <option value="artistas">Artista</option>
+               <option value="canciones">Canción</option>
+               <option value="albums">Álbum</option>
+               <option value="listas">Lista</option>
+            </select>
+         </div>
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"
         />
       </div>
@@ -23,59 +42,6 @@
       <main class="main-content">
         <router-view />
       </main>
-      <pre>{{ results }}</pre>
-      <div v-if="isLoading">Cargando resultados...</div>
-         <div v-else-if="!results.artistas.length && !results.canciones.length && !results.albums.length && !results.listas.length">
-         No se encontraron resultados.
-         </div>
-         <div v-if="results && (results.artistas?.length || results.canciones?.length || results.albums?.length || results.listas?.length)" class="results-container">
-         <!-- Artistas -->
-         <div v-if="results.artistas && results.artistas.length">
-            <h2>Artistas</h2>
-            <div class="grid">
-               <div v-for="artista in results.artistas" :key="artista.Nombre" class="card">
-                  <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
-                  <h3>{{ artista.Nombre }}</h3>
-                  <p>{{ artista.Biografia }}</p>
-                  <p><strong>Oyentes Totales:</strong> {{ artista.NumOyentesTotales }}</p>
-               </div>
-            </div>
-         </div>
-
-         <!-- Canciones -->
-         <div v-if="results.canciones?.length && (searchOption.value === 'canciones' || searchOption.value === '')">
-            <h2>Canciones</h2>
-            <div class="grid">
-            <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="card">
-               <img :src="cancion.Portada" alt="Canción" />
-               <h3>{{ cancion.Nombre }}</h3>
-               <p>Género: {{ cancion.Genero }}</p>
-            </div>
-            </div>
-         </div>
-
-         <!-- Álbumes -->
-         <div v-if="results.albums?.length && (searchOption.value === 'albums' || searchOption.value === '')">
-            <h2>Álbumes</h2>
-            <div class="grid">
-            <div v-for="album in results.albums" :key="album.Nombre" class="card">
-               <h3>{{ album.Nombre }}</h3>
-               <p>Lanzamiento: {{ album.FechaLanzamiento }}</p>
-            </div>
-            </div>
-         </div>
-
-         <!-- Listas -->
-         <div v-if="results.listas?.length && (searchOption.value === 'listas' || searchOption.value === '')">
-            <h2>Listas</h2>
-            <div class="grid">
-            <div v-for="lista in results.listas" :key="lista.Nombre" class="card">
-               <h3>{{ lista.Nombre }}</h3>
-               <p>{{ lista.Descripcion }}</p>
-            </div>
-            </div>
-         </div>
-      </div>
 
       <!-- Barra de canción -->
       <div class="player-bar">
@@ -119,7 +85,7 @@
 </template>
 
 <script setup>
-import { watchEffect, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
@@ -167,6 +133,12 @@ const menuIcons = ref([
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
+const hasResults = computed(() => 
+  results.value.artistas.length || 
+  results.value.canciones.length || 
+  results.value.albums.length || 
+  results.value.listas.length
+);
 
 //     const songData = await songResponse.json();
 
@@ -235,12 +207,13 @@ function getIconPosition(index, total) {
 let searchTimeout;
 
 const fetchResults = async () => {
-   if (searchTimeout) clearTimeout(searchTimeout);
-   searchTimeout = setTimeout(async () => {
-      if (!currentSearch.value) {
+   // if (searchTimeout) clearTimeout(searchTimeout);
+   // searchTimeout = setTimeout(async () => {
+      if (!currentSearch.value.trim()) {
          results.value = { artistas: [], canciones: [], albums: [], listas: [] };
          return;
-   }
+      }
+
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
    console.log("Filtro seleccionado:", searchOption.value);
@@ -266,7 +239,7 @@ const fetchResults = async () => {
       } catch (error) {
          console.error('Error:', error);
       }
-   }, 500); // Espera 500ms antes de hacer la petición
+   // }, 500); // Espera 500ms antes de hacer la petición
 };
 
 
@@ -342,6 +315,10 @@ const fetchResults = async () => {
   z-index: 1101;
 }
 
+.busqueda {
+   justify-content: space-between;
+}
+
 .menu {
   position: relative;
   width: 100px;
@@ -383,84 +360,49 @@ const fetchResults = async () => {
   z-index: 1100;
 }
 
-.results-container {
-  width: 90%;
-  margin-top: 20px;
+select {
+   padding: 6px;
+   border: 1px solid #ffa500;
+   border-radius: 4px;
+   background-color: #2a2a2a;
+   color: #fff;
+   box-sizing: border-box;
 }
 
-/* Contenedor principal que se ajusta para los elementos */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Columnas flexibles */
-  gap: 20px;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-/* Cada tarjeta de artista */
-.card {
-  position: relative; /* Necesario para la superposición del texto sobre la imagen */
-  background-color: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  transition: transform 0.3s ease-in-out;
-}
-
-/* Efecto de hover para tarjetas */
-.card:hover {
-  transform: scale(1.05); /* Aumenta ligeramente el tamaño al pasar el ratón */
-}
-
-/* Imagen de perfil */
-.card img {
-  width: 100%;
-  height: 200px; /* Altura fija para las imágenes */
-  object-fit: cover; /* Mantiene la imagen con buena proporción */
-  border-bottom: 3px solid #ddd; /* Línea para separar la imagen del contenido */
-}
-
-/* Superposición del texto sobre la imagen */
-.card .info {
+.search-results {
   position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.5); /* Fondo oscuro semitransparente */
-  color: #fff;
-  padding: 10px;
+  width: 430px;
+  background-color: #333;
+  color: white;
   border-radius: 8px;
-  font-size: 0.9rem;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-}
-
-/* Mostrar la superposición cuando el ratón pasa por encima */
-.card:hover .info {
-  opacity: 1; /* Hace visible el texto al pasar el ratón */
-}
-
-/* Nombre del artista */
-.card h3 {
-  margin-top: 10px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10px;
-}
-
-/* Biografía (si está disponible) */
-.card p {
-  color: #555;
-  font-size: 0.9rem;
+  border-width: 10px;
+  border-color: white;
+  /* box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5); */
   margin-top: 5px;
-  padding: 0 10px;
+  margin-left: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  scrollbar-width: none;
 }
 
-/* Asegurarse de que el texto de la biografía no sea muy largo */
-.card p {
-  word-wrap: break-word;
+.result-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #444;
+  cursor: pointer;
+}
+
+.result-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.result-item:hover {
+  background-color: #555;
 }
 
 
