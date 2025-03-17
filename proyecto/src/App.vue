@@ -1,32 +1,44 @@
 <template>
   <div id="app">
   
-    <div class="container">
+   <div class="container">
       <div class="header">
 
-          <!-- Imagen que activa el menú -->
-          <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+         <!-- Imagen que activa el menú -->
+         <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
          <div class="busqueda">
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
-            <div class="search-results" v-if="currentSearch && hasResults">
-               <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
-                  <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
-                  <span>{{ artista.Nombre }}</span>
-               </div>
+            <div class="search-results" v-if="currentSearch">
+               <template v-if="hasResults">
+                  <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
+                     <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
+                     <span>{{ artista.Nombre }}</span>
+                  </div>
 
-               <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item">
-                  <img :src="cancion.Portada" alt="Canción" />
-                  <span>{{ cancion.Nombre }}</span>
-               </div>
+                  <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
+                     <img :src="cancion.Portada" alt="Canción" />
+                     <div class="song-quest-info">
+                        <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                        <button v-if="hoveredSong === cancion.Nombre">
+                        <img :src="playIcon" alt="Play" />
+                        </button>
+                     </div>
+                  </div>
 
-               <div v-for="album in results.albums" :key="album.Nombre" class="result-item">
-                  <span>🎵 {{ album.Nombre }} (Álbum)</span>
-               </div>
+                  <div v-for="album in results.albums" :key="album.Nombre" class="result-item">
+                     <img :src="album.Portada" alt="Preview" />
+                     <span> {{ album.Nombre }}</span>
+                  </div>
 
-               <div v-for="lista in results.listas" :key="lista.Nombre" class="result-item">
-                  <span>📜 {{ lista.Nombre }} (Lista)</span>
+                  <div v-for="lista in results.listas" :key="lista.Nombre" class="result-item">
+                     <img :src="lista.Portada" alt="Preview" />
+                     <span> {{ lista.Nombre }}</span>
+                  </div>
+               </template>
+               <div v-else class="no-results">
+                  ❌ Sin resultados
                </div>
-               </div>
+            </div>
             <select v-model="searchOption" @change="fetchResults" >
                <option>Todo</option>
                <option value="artistas">Artista</option>
@@ -118,6 +130,8 @@ const isLoading = ref(false);
 const audioPlayer = ref(null);     // Referencia al audio player
 const searchOption = ref('Todo');
 const currentSearch = ref('');
+const hoveredSong = ref(null);
+
 const results = ref({
   artistas: [],
   canciones: [],
@@ -194,6 +208,12 @@ function closeMenu() {
 const openUser = () => {
   router.push('/User');
 };
+
+function formatTime(seconds) {
+    let minutes = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
 
 // Función para obtener la posición de los íconos en el menú
 function getIconPosition(index, total) {
@@ -377,7 +397,7 @@ select {
   border-radius: 8px;
   border-width: 10px;
   border-color: white;
-  /* box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5); */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
   margin-top: 5px;
   margin-left: 5px;
   max-height: 300px;
@@ -392,6 +412,7 @@ select {
   padding: 10px;
   border-bottom: 1px solid #444;
   cursor: pointer;
+  position: relative;
 }
 
 .result-item img {
@@ -405,8 +426,39 @@ select {
   background-color: #555;
 }
 
+.result-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+}
 
-/* 🔥 ESTILOS DE LA BARRA DE REPRODUCCIÓN 🔥 */
+.result-item button img {
+  width: 25px;
+  height: 25px;
+  filter: brightness(0) invert(1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.result-item button:hover img {
+  transform: scale(1.2);
+}
+
+.song-quest-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-grow: 1; 
+}
+
+.no-results {
+  padding: 15px;
+  text-align: center;
+  color: #bbb;
+  font-size: 16px;
+}
+
+/*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
 .player-bar {
   display: flex;
   flex-direction: column; /* Apila los elementos */
