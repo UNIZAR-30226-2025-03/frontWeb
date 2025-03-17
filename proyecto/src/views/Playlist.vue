@@ -2,7 +2,7 @@
   <div class="layout">
     <div class="playlist-container">
       <div class="playlist-header">
-        <img :src="default_img" alt="Playlist" @error="handleImageError($event)">
+        <img :src="playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
         <div class="playlist-info">
           <h1>{{ playlistInfo.Nombre }}</h1>
           <p>{{ playlistInfo.NumCanciones }} canciones</p>

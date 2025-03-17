@@ -1,14 +1,52 @@
 <template>
   <div id="app">
   
-    <div class="container">
+   <div class="container">
       <div class="header">
 
-          <!-- Imagen que activa el menú -->
-          <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
-      
-        <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" />
+         <!-- Imagen que activa el menú -->
+         <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+         <div class="busqueda">
+            <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
+            <div class="search-results" v-if="currentSearch && !isLoading">
+               <template v-if="hasResults">
+                  <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
+                     <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
+                     <span>{{ artista.Nombre }}</span>
+                  </div>
 
+                  <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
+                     <img :src="cancion.Portada" alt="Canción" />
+                     <div class="song-quest-info">
+                        <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                        <button v-if="hoveredSong === cancion.Nombre">
+                        <img :src="playIcon" alt="Play" />
+                        </button>
+                     </div>
+                  </div>
+
+                  <div v-for="album in results.albums" :key="album.Nombre" class="result-item">
+                     <img :src="album.Portada" alt="Preview" />
+                     <span> {{ album.Nombre }}</span>
+                  </div>
+
+                  <div v-for="lista in results.listas" :key="lista.Nombre" class="result-item">
+                     <img :src="lista.Portada" alt="Preview" />
+                     <span> {{ lista.Nombre }}</span>
+                  </div>
+               </template>
+               <div v-else class="no-results">
+                  ❌ Sin resultados
+               </div>
+            </div>
+            <select v-model="searchOption" @change="fetchResults" >
+               <option>Todo</option>
+               <option value="artistas">Artista</option>
+               <option value="canciones">Canción</option>
+               <option value="albums">Álbum</option>
+               <option value="listas">Lista</option>
+            </select>
+         </div>
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"
         />
       </div>
@@ -59,15 +97,15 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
 import userIcon from '@/assets/circle-user.svg';
-import previousIcon from '@/assets/previous-square.svg';
+import previousIcon from '@/assets/skip_previous.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
-import nextIcon from '@/assets/step-forward.svg';
+import nextIcon from '@/assets/skip_next.svg';
 import recordVinylIcon from '@/assets/record-vinyl.svg';
 import friendsIcon from '@/assets/following.svg';
 import starIcon from '@/assets/star.svg';
@@ -88,7 +126,18 @@ const isMenuOpen = ref(false);
 const isPlaying = ref(false);
 const progress = ref(0);
 const songDuration = ref(180);     // Duración de la canción en segundos
+const isLoading = ref(false);
 const audioPlayer = ref(null);     // Referencia al audio player
+const searchOption = ref('Todo');
+const currentSearch = ref('');
+const hoveredSong = ref(null);
+
+const results = ref({
+  artistas: [],
+  canciones: [],
+  albums: [],
+  listas: []
+});
 
 const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos' },
@@ -98,7 +147,22 @@ const menuIcons = ref([
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
+const hasResults = computed(() => 
+  results.value.artistas.length || 
+  results.value.canciones.length || 
+  results.value.albums.length || 
+  results.value.listas.length
+);
+
 //     const songData = await songResponse.json();
+
+// onMounted(async () => {
+//   try {
+//     const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
+//     if (!songResponse.ok) throw new Error('Error al obtener la última canción');
+
+//     const songData = await songResponse.json();
+
     
 //     // Extraer los datos de la respuesta
 //     const songName = songData.Nombre;
@@ -145,6 +209,12 @@ const openUser = () => {
   router.push('/User');
 };
 
+function formatTime(seconds) {
+    let minutes = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
 // Función para obtener la posición de los íconos en el menú
 function getIconPosition(index, total) {
   const angle = (index / (total - 1)) * (Math.PI / 2);
@@ -153,11 +223,43 @@ function getIconPosition(index, total) {
   const y = Math.sin(angle) * radius;
   return { transform: `translate(${x}px, ${y}px)` };
 }
-</script>
 
-<style scoped>
-/* Estilos CSS previamente proporcionados */
-</style>
+let searchTimeout;
+
+const fetchResults = async () => {
+   
+   if (!currentSearch.value.trim()) {
+      results.value = { artistas: [], canciones: [], albums: [], listas: [] };
+      return;
+   }
+
+   isLoading.value = true;
+   console.log("Texto de búsqueda:", currentSearch.value);
+   console.log("Filtro seleccionado:", searchOption.value);
+
+   try { 
+      // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
+      const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=${encodeURIComponent(tipo)}`);
+      if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
+
+      results.value = await response.json();
+      console.log("Respuesta de la API:", results.value);
+      console.log("Artistas:", JSON.parse(JSON.stringify(results.value.artistas)));
+      console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
+      console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
+      console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
+
+   } catch (error) {
+      console.error('Error:', error);
+
+   } finally {
+      isLoading.value = false; 
+   }
+};
+
+
+</script>
 
 
 <style scoped>
@@ -225,6 +327,10 @@ function getIconPosition(index, total) {
   z-index: 1101;
 }
 
+.busqueda {
+   justify-content: space-between;
+}
+
 .menu {
   position: relative;
   width: 100px;
@@ -266,7 +372,85 @@ function getIconPosition(index, total) {
   z-index: 1100;
 }
 
-/* 🔥 ESTILOS DE LA BARRA DE REPRODUCCIÓN 🔥 */
+select {
+   padding: 6px;
+   border: 1px solid #ffa500;
+   border-radius: 4px;
+   background-color: #2a2a2a;
+   color: #fff;
+   box-sizing: border-box;
+}
+
+.search-results {
+  position: absolute;
+  width: 430px;
+  background-color: #333;
+  color: white;
+  border-radius: 8px;
+  border-width: 10px;
+  border-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+  margin-top: 5px;
+  margin-left: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  scrollbar-width: none;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #444;
+  cursor: pointer;
+  position: relative;
+}
+
+.result-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.result-item:hover {
+  background-color: #555;
+}
+
+.result-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.result-item button img {
+  width: 25px;
+  height: 25px;
+  filter: brightness(0) invert(1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.result-item button:hover img {
+  transform: scale(1.2);
+}
+
+.song-quest-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-grow: 1; 
+}
+
+.no-results {
+  padding: 15px;
+  text-align: center;
+  color: #bbb;
+  font-size: 16px;
+}
+
+/*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
 .player-bar {
   display: flex;
   flex-direction: column; /* Apila los elementos */
@@ -338,7 +522,7 @@ function getIconPosition(index, total) {
 
 /* Barra de progreso */
 .progress-bar {
-  width: 50%;
+  width: 30%;
   height: 4px;
   background: #444;
   border-radius: 2px;
