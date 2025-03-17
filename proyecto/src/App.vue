@@ -227,45 +227,39 @@ function getIconPosition(index, total) {
 let searchTimeout;
 
 const fetchResults = async () => {
-   // if (searchTimeout) clearTimeout(searchTimeout);
-   // searchTimeout = setTimeout(async () => {
-      if (!currentSearch.value.trim()) {
-         results.value = { artistas: [], canciones: [], albums: [], listas: [] };
-         return;
-      }
+   
+   if (!currentSearch.value.trim()) {
+      results.value = { artistas: [], canciones: [], albums: [], listas: [] };
+      return;
+   }
 
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
    console.log("Filtro seleccionado:", searchOption.value);
 
-      try { 
-         // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
-         const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
-         const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=${encodeURIComponent(tipo)}`);
-         if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
+   try { 
+      // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
+      const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=${encodeURIComponent(tipo)}`);
+      if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
-         results.value = await response.json();
-         console.log("Respuesta de la API:", results.value);
-         console.log("Artistas:", JSON.parse(JSON.stringify(results.value.artistas)));
-         console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
-         console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
-         console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
+      results.value = await response.json();
+      console.log("Respuesta de la API:", results.value);
+      console.log("Artistas:", JSON.parse(JSON.stringify(results.value.artistas)));
+      console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
+      console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
+      console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
 
-      } catch (error) {
-         console.error('Error:', error);
+   } catch (error) {
+      console.error('Error:', error);
 
-      } finally {
-         isLoading.value = false; // ✅ Desactivamos el estado de carga cuando termina
-      }
-   // }, 500); // Espera 500ms antes de hacer la petición
+   } finally {
+      isLoading.value = false; 
+   }
 };
 
 
 </script>
-
-<style scoped>
-/* Estilos CSS previamente proporcionados */
-</style>
 
 
 <style scoped>
