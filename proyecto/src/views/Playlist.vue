@@ -17,6 +17,9 @@
             <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
           </button>
           <input v-model="searchTerm" placeholder="Buscar canción" />
+          <button class="button-action" @click="addSong">
+            <img :src="add_button" alt="add"/>
+          </button>
         </div>
 
         <hr>
@@ -44,6 +47,7 @@
                 <div class="song-buttons">
                   <button>❤️</button>
                   <button>▶️</button>
+                  <button @click="removeSong(element.id)">🗑️</button>
                 </div>
               </div>
             </li>
@@ -61,7 +65,7 @@ import { useRoute } from 'vue-router';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
-import playIcon from '@/assets/play-circle.svg';
+import add_button from '@/assets/add_circle.svg';
 
 // Variables para CSS y HTML
 const isGlowing = ref(false);
@@ -118,6 +122,40 @@ const handleImageError = (event) => {
 // Gestión al hacer clic en el botón aleatorio
 const randomClick = () => {
   isGlowing.value = !isGlowing.value;
+};
+
+const addSong = async () => {
+
+};
+
+const removeSong = async (songId) => {
+  try {
+    // Enviar la solicitud de eliminación con el songId y playlistId
+    console.log("Id playlist: ", Id);
+    console.log("Id canción: ", songId);
+    const playlistId = Number(Id);
+    const response = await fetch(`https://echobeatapi.duckdns.org/playlists/delete-song/${playlistId}`, {
+      method: 'DELETE',
+      headers: {
+         'Accept': '*/*',  // Similar al cURL 'accept: */*'
+         'Content-Type': 'application/json',  // Indica que el cuerpo es JSON
+      },
+      body: JSON.stringify({
+        idLista: playlistId,  // ID de la playlist
+        songId: songId // ID de la canción
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Error en la eliminación de la canción');
+    }
+
+    // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
+    playlist.value = playlist.value.filter(song => song.id !== songId);
+    
+  } catch (error) {
+    console.error('Error al eliminar la canción:', error);
+  }
 };
 
 </script>
@@ -303,7 +341,6 @@ const randomClick = () => {
    
   }
 
-
   .button-action img {
     width: 100%;
     height: 100%;
@@ -311,10 +348,16 @@ const randomClick = () => {
     cursor: pointer;
   }
 
+  .button-action:hover img {
+  transform: scale(1.2);
+  transition: transform 0.2s ease-in-out;
+  }
+
   .glow-effect {
     mix-blend-mode: screen; /* Hace que las partes oscuras del icono se iluminen */
     filter: drop-shadow(0px 0px 8px rgba(255, 165, 0, 0.8)); /* Agrega brillo */
   }
+
 
 .song-titles {
   display: flex;
