@@ -57,7 +57,7 @@
                 </div>
 
                 <div class="song-name-artist">
-                  <p>{{ element.nombre }} {{ element.duracion }} s</p>
+                  <p>{{ element.nombre }} ({{ formatTime(element.duracion) }})</p>
                 </div>
 
                 <div class="song-album">
@@ -592,7 +592,7 @@ h1 {
   margin-left: 5px;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 10000;
   scrollbar-width: none;
 }
 

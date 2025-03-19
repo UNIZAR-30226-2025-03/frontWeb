@@ -1,6 +1,9 @@
 <template>
    <div class="create-list-container">
       <div class="create-list-box">
+         <div class="back-btn-container">
+            <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
+         </div>
          <h2>Crear Nueva Lista</h2>
          <span>Rellena los siguientes campos para crear tu lista de reproducción</span>
 
@@ -59,6 +62,7 @@ const nombre = ref("");
 const descripcion = ref("");
 const privacidad = ref("");
 const email =  localStorage.getItem("email");
+const file = ref('');
 
 const selectedFile = ref(null);
 const profileAction = ref(""); // Acción seleccionada (subir imagen o elegir predeterminada)
@@ -79,6 +83,10 @@ const showPopupMessage = (message, type) => {
    }, 3000);
 };
 
+const goBack = () => {
+   router.back();
+};
+
 // Función para manejar la selección de un archivo
 const handleFileChange = (event) => {
    const file = event.target.files[0];
@@ -94,13 +102,13 @@ const handleFileChange = (event) => {
    reader.readAsDataURL(file);
 };
 
-// 🔹 Función para seleccionar una imagen predeterminada
+//  Función para seleccionar una imagen predeterminada
 const selectDefaultImage = (imageUrl) => {
-   user.value.perfil = imageUrl;
+   file = imageUrl;
    profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
-// 🔹 Cerrar el modal de selección de imagen
+//  Cerrar el modal de selección de imagen
 const closeImageSelection = () => {
    showImageSelection.value = false;
    profileAction.value = "";
@@ -126,34 +134,61 @@ const handleCreateList = async () => {
    }
 
    try {
-      
-      const formData = new FormData();
-      formData.append('emailUsuario', email);
-      formData.append('nombrePlaylist', nombre.value);
-      formData.append('descripcionPlaylist', descripcion.value);
-      formData.append('tipoPrivacidad', privacidad.value);
-      formData.append('file', selectedFile.value);
+      if (selectedFile.value) {
+         const formData = new FormData();
+         formData.append('emailUsuario', email);
+         formData.append('nombrePlaylist', nombre.value);
+         formData.append('descripcionPlaylist', descripcion.value);
+         formData.append('tipoPrivacidad', privacidad.value);
+         formData.append('file', selectedFile.value);
 
-      console.log("Archivo a subir:", selectedFile.value);
-      console.log("FormData:", formData);
+         console.log("Archivo a subir:", selectedFile.value);
+         console.log("FormData:", formData);
 
-      const response = await fetch("https://echobeatapi.duckdns.org/playlists/create", {
-         method: "POST",
-         headers: {},
-         body: 
-            formData,
-         })
+         const response = await fetch("https://echobeatapi.duckdns.org/playlists/create", {
+            method: "POST",
+            headers: {},
+            body: 
+               formData,
+            })
+         
+         if (!response.ok) {
+            const errorData = await response.text(); // Ver el error en texto
+            throw new Error("Error al subir la imagen: ");
+         }
       
-      if (!response.ok) {
-         const errorData = await response.text(); // Ver el error en texto
-         throw new Error("Error al subir la imagen: ");
+         showPopupMessage("Lista creada con éxito", "popup-success");
+
+         setTimeout(() => {
+         router.push("/home"); 
+         }, 2000);
       }
-   
-      showPopupMessage("Lista creada con éxito", "popup-success");
+      else {
+         console.log("Archivo a subir:", file.value);
+         const response = await fetch(`https://echobeatapi.duckdns.org/playlists/create-with-url/`, {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+            emailUsuario: email,  
+            nombrePlaylist: nombre.value,
+            descripcionPlaylist: descripcion.value,
+            tipoPrivacidad: privacidad.value,
+            imageUrl: file.value
+         })
+      });
 
+      if (!response.ok) {
+         throw new Error('Error al subir la imagen predeterminada');
+      }
+
+      showPopupMessage("Lista creada con éxito", "popup-success");
       setTimeout(() => {
-      router.push("/home"); 
-      }, 2000);
+         router.push("/home"); 
+         }, 2000);
+      }
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
@@ -261,6 +296,30 @@ button:hover {
 .selectable-image:hover {
    transform: scale(1.1);
    border: 2px solid #ffa500;
+}
+
+.back-btn-container {
+   position: absolute;
+   top: 60px;
+   left: 510px;
+   display: flex;
+   justify-content: flex-start;
+}
+
+.back-btn {
+   background-color: transparent;
+   border: 1px solid #ffa500;
+   color: #ffa500;
+   padding: 6px 12px;
+   border-radius: 6px;
+   font-weight: bold;
+   cursor: pointer;
+   transition: background-color 0.3s ease;
+   min-width: 100px;
+}
+
+.back-btn:hover {
+   background-color: rgba(255, 165, 0, 0.2);
 }
 
 /* Mensaje emergente */
