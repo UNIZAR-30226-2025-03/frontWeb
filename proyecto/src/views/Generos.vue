@@ -1,5 +1,8 @@
 <template>
    <div class="genres-container">
+      <div class="back-btn-container">
+         <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
+      </div>
      <h2 class="title">🎶 Elige hasta 3 géneros musicales:</h2>
      <div class="genres-list">
       <div 
@@ -46,6 +49,9 @@ const showPopupMessage = (message, type) => {
    }, 3000);
 };
 
+const goBack = () => {
+   router.back();
+};
 
 // Función para alternar la selección de géneros
 const toggleGenre = (genreName) => {
@@ -234,6 +240,30 @@ const handleSave = async () => {
 
  button:hover {
    opacity: 0.8;
+}
+
+.back-btn-container {
+   position: absolute;
+   top: 20px;
+   left: 10px;
+   display: flex;
+   justify-content: flex-start;
+}
+
+.back-btn {
+   background-color: transparent;
+   border: 1px solid #ffa500;
+   color: #ffa500;
+   padding: 6px 12px;
+   border-radius: 6px;
+   font-weight: bold;
+   cursor: pointer;
+   transition: background-color 0.3s ease;
+   min-width: 100px;
+}
+
+.back-btn:hover {
+   background-color: rgba(255, 165, 0, 0.2);
 }
 
 /* Mensaje emergente */
