@@ -224,7 +224,6 @@ function getIconPosition(index, total) {
   return { transform: `translate(${x}px, ${y}px)` };
 }
 
-let searchTimeout;
 
 const fetchResults = async () => {
    

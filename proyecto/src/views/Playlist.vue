@@ -16,13 +16,34 @@
 
       <div class="song-container">
         <div class="playlist-actions">
-          <button class="button-action" @click="randomClick">
-            <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
-          </button>
-          <input v-model="searchTerm" placeholder="Buscar canción" />
-          <button class="button-action" @click="addSong">
-            <img :src="add_button" alt="add"/>
-          </button>
+            <button class="button-action" @click="randomClick">
+               <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
+            </button>
+            <input v-model="searchTerm" placeholder="Buscar canción" />
+            <button class="button-action" @click="toggleSearch">
+               <img :src="add_button" alt="add"/>
+            </button>
+
+            <!-- El contenedor para el buscador -->
+            <div v-if="searchVisible" class="search-container" :class="{'active': searchVisible}">
+               <input type="text" placeholder="Buscar canción..." v-model="currentSearch" @input="fetchResults"/>
+               <div class="search-results" v-if="currentSearch && !isLoading">
+                  <div v-if="results?.canciones.length">
+                     <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item">
+                        <img :src="cancion.Portada || 'ruta/a/imagen/default.jpg'" alt="Canción" />
+                        <div class="song-quest-info">
+                           <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                           <!-- Botón para agregar la canción seleccionada -->
+                           <button @click="addSong(cancion.Id)">Añadir</button>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div v-else class="no-results">
+                     ❌ Sin resultados
+                  </div>
+               </div>
+            </div>
         </div>
 
         <hr>
@@ -57,7 +78,7 @@
           </template>
         </draggable>
       </div>
-    </div>
+   </div>
     <div v-if="showPopup" :class="popupType" class="popup">
          {{ popupMessage }}
     </div>
@@ -66,16 +87,20 @@
 
  
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
 import add_button from '@/assets/add_circle.svg';
 
+
 // Variables para CSS y HTML
 const isGlowing = ref(false);
 const router = useRouter();
+const searchVisible = ref(false);
+const currentSearch = ref('');
+const isLoading = ref(false);
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -95,6 +120,11 @@ const goBack = () => {
    router.back();
 };
 
+// Toggle para mostrar/ocultar el buscador
+const toggleSearch = () => {
+  searchVisible.value = !searchVisible.value;
+};
+
 const route = useRoute();
 const Id = route.query.id;
 
@@ -103,6 +133,13 @@ console.log('ID de la playlist:', Id);
 const playlistInfo = ref({}); // Inicializado como objeto vacío
 const playlist = ref([]); // Inicializado como array vacío
 const searchTerm = ref('');
+
+const results = ref({
+  artistas: [],
+  canciones: [],
+  albums: [],
+  listas: []
+});
 
 onMounted(async () => {
   try {
@@ -149,8 +186,39 @@ const randomClick = () => {
   isGlowing.value = !isGlowing.value;
 };
 
-const addSong = async () => {
+function formatTime(seconds) {
+    let minutes = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
 
+const addSong = async (songId) => {
+  try {
+    console.log("Id playlist: ", Id);
+    console.log("Id canción: ", songId);
+    const playlistId = Number(Id);
+    const response = await fetch(`https://echobeatapi.duckdns.org/playlists/add-song/${playlistId}`, {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',  
+      },
+      body: JSON.stringify({
+        idLista: playlistId,  
+        songId: songId 
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al añadir la canción');
+    }
+
+    showPopupMessage("Canción añadida con éxito", "popup-success");
+    playlist.value.push({ songId });
+    
+  } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+  }
 };
 
 const removeSong = async (songId) => {
@@ -181,6 +249,31 @@ const removeSong = async (songId) => {
   } catch (error) {
       showPopupMessage(error.message, "popup-error");
   }
+};
+
+const fetchResults = async () => {
+   
+   if (!currentSearch.value.trim()) {
+      results.value.canciones = [];
+      return;
+   }
+
+   isLoading.value = true;
+   console.log("Texto de búsqueda:", currentSearch.value);
+
+   try { 
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
+      if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
+
+      results.value = await response.json();
+      console.log("Respuesta de la API:", results.value);
+
+   } catch (error) {
+      console.error('Error:', error);
+
+   } finally {
+      isLoading.value = false; 
+   }
 };
 
 </script>
@@ -465,6 +558,94 @@ h1 {
 
 .back-btn:hover {
    background-color: rgba(255, 165, 0, 0.2);
+}
+
+/* Contenedor del buscador */
+.search-container {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.search-container input {
+  padding: 8px;
+  font-size: 16px;
+  width: 415px; 
+}
+
+/* Aparece cuando el buscador está visible */
+.search-container.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.search-results {
+  position: absolute;
+  width: 430px;
+  background-color: #333;
+  color: white;
+  border-radius: 8px;
+  border-width: 10px;
+  border-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+  margin-top: 5px;
+  margin-left: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  scrollbar-width: none;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #444;
+  cursor: pointer;
+  position: relative;
+}
+
+.result-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.result-item:hover {
+  background-color: #555;
+}
+
+.result-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.result-item button img {
+  width: 25px;
+  height: 25px;
+  filter: brightness(0) invert(1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.result-item button:hover img {
+  transform: scale(1.2);
+}
+
+.song-quest-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-grow: 1; 
+}
+
+.no-results {
+  padding: 15px;
+  text-align: center;
+  color: #bbb;
+  font-size: 16px;
 }
 
 /* Mensaje emergente */
