@@ -19,7 +19,7 @@
                      <img :src="cancion.Portada" alt="Canción" />
                      <div class="song-quest-info">
                         <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
-                        <button v-if="hoveredSong === cancion.Nombre">
+                        <button v-if="hoveredSong === cancion.Nombre" @click="playSong(cancion)">
                         <img :src="playIcon" alt="Play" />
                         </button>
                      </div>
@@ -76,6 +76,8 @@
           </div>
           <input type="range" class="progress-bar" min="0" max="100" v-model="progress" />
         </div>
+        <!-- 🔊 Componente de streaming de audio -->
+        <AudioStreamer ref="audioStreamer" />
       </div>
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
@@ -113,6 +115,7 @@ import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
 import createList from '@/assets/task-checklist.svg'
 import router from './router';
+import AudioStreamer from '@/components/AudioStreamer.vue';
 
 // Variables reactivas
 const lastSong = ref({
@@ -131,6 +134,7 @@ const audioPlayer = ref(null);     // Referencia al audio player
 const searchOption = ref('Todo');
 const currentSearch = ref('');
 const hoveredSong = ref(null);
+const audioStreamer = ref(null); // Referencia al AudioStreamer
 
 const results = ref({
   artistas: [],
@@ -185,16 +189,21 @@ const hasResults = computed(() =>
 //   }
 // });
 
-// Función para alternar entre reproducir y pausar
-function togglePlay() {
-  if (audioPlayer.value.paused) {
-    audioPlayer.value.currentTime = lastSong.value.minute;  // Reproducir desde el minuto guardado
-    audioPlayer.value.play();
-    isPlaying.value = true;
-  } else {
-    audioPlayer.value.pause();
-    isPlaying.value = false;
+// Función para iniciar una canción
+function playSong(song) {
+  lastSong.value = {
+    name: song.Nombre,
+    cover: song.Portada,
+  };
+  if (audioStreamer.value) {
+   console.log("Canción a reproducir: ", song)
+    audioStreamer.value.startStreamSong(song.Id, song.Nombre);
   }
+}
+
+// Función para pausar/reanudar
+function togglePlay() {
+  isPlaying.value = !isPlaying.value;
 }
 
 function toggleMenu() {
