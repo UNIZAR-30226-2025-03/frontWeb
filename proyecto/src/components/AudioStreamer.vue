@@ -1,175 +1,223 @@
-<template>
-   <div>
-     <audio ref="player" controls></audio> <!-- El reproductor de audio -->
-     <div v-for="(message, index) in logMessages" :key="index" :class="message.type">
-       {{ message.text }}
-     </div>
-   </div>
- </template>
- 
- <script>
- import { defineComponent, ref, onMounted, onUnmounted, defineExpose } from 'vue';
- import { io } from 'socket.io-client';
- 
- export default defineComponent({
-   name: 'AudioStreamer',
-   setup() {
-     const status = ref('Desconectado');
-     const logMessages = ref([]);
-     const player = ref(null);
-     let mediaSource = null;
-     let sourceBuffer = null;
-     let queue = [];
-     let streamingActive = false;
-     let socket = null;
- 
-     const log = (message, type = 'normal') => {
-       logMessages.value.push({ text: `[${new Date().toISOString().slice(11, 19)}] ${message}`, type });
-     };
- 
-     const initSocket = () => {
-       socket = io('https://echobeatapi.duckdns.org', { transports: ['websocket'] });
- 
-       socket.on('connect', () => {
-         status.value = 'Conectado';
-         console.log('Conectado al servidor', 'success');
-       });
- 
-       socket.on('disconnect', () => {
-         status.value = 'Desconectado';
-         console.log('Desconectado del servidor', 'error');
-       });
- 
-       // Escuchar el evento de los chunks de audio
-       socket.on('audioChunk', (data) => {
-         console.log('¡Evento audioChunk recibido!', data);
-         handleAudioChunk(data);  // Llamar al handler de los chunks
-      });
+<script setup>
+import { ref, onMounted } from 'vue'
+import { io } from 'socket.io-client'
 
- 
-       socket.on('streamComplete', handleStreamComplete);
-     };
- 
-     const handleAudioChunk = (data) => {
-      if (!streamingActive) return;
+defineExpose({ startStreamSong, stopCurrentStream,resumeCurrentStream })
+
+const connectionStatus = ref('Desconectado')
+const MIN_BUFFERED_SECONDS = 3
+let mediaSource = null
+let mediaSourceURL = null
+let sourceBuffer = null
+let queue = []
+let currentSong = null
+let expectedDuration = 0
+let hasStartedPlaying = false
+let streamingActive = false
+let bufferCheckInterval = null
+const player = ref()
+
+const socket = io('https://echobeatapi.duckdns.org', { transports: ['websocket'] })
+
+onMounted(() => {
+  const externalPlayer = document.querySelector('audio#app-player')
+  if (externalPlayer) {
+    player.value = externalPlayer
+  } else {
+    console.log('[error] No se encontró el reproductor global')
+  }
+})
+
+socket.on('connect', () => {
+  connectionStatus.value = 'Conectado'
+  console.log('[success] Conectado al servidor: ' + socket.id)
+})
+
+socket.on('disconnect', () => {
+  connectionStatus.value = 'Desconectado'
+  console.log('[error] Desconectado del servidor')
+})
+
+socket.on('error', (error) => {
+  console.log('[error] Error de Socket.IO: ' + error)
+})
+
+socket.on('blobList', (blobs) => {
+  console.log('[info] Blobs disponibles:')
+  blobs.forEach(blob => console.log(`[info] - ${blob}`))
+})
+
+socket.on('audioChunk', (data) => {
+  if (!streamingActive || player.value?.error) return
+
+  const binary = atob(data.data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const chunkBuffer = bytes.buffer
+
+  if (sourceBuffer && !sourceBuffer.updating) {
+    try {
+      sourceBuffer.appendBuffer(chunkBuffer)
+      console.log('Chunk añadido al buffer')
+    } catch (err) {
+      console.log('[error] Error al añadir chunk, se agrega a la cola: ' + err)
+      queue.push(chunkBuffer)
+    }
+  } else {
+    queue.push(chunkBuffer)
+    console.log('Chunk en cola para ser añadido')
+  }
+})
+
+socket.on('streamComplete', () => {
+  console.log('[success] Streaming completado desde el servidor')
+  streamingActive = false
+  if (bufferCheckInterval) clearInterval(bufferCheckInterval)
+
+  const checkAndEnd = setInterval(() => {
+    if (sourceBuffer && !sourceBuffer.updating) {
       try {
-         const chunkBuffer = new Uint8Array(data.data).buffer;
-         console.log('Chunk recibido:', chunkBuffer);
-
-         // Si el sourceBuffer está listo para recibir más datos
-         if (sourceBuffer && !sourceBuffer.updating) {
-            sourceBuffer.appendBuffer(chunkBuffer);
-            log('Chunk añadido al buffer');
-            
-            // Intentar reproducir solo cuando el buffer esté listo
-            if (player.value && !player.value.paused) {
-            player.value.play();  // Intentar reproducir el audio.
-            log('Reproduciendo audio');
-            }
-         } else {
-            queue.push(chunkBuffer);
-            log('Chunk en cola');
-         }
+        mediaSource.endOfStream()
+        console.log('[info] MediaSource marcado como ended')
       } catch (err) {
-         log(`Error: ${err}`, 'error');
+        console.log('[error] Error al hacer endOfStream: ' + err)
       }
-      };
- 
-     const handleStreamComplete = () => {
-       console.log('Streaming completado', 'success');
-       streamingActive = false;
-       if (mediaSource && mediaSource.readyState === 'open') {
-         try {
-            sourceBuffer.abort(); // Aborta cualquier operación pendiente en el buffer
-            mediaSource.endOfStream(); // Cierra el stream correctamente
-         } catch (err) {
-            log(`Error al finalizar el stream: ${err}`, 'error');
-         }
+      clearInterval(checkAndEnd)
+    }
+  }, 100)
+})
 
-       }
-     };
- 
-     const startStreamSong = (songId, songName) => {
-       stopCurrentStream();
-       streamingActive = true;
-       initMediaSource();
-       console.log(`Solicitando streaming de '${songName}'`);
-       console.log('Tipo de dato de songId:', typeof songId);
-       console.log("Id canción: ", songId);
-       socket.emit('startStream', { songId });
-     };
- 
-     const stopCurrentStream = () => {
-       streamingActive = false;
-       if (mediaSource && mediaSource.readyState === 'open') {
-         try {
-           sourceBuffer.abort();
-           mediaSource.endOfStream();
-         } catch (err) {
-           console.log(`Error al detener: ${err}`, 'error');
-         }
-       }
-       if (player.value) {
-         player.value.pause();
-         player.value.removeAttribute('src');
-         player.value.load();
-       }
-       queue = [];
-       mediaSource = null;
-     };
- 
-     const initMediaSource = () => {
-       queue = [];
-       mediaSource = new MediaSource();
-       if (player.value) {
-         player.value.src = URL.createObjectURL(mediaSource);
-         mediaSource.addEventListener('sourceopen', () => {
-           try {
-            console.log('MediaSource abierto');
-             sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg'); // O el tipo MIME adecuado
-             sourceBuffer.addEventListener('updateend', processQueue);
-           } catch (err) {
-             console.log(`Error en MediaSource: ${err}`, 'error');
-           }
-         });
-       }
-     };
- 
-     const processQueue = () => {
-      while (queue.length > 0 && sourceBuffer && !sourceBuffer.updating) {
-         const nextChunk = queue.shift();
-         try {
-            console.log('Procesando siguiente chunk de la cola');
-            sourceBuffer.appendBuffer(nextChunk);
-         } catch (err) {
-            log(`Error al procesar la cola: ${err}`, 'error');
-         }
+async function startStreamSong(songId, songName) {
+  console.log("id:",songId);
+  console.log("id:",songName);
+  stopCurrentStream()
+  currentSong = songName
+  streamingActive = true
+  initMediaSource()
+  console.log(`[info] Solicitando inicio de streaming para la canción '${songName}' (ID ${songId})...`)
+  socket.emit('startStream', { songId })
+}
+
+function stopCurrentStream() {
+  if (streamingActive) console.log('[info] Deteniendo streaming anterior...')
+  streamingActive = false
+  if (bufferCheckInterval) {
+    clearInterval(bufferCheckInterval)
+    bufferCheckInterval = null
+  }
+  if (mediaSource?.readyState === 'open') {
+    try {
+      if (sourceBuffer && !sourceBuffer.updating) sourceBuffer.abort()
+    } catch (err) {
+      console.log('[error] Error al abortar SourceBuffer: ' + err)
+    }
+    try {
+      mediaSource.endOfStream()
+    } catch (err) {
+      console.log('[error] Error al hacer endOfStream: ' + err)
+    }
+  }
+  if (player.value?.src) {
+    URL.revokeObjectURL(player.value.src)
+  }
+  if (player.value) {
+    player.value.pause()
+    player.value.removeAttribute('src')
+    player.value.load()
+  }
+  mediaSource = null
+  mediaSourceURL = null
+  sourceBuffer = null
+  queue = []
+  hasStartedPlaying = false
+}
+
+
+function resumeCurrentStream(songId, songName, startSeconds) {
+  currentSong = songName
+  streamingActive = true
+  initMediaSource()
+  console.log(`[info] Reanudando streaming para '${songName}' desde ${startSeconds}s (ID ${songId})...`)
+  socket.emit('startStream', { songId, startSeconds })
+}
+
+function initMediaSource() {
+  queue = []
+  hasStartedPlaying = false
+  mediaSource = new MediaSource()
+  mediaSourceURL = URL.createObjectURL(mediaSource)
+  if (player.value) player.value.src = mediaSourceURL
+  mediaSource.addEventListener('sourceopen', onSourceOpen)
+}
+
+function onSourceOpen() {
+  console.log('[info] MediaSource abierto')
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg')
+  } catch (err) {
+    console.log('[error] Error al crear SourceBuffer: ' + err)
+    return
+  }
+  sourceBuffer.addEventListener('updateend', () => {
+    if (!hasStartedPlaying && player.value) {
+      const buffered = player.value.buffered
+      if (buffered.length > 0) {
+        const bufferedSeconds = buffered.end(0) - buffered.start(0)
+        if (bufferedSeconds >= MIN_BUFFERED_SECONDS) {
+          hasStartedPlaying = true
+          player.value.play().catch(err => console.log('[error] El navegador bloqueó la reproducción automática: ' + err))
+          console.log(`[info] Reproducción iniciada con ${bufferedSeconds.toFixed(2)} segundos buffer`)
+          if (bufferCheckInterval) clearInterval(bufferCheckInterval)
+        } else {
+          console.log(`[info] Esperando a acumular ${MIN_BUFFERED_SECONDS}s. Actualmente: ${bufferedSeconds.toFixed(2)}s`)
+        }
       }
-   };
- 
-     onMounted(() => {
-       initSocket();
-     });
- 
-     onUnmounted(() => {
-       if (socket) socket.disconnect();
-     });
- 
-     // Exponer funciones para ser accesibles desde App.vue
-     defineExpose({ startStreamSong, stopCurrentStream });
- 
-     return {
-       status,
-       logMessages,
-       player,
-       startStreamSong,
-       stopCurrentStream
-     };
-   }
- });
- </script>
- 
- <style scoped>
- /* Estilos aquí */
- </style>
- 
+    }
+    while (queue.length > 0 && !sourceBuffer.updating) {
+      try {
+        const nextChunk = queue.shift()
+        sourceBuffer.appendBuffer(nextChunk)
+      } catch (err) {
+        console.log('[error] Error al reintentar appendBuffer: ' + err)
+        queue.unshift(nextChunk)
+        break
+      }
+    }
+  })
+  sourceBuffer.addEventListener('error', (e) => {
+    console.log('[error] Error en el SourceBuffer: ' + e)
+    stopCurrentStream()
+  })
+
+  if (!bufferCheckInterval) {
+    bufferCheckInterval = setInterval(() => {
+      if (!hasStartedPlaying && player.value) {
+        const buffered = player.value.buffered
+        if (buffered.length > 0) {
+          const bufferedSeconds = buffered.end(0) - buffered.start(0)
+          if (bufferedSeconds >= MIN_BUFFERED_SECONDS) {
+            hasStartedPlaying = true
+            player.value.play().catch(err => console.log('[error] El navegador bloqueó la reproducción automática: ' + err))
+            console.log(`[info] Reproducción iniciada con ${bufferedSeconds.toFixed(2)} segundos buffer`)
+            clearInterval(bufferCheckInterval)
+            bufferCheckInterval = null
+          }
+        }
+      }
+    }, 250)
+  }
+}
+
+async function fetchSongDuration(songId) {
+  const url = `https://echobeatapi.duckdns.org/api/getSongLength?songId=${songId}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error('No se pudo obtener la duración de la canción')
+    const data = await res.json()
+    return data.duration
+  } catch (error) {
+    console.log('[error] Error al obtener la duración de la canción: ' + error)
+    return 0
+  }
+}
+</script>

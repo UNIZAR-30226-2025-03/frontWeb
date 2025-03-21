@@ -70,7 +70,7 @@
 
                 <div class="song-buttons">
                   <button>❤️</button>
-                  <button>▶️</button>
+                  <button @click="playNewSong(element)">▶️</button>
                   <button @click="removeSong(element.id)">🗑️</button>
                 </div>
               </div>
@@ -87,13 +87,14 @@
 
  
 <script setup>
-import { ref, onMounted, onUnmounted, computed} from 'vue';
+import { ref, onMounted, onUnmounted, inject} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
 import add_button from '@/assets/add_circle.svg';
 
+const playSong = inject('playSong')
 
 // Variables para CSS y HTML
 const isGlowing = ref(false);
@@ -141,6 +142,17 @@ const results = ref({
   listas: []
 });
 
+function playNewSong(song){
+   console.log(song);
+   const newSong = {
+    Id: song.id,
+    Nombre: song.nombre,
+    Portada: song.portada,
+    Duracion: song.duracion,
+  };
+  console.log(newSong);
+   playSong(newSong);
+}
 onMounted(async () => {
   try {
     // OBTENER INFO DE LA PLAYLIST

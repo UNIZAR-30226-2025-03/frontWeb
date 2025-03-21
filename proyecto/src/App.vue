@@ -1,4 +1,5 @@
 <template>
+  <AudioStreamer ref="streamerRef" />
   <div id="app">
   
    <div class="container">
@@ -9,6 +10,7 @@
          <div class="busqueda">
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
             <div class="search-results" v-if="currentSearch && !isLoading">
+
                <template v-if="hasResults">
                   <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
                      <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
@@ -39,6 +41,7 @@
                   ❌ Sin resultados
                </div>
             </div>
+            
             <select v-model="searchOption" @change="fetchResults" >
                <option>Todo</option>
                <option value="artistas">Artista</option>
@@ -54,7 +57,7 @@
       <main class="main-content">
         <router-view />
       </main>
-
+      <audio id="app-player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
       <div class="player-bar">
         <div class="controls">
@@ -74,10 +77,10 @@
             <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
             <span class="song-name">{{ lastSong.name }}</span>
           </div>
-          <input type="range" class="progress-bar" min="0" max="100" v-model="progress" />
+          <div>  {{ currentSongTime }} </div>
+          <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" />
+          <div>  {{ lastSong.minute }}</div>
         </div>
-        <!-- 🔊 Componente de streaming de audio -->
-        <AudioStreamer ref="audioStreamer" />
       </div>
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
@@ -99,7 +102,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, provide } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
@@ -115,8 +118,10 @@ import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
 import createList from '@/assets/task-checklist.svg'
 import router from './router';
-import AudioStreamer from '@/components/AudioStreamer.vue';
+import AudioStreamer from './components/AudioStreamer.vue'
 
+const streamerRef = ref(null)
+provide('playSong',playSong);
 // Variables reactivas
 const lastSong = ref({
   name: '',
@@ -127,15 +132,14 @@ const lastSong = ref({
 const email =  localStorage.getItem("email");
 const isMenuOpen = ref(false);
 const isPlaying = ref(false);
-const progress = ref(0);
-const songDuration = ref(180);     // Duración de la canción en segundos
+const currentSongTime = ref(0);
 const isLoading = ref(false);
-const audioPlayer = ref(null);     // Referencia al audio player
 const searchOption = ref('Todo');
 const currentSearch = ref('');
 const hoveredSong = ref(null);
-const audioStreamer = ref(null); // Referencia al AudioStreamer
-
+const currentSong = ref('');
+const currentStopTime = ref('');
+const progress = ref(0); // Valor de la barra (0 a 100)
 const results = ref({
   artistas: [],
   canciones: [],
@@ -158,53 +162,65 @@ const hasResults = computed(() =>
   results.value.listas.length
 );
 
-//     const songData = await songResponse.json();
 
-// onMounted(async () => {
-//   try {
-//     const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
-//     if (!songResponse.ok) throw new Error('Error al obtener la última canción');
+let lastUpdatedSecond = -1;
 
-//     const songData = await songResponse.json();
+function updateCurrentTime(event) {
+  const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
 
+  if (newTime !== lastUpdatedSecond && isPlaying.value) {
+    lastUpdatedSecond = newTime;
+    currentSongTime.value =  formatTime(event.target.currentTime.toFixed(0));
     
-//     // Extraer los datos de la respuesta
-//     const songName = songData.Nombre;
-//     const songCover = songData.Portada;
-//     const songMinute = songData.MinutoEscucha;
-
-//     // Asignar los datos a las variables reactivas
-//     lastSong.value = {
-//       name: songName,
-//       cover: songCover,
-//       minute: songMinute,
-//     };
-
-//     // Establecer la barra de progreso de acuerdo con el minuto de escucha
-//     progress.value = (lastSong.value.minute / songDuration.value) * 100;
-
-//     console.log('Última canción:', lastSong.value);
-//   } catch (error) {
-//     console.error('Error:', error);
-//   }
-// });
+    if (event.target.duration) {
+      progress.value = (event.target.currentTime / event.target.duration) * 100;
+      
+    }
+    
+    console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
+  }
+}
 
 // Función para iniciar una canción
 function playSong(song) {
+
   lastSong.value = {
     name: song.Nombre,
     cover: song.Portada,
+    minute: formatTime(song.Duracion),
   };
-  if (audioStreamer.value) {
-   console.log("Canción a reproducir: ", song)
-    audioStreamer.value.startStreamSong(song.Id, song.Nombre);
+  if (streamerRef.value?.startStreamSong) {
+    console.log("id:",song.Id);
+    console.log("nommbre:",song.Nombre);
+    streamerRef.value.startStreamSong(song.Id, song.Nombre)
+    currentSong.value = song;
+    isPlaying.value = true;
+  } else {
+    console.warn('startStreamSong no está disponible')
   }
 }
 
 // Función para pausar/reanudar
 function togglePlay() {
-  isPlaying.value = !isPlaying.value;
-}
+  
+  if (streamerRef.value?.stopCurrentStream) {
+      if (isPlaying.value){
+        streamerRef.value.stopCurrentStream()
+        currentStopTime.value = currentSongTime.value
+        isPlaying.value = false;
+        console.log("stop: ", currentStopTime.value);
+      }else{
+    
+        streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,currentStopTime.value)
+        isPlaying.value = true;
+        console.log("play");
+      }
+    } else {
+      console.warn('No se pudo acceder a stopCurrentStream')
+    }
+  
+  }
+  
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
@@ -265,6 +281,43 @@ const fetchResults = async () => {
       isLoading.value = false; 
    }
 };
+
+function seekAudio(event) {
+  const newTime = event.target.currentTime;
+  console.log(newTime)
+  event.target.currentTime = newTime
+  currentSongTime.value = newTime
+
+}
+
+// onMounted(async () => {
+//   try {
+//     const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
+//     if (!songResponse.ok) throw new Error('Error al obtener la última canción');
+
+//     const songData = await songResponse.json();
+
+    
+//     // Extraer los datos de la respuesta
+//     const songName = songData.Nombre;
+//     const songCover = songData.Portada;
+//     const songMinute = songData.MinutoEscucha;
+
+//     // Asignar los datos a las variables reactivas
+//     lastSong.value = {
+//       name: songName,
+//       cover: songCover,
+//       minute: songMinute,
+//     };
+
+//     // Establecer la barra de progreso de acuerdo con el minuto de escucha
+//     progress.value = (lastSong.value.minute / songDuration.value) * 100;
+
+//     console.log('Última canción:', lastSong.value);
+//   } catch (error) {
+//     console.error('Error:', error);
+//   }
+// });
 
 
 </script>
@@ -536,6 +589,8 @@ select {
   border-radius: 2px;
   appearance: none;
   cursor: pointer;
+  margin-left: 5px;
+  margin-right: 5px;
 }
 
 .progress-bar::-webkit-slider-thumb {
@@ -545,4 +600,6 @@ select {
   background: white;
   border-radius: 50%;
 }
+
+
 </style>
