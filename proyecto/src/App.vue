@@ -7,9 +7,9 @@
 
          <!-- Imagen que activa el menú -->
          <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
-         <div class="busqueda">
+         <div class="busqueda" ref="searchArea" @click.stop>
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
-            <div class="search-results" v-if="currentSearch && !isLoading">
+            <div class="search-results" v-if="currentSearch && !isLoading" ref="resultsArea">
 
                <template v-if="hasResults">
                   <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
@@ -70,6 +70,9 @@
           <button>
             <img :src="nextIcon" alt="Next" />
           </button>
+          <button>
+            <img :src="restart" alt="Restart" />
+          </button>
         </div>
         <div class="progress-container">
           <div class="song-info">
@@ -78,7 +81,8 @@
             <span class="song-name">{{ lastSong.name }}</span>
           </div>
           <div>  {{ currentSongTime }} </div>
-          <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" />
+          <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" step="0.1"
+          :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }"/>
           <div>  {{ lastSong.minute }}</div>
         </div>
       </div>
@@ -93,7 +97,7 @@
             :key="index" 
             :style="getIconPosition(index, menuIcons.length)"
             @click="icon.action">
-            <img :src="icon.src" :alt="icon.alt" />
+            <img :src="icon.src" :alt="icon.alt"/>
           </button>
         </div>
       </div>
@@ -102,7 +106,7 @@
 </template>
 
 <script setup>
-import { computed, ref, provide } from 'vue';
+import { computed, ref, provide, onMounted, onBeforeUnmount } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
@@ -116,7 +120,8 @@ import friendsIcon from '@/assets/following.svg';
 import starIcon from '@/assets/star.svg';
 import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
-import createList from '@/assets/task-checklist.svg'
+import createList from '@/assets/task-checklist.svg';
+import restart from '@/assets/restart.svg';
 import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
 
@@ -140,6 +145,11 @@ const hoveredSong = ref(null);
 const currentSong = ref('');
 const currentStopTime = ref('');
 const progress = ref(0); // Valor de la barra (0 a 100)
+
+const searchArea = ref(null);
+const resultsArea = ref(null);
+
+
 const results = ref({
   artistas: [],
   canciones: [],
@@ -161,6 +171,32 @@ const hasResults = computed(() =>
   results.value.albums.length || 
   results.value.listas.length
 );
+
+// Función para cerrar el desplegable de búsqueda
+const closeSearchResults = () => {
+  currentSearch.value = ''; // Limpiar la búsqueda
+};
+
+// Agregar evento de clic global
+const handleClickOutside = (event) => {
+  // Si el clic fue fuera de la barra de búsqueda y los resultados
+  if (
+    searchArea.value && !searchArea.value.contains(event.target) &&
+    resultsArea.value && !resultsArea.value.contains(event.target)
+  ) {
+    closeSearchResults(); // Cerrar resultados si el clic fue fuera
+  }
+};
+
+// Registrar el evento al montar el componente
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+// Eliminar el evento cuando se desmonte el componente
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 
 let lastUpdatedSecond = -1;
@@ -421,6 +457,10 @@ function seekAudio(event) {
   filter: brightness(0) invert(1);
 }
 
+.menu-item:hover{
+  background-color: rgba(255, 255, 255, 0.4); 
+}
+
 /* Fondo difuminado */
 .overlay {
   position: fixed;
@@ -435,7 +475,7 @@ function seekAudio(event) {
 
 select {
    padding: 6px;
-   border: 1px solid #ffa500;
+   border: 2px solid #575553;
    border-radius: 4px;
    background-color: #2a2a2a;
    color: #fff;
@@ -528,22 +568,20 @@ select {
   color: white;
   box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
   
-  
 }
 
 /* Controles de música */
 .controls {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 5px; /* Espacio entre los controles y la barra de progreso */
+  justify-content: center; /* Centra los botones horizontalmente */
+  align-items: center; /* Centra los botones verticalmente */
+  gap: 20px; /* Espacio entre los botones */
 }
 
 .controls button {
   background: none;
   border: none;
   cursor: pointer;
-  margin: 0 15px;
 }
 
 .controls img {
@@ -558,6 +596,14 @@ select {
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+
+/* Progreso de la canción */
+.progress-bar-filled {
+  height: 100%;
+  background: #323fa6; /* Color verde para el progreso */
+  border-radius: 2px;
+  transition: width 0.1s ease-in-out; /* Animación suave para el progreso */
 }
 
 /* Icono de la canción */
@@ -587,19 +633,10 @@ select {
   height: 4px;
   background: #444;
   border-radius: 2px;
-  appearance: none;
-  cursor: pointer;
-  margin-left: 5px;
-  margin-right: 5px;
+  margin-left: 8px;
+  margin-right: 8px;
 }
 
-.progress-bar::-webkit-slider-thumb {
-  appearance: none;
-  width: 10px;
-  height: 10px;
-  background: white;
-  border-radius: 50%;
-}
 
 
 </style>

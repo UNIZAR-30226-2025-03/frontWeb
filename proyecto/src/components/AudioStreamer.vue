@@ -80,7 +80,7 @@ socket.on('streamComplete', () => {
         mediaSource.endOfStream()
         console.log('[info] MediaSource marcado como ended')
       } catch (err) {
-        console.log('[error] Error al hacer endOfStream: ' + err)
+         console.log('[error] Error al hacer endOfStream: ' + err)
       }
       clearInterval(checkAndEnd)
     }
@@ -219,5 +219,5 @@ async function fetchSongDuration(songId) {
     console.log('[error] Error al obtener la duración de la canción: ' + error)
     return 0
   }
-}
+} 
 </script>
