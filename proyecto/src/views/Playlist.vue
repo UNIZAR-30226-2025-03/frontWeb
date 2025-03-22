@@ -20,21 +20,21 @@
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
             <input v-model="searchTerm" placeholder="Buscar canción" />
-            <button class="button-action" @click="toggleSearch">
+            <button ref="addButtonRef" class="button-action" @click="toggleSearch">
                <img :src="add_button" alt="add"/>
             </button>
 
             <!-- El contenedor para el buscador -->
-            <div v-if="searchVisible" class="search-container" :class="{'active': searchVisible}">
+            <div v-if="searchVisible" ref="searchContainerRef" class="search-container" :class="{'active': searchVisible}">
                <input type="text" placeholder="Buscar canción..." v-model="currentSearch" @input="fetchResults"/>
                <div class="search-results" v-if="currentSearch && !isLoading">
                   <div v-if="results?.canciones.length">
-                     <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item">
+                     <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item" @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
                         <img :src="cancion.Portada || 'ruta/a/imagen/default.jpg'" alt="Canción" />
                         <div class="song-quest-info">
                            <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
                            <!-- Botón para agregar la canción seleccionada -->
-                           <button @click="addSong(cancion.Id)">Añadir</button>
+                           <button class="addButton" v-if="hoveredSong === cancion.Nombre" @click="addSong(cancion)">Añadir</button>
                         </div>
                      </div>
                   </div>
@@ -70,7 +70,7 @@
 
                 <div class="song-buttons">
                   <button>❤️</button>
-                  <button>▶️</button>
+                  <button @click="playNewSong(element)">▶️</button>
                   <button @click="removeSong(element.id)">🗑️</button>
                 </div>
               </div>
@@ -87,20 +87,25 @@
 
  
 <script setup>
-import { ref, onMounted, onUnmounted, computed} from 'vue';
+import { ref, onMounted, onUnmounted, inject} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
 import add_button from '@/assets/add_circle.svg';
 
+const playSong = inject('playSong')
 
 // Variables para CSS y HTML
 const isGlowing = ref(false);
 const router = useRouter();
 const searchVisible = ref(false);
+const searchContainerRef = ref(null); // Referencia al contenedor del menú de búsqueda
+const addButtonRef = ref(null); 
 const currentSearch = ref('');
 const isLoading = ref(false);
+const hoveredSong = ref(null);
+
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -141,6 +146,30 @@ const results = ref({
   listas: []
 });
 
+function playNewSong(song){
+   console.log(song);
+   const newSong = {
+    Id: song.id,
+    Nombre: song.nombre,
+    Portada: song.portada,
+    Duracion: song.duracion,
+  };
+  console.log(newSong);
+   playSong(newSong);
+}
+
+// Función que oculta el menú de búsqueda cuando se hace clic fuera de él
+const handleClickOutside = (event) => {
+  // Si el clic es fuera del contenedor del menú y del botón de añadir, ocultamos el menú
+  if (
+    searchContainerRef.value && 
+    !searchContainerRef.value.contains(event.target) && 
+    !addButtonRef.value.contains(event.target)
+  ) {
+    searchVisible.value = false; // Oculta el desplegable
+  }
+};
+
 onMounted(async () => {
   try {
     // OBTENER INFO DE LA PLAYLIST
@@ -171,9 +200,15 @@ onMounted(async () => {
   }
 });
 
+onMounted(() => {
+  // Añadir el listener al documento para detectar clics fuera
+  document.addEventListener('click', handleClickOutside);
+});
+
 onUnmounted(() => {
   console.log("Saliendo de la página...");
   // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
+  document.removeEventListener('click', handleClickOutside);
 });
 
 // Imagen de reemplazo
@@ -192,10 +227,10 @@ function formatTime(seconds) {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
-const addSong = async (songId) => {
+const addSong = async (song) => {
   try {
     console.log("Id playlist: ", Id);
-    console.log("Id canción: ", songId);
+    console.log("Id canción: ", song.Id);
     const playlistId = Number(Id);
     const response = await fetch(`https://echobeatapi.duckdns.org/playlists/add-song/${playlistId}`, {
       method: 'POST',
@@ -205,7 +240,7 @@ const addSong = async (songId) => {
       },
       body: JSON.stringify({
         idLista: playlistId,  
-        songId: songId 
+        songId: song.Id 
       })
     });
 
@@ -214,7 +249,15 @@ const addSong = async (songId) => {
     }
 
     showPopupMessage("Canción añadida con éxito", "popup-success");
-    playlist.value.push({ songId });
+    const newSong = {
+    id: song.Id,
+    nombre: song.Nombre,
+    portada: song.Portada,
+    duracion: song.Duracion,
+    numReproducciones: song.NumReproducciones
+   };
+    playlist.value = [...playlist.value, newSong];
+    console.log('valor canciones playlist', playlist.value);
     
   } catch (error) {
       showPopupMessage(error.message, "popup-error");
@@ -456,6 +499,7 @@ hr{
    height: 100%;
    object-fit: contain; /* Asegura que la imagen no se deforme */
    cursor: pointer;
+   filter: brightness(0) invert(1);
 }
 
 .button-action:hover img {
@@ -565,6 +609,7 @@ h1 {
   opacity: 0;
   transform: translateY(-20px);
   transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 999;
 }
 
 .search-container input {
@@ -647,6 +692,32 @@ h1 {
   color: #bbb;
   font-size: 16px;
 }
+
+.addButton {
+  background-color: #ffb347; /* Naranja brillante */
+  color: white;
+  padding: 10px 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.addButton:hover {
+  background-color: #e68a00; /* Naranja más oscuro */
+  transform: scale(1.05);
+}
+
+.addButton:focus {
+  outline: none;
+  box-shadow: 0 0 8px rgba(255, 165, 0, 0.7);
+}
+
 
 /* Mensaje emergente */
 .popup {

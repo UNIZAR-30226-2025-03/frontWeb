@@ -1,382 +1,399 @@
 <template>
-  <div class="layout">
-    <!-- Barra lateral -->
-   
-      <aside class="sidebar">
-        <div class="library">
-          <h3>Escuchando </h3>
-          <ul id="songs-list">
-            <li class="song-item">Canción 1</li>
-            <li class="song-item" >Canción 2</li>
-            <li class="song-item" >Canción 3</li>
-            <li class="song-item" >Canción 4</li>
-            <li class="song-item" >Canción 5</li>
-            <li class="song-item" >Canción 6</li>
-          </ul>
-        </div>
-      </aside>
-    
-
-    <!-- Contenido principal -->
-    <main class="content">
-      <!-- Sección Escuchado Recientemente -->
-      <section class="recently-played">
-        <h2>Welcome...</h2>
-        <div class="playlist-container">
-          <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item">
-            <div class="playlist-image">
-              <img :src="playlist.avatar" alt="Portada de {{ playlist.first_name }}">
+  <div>
+    <h1>Test de Streaming de Audio - Canción Específica</h1>
+    <div style="align-items: center;">
+      <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
+      <div class="search-results" v-if="currentSearch && !isLoading">
+            <div v-if="results?.canciones.length">
+                <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item">
+                  <img :src="cancion.Portada || 'ruta/a/imagen/default.jpg'" alt="Canción" />
+                  <div class="song-quest-info">
+                      <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                      <!-- Botón para agregar la canción seleccionada -->
+                      <button @click="startStreamSong(cancion.Id,cancion.Nombre)">play</button>
+                  </div>
+                </div>
             </div>
-            <div class="playlist-info">
-              <p class="playlist-title">{{ playlist.first_name }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <!-- Sección Recomendaciones -->
-      <section class="recommendations">
-          <h2>Recomendaciones</h2>
-          <div id="recomendations-container">
-              <!-- Aquí se insertarán dinámicamente las recomendaciones -->
-          </div>
-      </section>
 
-    </main>
+            <div v-else class="no-results">
+                ❌ Sin resultados
+            </div>
+        </div>
+    </div>
+    <button @click="stopCurrentStream">PARAR</button>
+    <div>Estado: {{ connectionStatus }}</div>
+    <audio ref="player" controls @error="onPlayerError"></audio>
+    <div id="log">
+      <div v-for="(entry, index) in logs" :key="index" :class="entry.type">
+        [{{ entry.time }}] {{ entry.message }}
+      </div>
+    </div>
   </div>
 </template>
 
-<style scoped>
-
-/* Contenedor de la lista de canciones en la sidebar */
-#songs-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px; /* Espaciado entre canciones */
-}
-
-/* Estilo de cada canción (similar al bloque "Welcome...") */
-.song-item {
-  width: 14vw;
-  height: 5.7vh;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  transition: box-shadow 0.3s ease-in-out;
-  cursor: pointer;
-  overflow: hidden;
-  text-align: left;
-  
-
-}
-
-/* Efecto hover */
-.song-item:hover {
-    background: #333; /* Cambio de color en hover */
-    transform: scale(1.05); /* Pequeña animación de zoom */
-}
-
-/* Texto del nombre de la canción */
-.song-title {
-    margin: 0;
-    font-size: 14px;
-    flex-grow: 1; /* Ocupar el espacio disponible */
-    text-align: left; /* Alinear texto a la izquierda */
-    padding: 1.5vh 1.5vw; /* Más padding a los lados */
-}
-
-
-
-.layout {
-  display: flex;
-  height: 100vh;
-  background: linear-gradient(180deg, #141414, #1e1e1e); /* Gradiente aplicado al contenedor principal */
-  /*background-color: #141414;*/
-  color: white;
-}
-
-
-.sidebar {
-  width: 17%;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  border-radius: 12px; /* Aumenta el redondeo de los bordes */
-  background-color: #1e1e1e;
-  margin-top: 1vh;
-  margin-left: 0.7vw;
-  margin-bottom: 22vh;
-  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4) ;
-  
-}
-
-.library {
-  flex-grow: 1;
-  padding: 10px 15px;
-}
-
-.library h3 {
-  margin-bottom: 15px;
-  font-size: 18px;
-  
-}
-
-.library ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.library li {
-  padding: 12px 10px;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background 0.3s ease;
-}
-
-.library li:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffa500;
-}
-
-.content {
-  flex: 1;
-  padding: 10px 15px;
-  background: transparent; /* Elimina el fondo sólido para usar el de .layout */
-  
-}
-
-.recently-played{
-  
-  padding-top:5px;
-  padding-left: 20px;
-  background: #1e1e1e;
-  border-radius: 12px;
-  box-shadow: 4px 6px 8px rgba(0, 0, 0, 0.4);
-  height: 23.5vh;
-  overflow-y: auto;
-  
-}
-.playlist-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 10px;
-  justify-content: flex-start;
-  gap: 2vh 1.5vw;
-}
-
-.playlist-item {
-  display: grid;
-  grid-template-columns: 60px auto; /* 🔥 Columna fija para la imagen, la otra ocupa el resto */
-  align-items: center;
-  width: 14vw;
-  height: 5.7vh;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  transition: box-shadow 0.3s ease-in-out;
-  cursor: pointer;
-  overflow: hidden;
-  padding: 0; /* 🔥 Asegura que no haya espacio extra */
-  /*background: linear-gradient(135deg, #ffaa33, #cc5500);*/
-}
-
-.playlist-item:hover {
-  box-shadow: 0px 0px 8px rgba(255, 165, 0, 0.8);
-}
-
-.playlist-image {
-  width: 100%; /* La imagen ocupa toda su celda */
-  height: 100%;
-  border-radius: 10px 0 0 10px; /* 🔥 Bordes redondeados solo en la izquierda */
-  overflow: hidden;
-}
-
-.playlist-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* 🔥 Se asegura de que la imagen llene el espacio */
-  display: block;
-}
-
-.playlist-info {
-  padding-left: 10px; /* Espaciado entre imagen y texto */
-  display: flex;
-  align-items: center;
-  
-}
-
-.playlist-title {
-  font-size: 14px;
-  font-weight: bold;
-  color: white;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  
-}
-
-
-.recommendations {
-  margin-top: 15px;
-  padding-top:5px;
-  padding-left: 20px;
-  background: #1e1e1e;
-  border-radius: 12px;
-  height: 50vh;
-  box-shadow: 4px 6px 8px rgba(0, 0, 0, 0.4);
-  overflow-y: auto;
-}
-
-.recently-played h2,
-.recommendations h2 {
-  font-size: 22px;
-  margin-bottom: 15px;
-}
-
-
-/* Mantiene la estructura de 4 columnas */
-#recomendations-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 30px 20px;
-    padding: 10px;
-    justify-items: center;
-    align-items: center;
-}
-
-/* Diseño del item de la recomendación */
-:deep(.recomendations-item) {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    width: 180px; /* Tamaño uniforme */
-    height: auto;
-    border-radius: 12px;
-    cursor: pointer;
-    overflow: hidden;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    box-shadow: 0px 6px 10px rgba(204, 85, 0, 0.5), 
-            0px 3px 6px rgba(255, 170, 51, 0.4);
-}
-
-:deep(.recomendations-item:hover) {
-    transform: translate(-2px,-4px);
-    box-shadow: 10px 10px 15px rgba(204, 85, 0, 0.4), 
-            5px 5px 6px rgba(255, 170, 51, 0.4);
-    transition: 0.2s ease-in-out;
-}
-
-/* Imagen de la portada */
-:deep(.recomendations-cover) {
-    width: 100%;
-    height: 180px; /* Altura fija para uniformidad */
-    display: block;
-    border-top-right-radius: 16px;
-    border-top-left-radius: 16px;
-    object-fit: cover;
-    flex: 1;
-    min-height: 180px;
-}
-
-/* Título sobre la imagen */
-:deep(.recomendations-title) {
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    margin: 0;
-    padding: 8px;
-    font-size: 14px;
-    font-weight: bold;
-    text-transform: uppercase;
-    text-align: left;
-    color: #212121;
-    background: linear-gradient(135deg, #ffaa33, #cc5500);
-    border-radius: 0 0 12px 12px;
-    text-align: center;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-}
-
-/* Responsividad */
-@media (max-width: 1024px) {
-    #recomendations-container {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (max-width: 768px) {
-    #recomendations-container {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .recomendations-title {
-        font-size: 12px;
-    }
-}
-
-@media (max-width: 480px) {
-    #recomendations-container {
-        grid-template-columns: repeat(1, 1fr);
-    }
-}
-
-
-
-</style>
-
-
 <script setup>
-  import { ref, onMounted } from 'vue';
-  
-  //const email =  localStorage.getItem(email);
-  const playlists = ref([]);//Playlist propias del usario
-  const lastSong = ref([]);
-  //Recoge datos referentes a playlists y cancion
- 
-  onMounted(async () => {
+import { ref, nextTick } from 'vue'
+import { io } from 'socket.io-client'
+defineExpose({ startStreamSong, stopCurrentStream });
+
+const connectionStatus = ref('Desconectado')
+const logs = ref([])
+const player = ref(null)
+
+const isLoading = ref(false);
+const currentSearch = ref('');
+
+const results = ref({
+  artistas: [], 
+  canciones: [],
+  albums: [],
+  listas: []
+});
+
+let mediaSource = null
+let mediaSourceURL = null
+let sourceBuffer = null
+let queue = []
+let currentSong = null
+let expectedDuration = 0
+let hasStartedPlaying = false
+let streamingActive = false
+const MIN_BUFFERED_SECONDS = 3
+let bufferCheckInterval = null
+
+
+function formatTime(seconds) {
+    let minutes = Math.floor(seconds / 60);
+    let secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
+const fetchResults = async () => {
+   
+   if (!currentSearch.value.trim()) {
+      results.value.canciones = [];
+      return;
+   }
+
+   isLoading.value = true;
+   console.log("Texto de búsqueda:", currentSearch.value);
+
+   try { 
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
+      if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
+
+      results.value = await response.json();
+      console.log("Respuesta de la API:", results.value);
+
+   } catch (error) {
+      console.error('Error:', error);
+
+   } finally {
+      isLoading.value = false; 
+   }
+};
+
+
+
+const socket = io('https://echobeatapi.duckdns.org', { transports: ['websocket'] })
+
+function log(message, type = 'normal') {
+  logs.value.push({
+    time: new Date().toISOString().slice(11, 19),
+    message,
+    type
+  })
+  nextTick(() => {
+    const el = document.getElementById('log')
+    if (el) el.scrollTop = el.scrollHeight
+  })
+}
+
+function onPlayerError() {
+  if (player.value?.error) {
+    log(`Media Error: code=${player.value.error.code} - ${player.value.error.message}`, 'error')
+    setTimeout(() => {
+      log('Reiniciando stream automáticamente...', 'info')
+      startStreamSong(currentSong === 'New_Bitch' ? 30 : 30, 'New_Bitch')
+    }, 2000)
+  }
+}
+
+socket.on('connect', () => {
+  connectionStatus.value = 'Conectado'
+  log('Conectado al servidor: ' + socket.id, 'success')
+})
+
+socket.on('disconnect', () => {
+  connectionStatus.value = 'Desconectado'
+  log('Desconectado del servidor', 'error')
+})
+
+socket.on('error', (error) => {
+  log('Error de Socket.IO: ' + error, 'error')
+})
+
+socket.on('audioChunk', (data) => {
+  if (!streamingActive || player.value?.error) return
+
+  const binary = atob(data.data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const chunkBuffer = bytes.buffer
+
+  if (sourceBuffer && !sourceBuffer.updating) {
     try {
-      
-       // Obtener playlist propias
-      const playlistResponse = await fetch("https://reqres.in/api/users?page=1&per_page=12");
-      if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
-      
-      const playlistData = await playlistResponse.json();
-      playlists.value = Array.isArray(playlistData.data) ? playlistData.data : [playlistData.data];
-    
-
-      console.log("playlist data: ",playlists.value); // 🔥 Ver en la consola
-
-
-       // Obtener recomendaciones
-      const container = document.getElementById("recomendations-container");
-      const response = await fetch("https://reqres.in/api/users?page=1&per_page=12");
-      const data = await response.json();
-
-      data.data.forEach(user => {
-          const listElement = document.createElement("div");
-          listElement.classList.add("recomendations-item");
-
-          const imgElement = document.createElement("img");
-          imgElement.src = user.avatar;
-          imgElement.alt = `${user.first_name} ${user.last_name}`;
-          imgElement.classList.add("recomendations-cover");
-
-          const titleElement = document.createElement("p");
-          titleElement.textContent = `${user.first_name} ${user.last_name}`;
-          titleElement.classList.add("recomendations-title");
-
-          listElement.appendChild(imgElement);
-          listElement.appendChild(titleElement);
-          container.appendChild(listElement);
-      });
-
-  
-
-
-    } catch (error) {
-    console.error('Error:', error);
+      sourceBuffer.appendBuffer(chunkBuffer)
+      log('Chunk añadido al buffer')
+    } catch (err) {
+      log('Error al añadir chunk, se agrega a la cola: ' + err, 'error')
+      queue.push(chunkBuffer)
     }
-  });
+  } else {
+    queue.push(chunkBuffer)
+    log('Chunk en cola para ser añadido')
+  }
+})
 
-  </script>
-  
+socket.on('streamComplete', () => {
+  log('Streaming completado desde el servidor', 'success')
+  streamingActive = false
+  if (bufferCheckInterval) clearInterval(bufferCheckInterval)
+
+  const checkAndEnd = setInterval(() => {
+    if (sourceBuffer && !sourceBuffer.updating) {
+      try {
+        mediaSource.endOfStream()
+        log('MediaSource marcado como ended', 'info')
+      } catch (err) {
+        log('Error al hacer endOfStream: ' + err, 'error')
+      }
+      clearInterval(checkAndEnd)
+    }
+  }, 100)
+})
+
+function listBlobs() {
+  log('Solicitando lista de blobs...')
+  socket.emit('listBlobs')
+}
+
+socket.on('blobList', (blobs) => {
+  log('Blobs disponibles:', 'info')
+  blobs.forEach(blob => log(`- ${blob}`, 'info'))
+})
+
+function initMediaSource() {
+  queue = []
+  hasStartedPlaying = false
+  mediaSource = new MediaSource()
+  mediaSourceURL = URL.createObjectURL(mediaSource)
+  if (player.value) player.value.src = mediaSourceURL
+  mediaSource.addEventListener('sourceopen', onSourceOpen)
+}
+
+function onSourceOpen() {
+  log('MediaSource abierto', 'info')
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg')
+  } catch (err) {
+    log('Error al crear SourceBuffer: ' + err, 'error')
+    return
+  }
+  sourceBuffer.addEventListener('updateend', () => {
+    if (!hasStartedPlaying && player.value) {
+      const buffered = player.value.buffered
+      if (buffered.length > 0) {
+        const bufferedSeconds = buffered.end(0) - buffered.start(0)
+        if (bufferedSeconds >= MIN_BUFFERED_SECONDS) {
+          hasStartedPlaying = true
+          player.value.play().catch(err => log('El navegador bloqueó la reproducción automática: ' + err, 'error'))
+          log('Reproducción iniciada con ' + bufferedSeconds.toFixed(2) + ' segundos buffer', 'info')
+          if (bufferCheckInterval) clearInterval(bufferCheckInterval)
+        } else {
+          log('Esperando a acumular ' + MIN_BUFFERED_SECONDS + 's. Actualmente: ' + bufferedSeconds.toFixed(2) + 's', 'info')
+        }
+      }
+    }
+    while (queue.length > 0 && !sourceBuffer.updating) {
+      try {
+        const nextChunk = queue.shift()
+        sourceBuffer.appendBuffer(nextChunk)
+      } catch (err) {
+        log('Error al reintentar appendBuffer: ' + err, 'error')
+        queue.unshift(nextChunk)
+        break
+      }
+    }
+  })
+  sourceBuffer.addEventListener('error', (e) => {
+    log('Error en el SourceBuffer: ' + e, 'error')
+    stopCurrentStream()
+  })
+
+  if (!bufferCheckInterval) {
+    bufferCheckInterval = setInterval(() => {
+      if (!hasStartedPlaying && player.value) {
+        const buffered = player.value.buffered
+        if (buffered.length > 0) {
+          const bufferedSeconds = buffered.end(0) - buffered.start(0)
+          if (bufferedSeconds >= MIN_BUFFERED_SECONDS) {
+            hasStartedPlaying = true
+            player.value.play().catch(err => log('El navegador bloqueó la reproducción automática: ' + err, 'error'))
+            log('Reproducción iniciada con ' + bufferedSeconds.toFixed(2) + ' segundos buffer', 'info')
+            clearInterval(bufferCheckInterval)
+            bufferCheckInterval = null
+          }
+        }
+      }
+    }, 250)
+  }
+}
+
+async function fetchSongDuration(songId) {
+  const url = `https://echobeatapi.duckdns.org/api/getSongLength?songId=${songId}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error('No se pudo obtener la duración de la canción')
+    const data = await res.json()
+    return data.duration
+  } catch (error) {
+    log('Error al obtener la duración de la canción: ' + error, 'error')
+    return 0
+  }
+}
+
+function stopCurrentStream() {
+  if (streamingActive) log('Deteniendo streaming anterior...', 'info')
+  streamingActive = false
+  if (bufferCheckInterval) {
+    clearInterval(bufferCheckInterval)
+    bufferCheckInterval = null
+  }
+  if (mediaSource?.readyState === 'open') {
+    try {
+      if (sourceBuffer && !sourceBuffer.updating) sourceBuffer.abort()
+    } catch (err) {
+      log('Error al abortar SourceBuffer: ' + err, 'error')
+    }
+    try {
+      mediaSource.endOfStream()
+    } catch (err) {
+      log('Error al hacer endOfStream: ' + err, 'error')
+    }
+  }
+  if (player.value?.src) {
+    URL.revokeObjectURL(player.value.src)
+  }
+  if (player.value) {
+    player.value.pause()
+    player.value.removeAttribute('src')
+    player.value.load()
+  }
+  mediaSource = null
+  mediaSourceURL = null
+  sourceBuffer = null
+  queue = []
+  hasStartedPlaying = false
+}
+
+async function startStreamSong(songId, songName) {
+  stopCurrentStream()
+  currentSong = songName
+  streamingActive = true
+  expectedDuration = await fetchSongDuration(songId)
+  initMediaSource()
+  log(`Solicitando inicio de streaming para la canción '${songName}' (ID ${songId})...`)
+  socket.emit('startStream', { songId })
+}
+</script>
+
+<style scoped>
+#error {
+  color: red;
+}
+.success {
+  color: green;
+}
+.info {
+  color: blue;
+}
+#log {
+  height: 300px;
+  width: 100%;
+  border: 1px solid #ccc;
+  overflow-y: scroll;
+  padding: 10px;
+  font-family: monospace;
+  margin-top: 10px;
+}
+
+
+.search-results {
+  width: 430px;
+  background-color: #333;
+  color: white;
+  border-radius: 8px;
+  border-width: 10px;
+  border-color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+  margin-top: 5px;
+  margin-left: 5px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  scrollbar-width: none;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #444;
+  cursor: pointer;
+  position: relative;
+}
+
+.result-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.result-item:hover {
+  background-color: #555;
+}
+
+.result-item button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.result-item button img {
+  width: 25px;
+  height: 25px;
+  filter: brightness(0) invert(1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.result-item button:hover img {
+  transform: scale(1.2);
+}
+
+.song-quest-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-grow: 1; 
+}
+
+.no-results {
+  padding: 15px;
+  text-align: center;
+  color: #bbb;
+  font-size: 16px;
+}
+</style>
