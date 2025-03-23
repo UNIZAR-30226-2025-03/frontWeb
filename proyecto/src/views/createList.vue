@@ -27,7 +27,7 @@
 
          <!-- Si elige 'upload' se muestra el input para subir una imagen -->
          <div v-if="profileAction === 'upload'">
-            <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
+            <input class="profileInput" type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
          </div>
 
          <!-- Si elige 'select' se muestra el modal para elegir una imagen predeterminada -->
@@ -261,6 +261,17 @@ button:hover {
 .selectable-image:hover {
    transform: scale(1.1);
    border: 2px solid #ffa500;
+}
+
+.profileInput {
+   width: 50%;
+   padding: 10px;
+   margin-top: 15px;
+   border: 1px solid #ffa500;
+   border-radius: 4px;
+   background-color: #2a2a2a;
+   color: #fff;
+   box-sizing: border-box;
 }
 
 /* Mensaje emergente */

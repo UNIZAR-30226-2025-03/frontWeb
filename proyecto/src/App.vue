@@ -60,20 +60,23 @@
       <audio id="app-player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
       <div class="player-bar">
-        <div class="controls">
-          <button>
-            <img :src="previousIcon" alt="Previous" />
-          </button>
-          <button @click="togglePlay">
-            <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
-          </button>
-          <button>
-            <img :src="nextIcon" alt="Next" />
-          </button>
-          <button>
-            <img :src="restart" alt="Restart" />
-          </button>
-        </div>
+         <div class="controls">
+            <button class="side-buttons">
+               <img :src="previousIcon" alt="Previous" />
+            </button>
+
+            <button class="play-button" @click="togglePlay">
+               <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
+            </button>
+
+            <button class="side-buttons">
+               <img :src="nextIcon" alt="Next" />
+            </button>
+
+            <button class="side-buttons" @click="playSong(currentSong)">
+               <img :src="restart" alt="Restart" />
+            </button>
+         </div>
         <div class="progress-container">
           <div class="song-info">
             <!-- Mostrar la portada y el nombre de la canción -->
@@ -245,7 +248,7 @@ function togglePlay() {
         currentStopTime.value = currentSongTime.value
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
-      }else{
+      } else{
     
         streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,currentStopTime.value)
         isPlaying.value = true;
@@ -573,9 +576,24 @@ select {
 /* Controles de música */
 .controls {
   display: flex;
-  justify-content: center; /* Centra los botones horizontalmente */
-  align-items: center; /* Centra los botones verticalmente */
-  gap: 20px; /* Espacio entre los botones */
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 10px; /* Espacio entre botones */
+}
+
+.side-buttons {
+  flex-grow: 0; /* Espaciado equitativo */
+  display: flex;
+  justify-content: center;
+  flex: none; 
+}
+
+.play-button {
+  flex-grow: 0;
+  transform: scale(1.2); /* Aumenta el tamaño del botón central */
+  justify-content: center;
+  flex: none; 
 }
 
 .controls button {
