@@ -1,6 +1,9 @@
 <template>
    <div class="login-container">
       <div class="login-box">
+         <div class="back-btn-container">
+            <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
+         </div>
          <h2>Crear cuenta</h2>
 
          <label for="name">Nombre</label>
@@ -55,6 +58,10 @@ const showPopupMessage = (message, type) => {
    showPopup.value = false;
    }, 3000); // Cierra el popup después de 3 segundos
 };
+
+const goBack = () => {
+   router.back();
+};
   
 const handleRegister = async () => {
    if (!email.value.trim() || !password.value.trim() || !confirmPassword.value.trim() || !user.value.trim() || !fecha.value.trim() || !name.value.trim()){
@@ -98,7 +105,7 @@ const handleRegister = async () => {
       if (!response.ok) {
          throw new Error("Error en el registro");
       }
-      localStorage.setItem("email",email.value);
+      localStorage.setItem("email", email.value);
 
       showPopupMessage("Registro exitoso", "popup-success");
 
@@ -185,6 +192,30 @@ button {
 
 button:hover {
    opacity: 0.8;
+}
+
+.back-btn-container {
+   position: absolute;
+   top: 20px;
+   left: 530px;
+   display: flex;
+   justify-content: flex-start;
+}
+
+.back-btn {
+   background-color: transparent;
+   border: 1px solid #ffa500;
+   color: #ffa500;
+   padding: 6px 12px;
+   border-radius: 6px;
+   font-weight: bold;
+   cursor: pointer;
+   transition: background-color 0.3s ease;
+   min-width: 100px;
+}
+
+.back-btn:hover {
+   background-color: rgba(255, 165, 0, 0.2);
 }
 
 /* Mensaje emergente */

@@ -2,6 +2,9 @@
 <template>
    <div class="user-container">
       <div class="user-box">
+         <div class="back-btn-container">
+            <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
+         </div>
          <h2>Perfil de usuario</h2>
          
          <div class="profile-container">
@@ -125,6 +128,10 @@ const editingFields = ref({
    nick: false,
    nacimiento: false
 });
+
+const goBack = () => {
+   router.back();
+};
 
 // Función genérica para alternar el estado de edición
 const toggleEdit = (field) => {
@@ -288,17 +295,19 @@ const handleSave = async () => {
          }
 
          else if (user.value.perfil !== initialUser.value.perfil) {
-            const formData = new FormData();
-            formData.append('Email', email);
-            formData.append('file', user.value.perfil);
 
             console.log("Archivo a subir:", user.value.perfil);
-            const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", {
-               method: "POST",
-               headers: {},
-               body: 
-                  formData,
+            const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo-default", {
+               method: 'POST',
+               headers: {
+                  'Accept': '*/*', 
+                  'Content-Type': 'application/json',  
+               },
+               body: JSON.stringify({
+                  userEmail: email,  
+                  imageUrl: user.value.perfil 
                })
+            });
 
             if (!profileResponse.ok) {
                console.log("Error con la imagen predeterminada")
@@ -306,6 +315,7 @@ const handleSave = async () => {
             }
 
             console.log("Imagen predeterminada actualizada correctamente");
+            initialUser.value.perfil = user.value.perfil;
          }
          
          if (user.value.nick !== initialUser.value.nick) {
@@ -611,6 +621,30 @@ button:hover {
 .selectable-image:hover {
    transform: scale(1.1);
    border: 2px solid #ffa500;
+}
+
+.back-btn-container {
+   position: absolute;
+   top: 40px;
+   left: 530px;
+   display: flex;
+   justify-content: flex-start;
+}
+
+.back-btn {
+   background-color: transparent;
+   border: 1px solid #ffa500;
+   color: #ffa500;
+   padding: 6px 12px;
+   border-radius: 6px;
+   font-weight: bold;
+   cursor: pointer;
+   transition: background-color 0.3s ease;
+   min-width: 100px;
+}
+
+.back-btn:hover {
+   background-color: rgba(255, 165, 0, 0.2);
 }
   
 /* Mensaje emergente */
