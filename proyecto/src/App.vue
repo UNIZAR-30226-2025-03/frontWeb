@@ -219,7 +219,7 @@ const previousSong = async() =>{
          Portada: songData.Portada,
          Duracion: songData.Duracion,
       };
-      
+
       playSong(newSong);
 
 
@@ -272,6 +272,8 @@ function updateCurrentTime(event) {
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
+//Hacer otra funcion que para pner una cancion desde el reproductor await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list
+
 
 // Función para iniciar una canción
 function playSong(song) {
