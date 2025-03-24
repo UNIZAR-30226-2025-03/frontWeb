@@ -6,7 +6,7 @@
         <div class="library">
           <h2>Escuchando </h2>
           <div id="songs-list">
-          <div v-for="(song, index) in songs" :key="index" class="song-item"  @click="playSong(song.id)">
+          <div v-for="(song, index) in songs" :key="index" class="song-item"  @click="playAsong(song.id,index)">
             <p class="song-title">{{ song.nombre }}</p> <!-- Ajusta según la API -->
           </div>
         </div>
@@ -46,6 +46,150 @@
   </div>
 </template>
 
+
+<script setup>
+  import { ref, onMounted,inject } from 'vue';
+  import { useRouter } from 'vue-router';
+  import default_img from  '@/assets/kebab.jpg';
+
+  const playSong = inject('playSong')
+  const router = useRouter();
+  const songsData = ref([]);
+  const email =  localStorage.getItem("email");
+  console.log("email: ", email);
+  const songs = ref([]);
+  const playlists = ref([]);//Playlist propias del usario
+  const id = ref(0);
+  const nombre = ref();
+  
+  const playAsong = async(song,posicion) => {
+    // 1. Reproducir la canción 
+    try {
+      const songResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song}`)
+      
+      if (!songResponse.ok) {
+         throw new Error('Error al reproducir la canción ');
+      }
+      const songData = await songResponse.json();
+      const newSong = {
+         Id: song,
+         Nombre: songData.Nombre,
+         Portada: songData.Portada,
+         Duracion: songData.Duracion,
+      };
+  //-------------Actualizar posición cola------------------
+      const bodyData = {
+          userEmail: email,
+          reproduccionAleatoria: false,
+          posicionCola: posicion,
+          colaReproduccion: songsData.value.ColaReproduccion
+      };
+
+      console.log("JSON enviado:", bodyData);   
+      
+      const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
+          method: 'POST',
+          headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+          },
+          body:  JSON.stringify(bodyData)
+      });
+     
+
+      playSong(newSong);
+      
+    } catch (error) {
+      console.error('play a song:', error);
+    }
+    
+  };
+
+  const handleClick = (id) => {
+    console.log("Playlist seleccionada:", id);
+    router.push({ path: '/playlist', query: { id: id } });
+  };
+ 
+  onMounted(async () => {
+    try {
+      const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
+      const nickData = await nick.json();
+      nombre.value = nickData.Nick;
+    } catch (error) {
+      console.error('Nick Error:', error);
+    }
+
+
+    try {
+       // Obtener playlist propias
+      const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user/${encodeURIComponent(email)}`);
+      if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
+      
+      const playlistData = await playlistResponse.json();
+      playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
+    
+    
+      console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
+
+      } catch (error) {
+        console.error('Playlist Error:', error);
+      }
+
+      try {
+       // Obtener recomendaciones
+      const container = document.getElementById("recomendations-container");
+      const response = await fetch(`https://echobeatapi.duckdns.org/genero/preferencia?userEmail=${encodeURIComponent(email)}`);
+      if (!response.ok) throw new Error('Error al obtener las recomendaciones del usuario');
+      const data = await response.json();
+     
+      data.forEach(genero => {
+          const listElement = document.createElement("div");
+          listElement.classList.add("recomendations-item");
+
+          const imgElement = document.createElement("img");
+          imgElement.src = genero.FotoGenero;
+          imgElement.alt = genero.NombreGenero;
+          imgElement.classList.add("recomendations-cover");
+
+              // 🔥 Manejar error de imagen: Ocultar o cambiar a una imagen por defecto
+          imgElement.onerror = function () {
+            if (!this.dataset.error) { // Evita bucles infinitos
+                this.dataset.error = "true"; 
+                this.src = default_img; // Imagen de respaldo
+            } else {
+                this.style.display = "none"; // Si la imagen de respaldo falla, oculta la imagen
+            }
+          };
+
+          const titleElement = document.createElement("p");
+          titleElement.textContent = genero.NombreGenero;
+          titleElement.classList.add("recomendations-title");
+
+          listElement.appendChild(imgElement);
+          listElement.appendChild(titleElement);
+          container.appendChild(listElement);
+      });
+    } catch (error) {
+      console.error('Generos Error:', error);
+    }
+
+    try {
+
+    const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
+    if (!songsResponse.ok) throw new Error('Error la cola');
+      
+      songsData.value = await songsResponse.json();
+      console.log("songsData: ", songsData.value);
+      songs.value = Array.isArray(songsData.value.ColaReproduccion.canciones) ? songsData.value.ColaReproduccion.canciones : [songsData.value.ColaReproduccion.canciones];
+      console.log("songsValue: ", songs.value);
+      console.log(songs.value);
+    } catch (error) {
+      console.error('Cola Error:', error);
+    }
+  });
+
+  </script>
+  
 <style scoped>
 
 /* Contenedor de la lista de canciones en la sidebar */
@@ -324,121 +468,3 @@
 
 
 </style>
-
-
-<script setup>
-  import { ref, onMounted } from 'vue';
-  import { useRouter } from 'vue-router';
-  import default_img from  '@/assets/kebab.jpg';
-
-  const router = useRouter();
-
-  const email =  localStorage.getItem("email");
-  console.log("email: ", email);
-  const songs = ref([]);
-  const playlists = ref([]);//Playlist propias del usario
-  const id = ref(0);
-  const nombre = ref();
-  
-  const playSong = (song) => {
-    console.log("Reproduciendo canción:", song);
-
-    // 1. Reproducir la canción 
-  };
-
-  const handleClick = (id) => {
-    console.log("Playlist seleccionada:", id);
-    router.push({ path: '/playlist', query: { id: id } });
-  };
- 
-  onMounted(async () => {
-    try {
-      const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
-      const nickData = await nick.json();
-      nombre.value = nickData.Nick;
-    } catch (error) {
-      console.error('Nick Error:', error);
-    }
-
-
-    try {
-       // Obtener playlist propias
-      const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user/${encodeURIComponent(email)}`);
-      if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
-      
-      const playlistData = await playlistResponse.json();
-      playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
-    
-    
-      console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
-
-      } catch (error) {
-        console.error('Playlist Error:', error);
-      }
-
-      try {
-       // Obtener recomendaciones
-      const container = document.getElementById("recomendations-container");
-      const response = await fetch(`https://echobeatapi.duckdns.org/genero/preferencia?userEmail=${encodeURIComponent(email)}`);
-      if (!response.ok) throw new Error('Error al obtener las recomendaciones del usuario');
-      const data = await response.json();
-     
-      data.forEach(genero => {
-          const listElement = document.createElement("div");
-          listElement.classList.add("recomendations-item");
-
-          const imgElement = document.createElement("img");
-          imgElement.src = genero.FotoGenero;
-          imgElement.alt = genero.NombreGenero;
-          imgElement.classList.add("recomendations-cover");
-
-              // 🔥 Manejar error de imagen: Ocultar o cambiar a una imagen por defecto
-          imgElement.onerror = function () {
-            if (!this.dataset.error) { // Evita bucles infinitos
-                this.dataset.error = "true"; 
-                this.src = default_img; // Imagen de respaldo
-            } else {
-                this.style.display = "none"; // Si la imagen de respaldo falla, oculta la imagen
-            }
-          };
-
-          const titleElement = document.createElement("p");
-          titleElement.textContent = genero.NombreGenero;
-          titleElement.classList.add("recomendations-title");
-
-          listElement.appendChild(imgElement);
-          listElement.appendChild(titleElement);
-          container.appendChild(listElement);
-      });
-    } catch (error) {
-      console.error('Generos Error:', error);
-    }
-
-    try {
-    // Obtener ultima canción escuchda  
-    const lastListResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-lists?userEmail=${encodeURIComponent(email)}`);
-    if (!lastListResponse.ok) throw new Error('Error al obtener la ultima canción del usuario');
-    
-    const lastListData = await lastListResponse.json();
-    id.value = lastListData.UltimaListaEscuchada;
-
-    // Obtener caciones de la ultima playlist 
-    // CAMBIAR PARA PONER CON LA COLA
-    if (id.value) {
-    const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${id.value}/songs`);
-    if (!songsResponse.ok) throw new Error('Error la cola');
-      
-      const songsData = await songsResponse.json();
-      console.log("songsData: ", songsData);
-      songs.value = Array.isArray(songsData.canciones) ? songsData.canciones : [songsData.canciones];
-      
-    } else {
-        console.warn("No se encontró una última playlist escuchada.");
-    }
-    } catch (error) {
-      console.error('Cola Error:', error);
-    }
-  });
-
-  </script>
-  

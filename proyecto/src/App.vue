@@ -62,16 +62,16 @@
       <div class="player-bar">
         <div class="controls">
           <button>
-            <img :src="previousIcon" alt="Previous" />
+            <img :src="previousIcon" alt="Previous" @click="previousSong"/>
           </button>
           <button @click="togglePlay">
             <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
           </button>
           <button>
-            <img :src="nextIcon" alt="Next" />
+            <img :src="nextIcon" alt="Next" @click="nextSong"/>
           </button>
           <button>
-            <img :src="restart" alt="Restart" />
+            <img :src="restart" alt="Restart"  />
           </button>
         </div>
         <div class="progress-container">
@@ -171,6 +171,62 @@ const hasResults = computed(() =>
   results.value.albums.length || 
   results.value.listas.length
 );
+
+// Función para gestionar siguiente cancion
+const nextSong = async() =>{
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+    if (!response.ok) throw new Error('Error al obtener next song');
+    const nextSongData = await response.json();
+    console.log("nextsong: ", nextSongData);
+
+    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${nextSongData.siguienteCancionId}`)
+      
+      if (!song.ok) {
+         throw new Error('Error al reproducir la canción ');
+      }
+      const songData = await song.json();
+      const newSong = {
+         Id: nextSongData.siguienteCancionId,
+         Nombre: songData.Nombre,
+         Portada: songData.Portada,
+         Duracion: songData.Duracion,
+      };
+      playSong(newSong);
+
+  } catch (error) {
+    console.error('Error next song:', error);
+  }
+ 
+}
+
+const previousSong = async() =>{
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/anterior?userEmail=${encodeURIComponent(email)}`);
+    if (!response.ok) throw new Error('Error al obtener previous song');
+    const previousSong = await response.json();
+    console.log("previousSong: ", previousSong);
+
+    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${previousSong.cancionAnteriorId}`)
+      
+      if (!song.ok) {
+         throw new Error('Error al reproducir la canción ');
+      }
+      const songData = await song.json();
+      const newSong = {
+         Id: previousSong.cancionAnteriorId,
+         Nombre: songData.Nombre,
+         Portada: songData.Portada,
+         Duracion: songData.Duracion,
+      };
+      
+      playSong(newSong);
+
+
+  } catch (error) {
+    console.error('Error previous song:', error);
+  }
+}
 
 // Función para cerrar el desplegable de búsqueda
 const closeSearchResults = () => {

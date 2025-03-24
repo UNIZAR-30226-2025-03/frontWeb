@@ -12,11 +12,14 @@ export default {
 
     // 🔹 Capturar el token desde la URL
     const token = route.query.token;
+    const email = route.query.email;
+
     if (token) {
       localStorage.setItem("token", token); 
+      localStorage.setItem("email", email); 
       router.push("/home"); // 🔹 Redirigir al home
     } else {
-      router.push("/login"); // 🔹 Si falla, volver al login
+      router.push("/"); // 🔹 Si falla, volver al login
     }
   },
 };
