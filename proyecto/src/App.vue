@@ -6,7 +6,10 @@
       <div class="header">
 
          <!-- Imagen que activa el menú -->
-         <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+          <div class="busqueda">
+            <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+            <img class="logo" :src="logo" alt="Logo"/>
+         </div>
          <div class="busqueda" ref="searchArea" @click.stop>
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
             <div class="search-results" v-if="currentSearch && !isLoading" ref="resultsArea">
@@ -17,7 +20,7 @@
                      <span>{{ artista.Nombre }}</span>
                   </div>
 
-                  <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
+                  <div v-for="cancion in results.canciones" :key="cancion.Id" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
                      <img :src="cancion.Portada" alt="Canción" />
                      <div class="song-quest-info">
                         <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
@@ -27,14 +30,15 @@
                      </div>
                   </div>
 
-                  <div v-for="album in results.albums" :key="album.Nombre" class="result-item">
-                     <img :src="album.Portada" alt="Preview" />
-                     <span> {{ album.Nombre }}</span>
+                  <div v-for="album in results.albums" :key="album.id" class="result-item">
+                     <img :src="album.portada" alt="Preview" />
+                     <span> {{ album.nombre }} </span>
+                     <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
                   </div>
 
-                  <div v-for="lista in results.listas" :key="lista.Nombre" class="result-item">
-                     <img :src="lista.Portada" alt="Preview" />
-                     <span> {{ lista.Nombre }}</span>
+                  <div v-for="lista in results.playlists" :key="lista.id" class="result-item">
+                     <img :src="lista.portada" alt="Preview" />
+                     <span> {{ lista.nombre }}</span>
                   </div>
                </template>
                <div v-else class="no-results">
@@ -47,7 +51,7 @@
                <option value="artistas">Artista</option>
                <option value="canciones">Canción</option>
                <option value="albums">Álbum</option>
-               <option value="listas">Lista</option>
+               <option value="playlists">Playlist</option>
             </select>
          </div>
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"
@@ -57,11 +61,14 @@
       <main class="main-content">
         <router-view />
       </main>
-      <audio id="app-player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
+      <audio id="app-player"  ref="player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
       <div class="player-bar">
 
-         <div class="controls">
+        <div class="controls">
+          <button class="side-buttons" @click="randomClick">
+               <img :src="randomIcon" alt="random" />
+            </button>
             <button class="side-buttons">
                <img :src="previousIcon" alt="Previous" @click="previousSong"/>
             </button>
@@ -77,7 +84,23 @@
             <button class="side-buttons" @click="playSong(currentSong)">
                <img :src="restart" alt="Restart" />
             </button>
-         </div>
+         
+        </div>
+        <div class="player-bar-right">
+          <span class="volume-icon">🔊</span>
+          <div class="volume-control">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              @input="setVolume($event.target.value)"
+            />
+          </div>
+        </div>
+
+        
+
 
         <div class="progress-container">
           <div class="song-info">
@@ -127,6 +150,8 @@ import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
 import createList from '@/assets/task-checklist.svg';
 import restart from '@/assets/restart.svg';
+import randomIcon from '@/assets/random-button.png';
+import logo from '@/assets/logo.png';
 import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
 
@@ -138,6 +163,7 @@ const lastSong = ref({
   cover: '',
   minute: 0
 });
+const player = ref(null);
 
 const email =  localStorage.getItem("email");
 const isMenuOpen = ref(false);
@@ -159,12 +185,12 @@ const results = ref({
   artistas: [],
   canciones: [],
   albums: [],
-  listas: []
+  playlists: []
 });
 
 const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos' },
-  { src: starIcon, alt: 'Favoritos' },
+  { src: starIcon, alt: 'Favoritos', action: () => router.push('/favs')},
   { src: settingsIcon, alt: 'Configuración' },
   { src: albumIcon, alt: 'Álbum' },
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
@@ -174,7 +200,7 @@ const hasResults = computed(() =>
   results.value.artistas.length || 
   results.value.canciones.length || 
   results.value.albums.length || 
-  results.value.listas.length
+  results.value.playlists.length
 );
 
 // Función para gestionar siguiente cancion
@@ -261,10 +287,11 @@ onBeforeUnmount(() => {
 
 
 let lastUpdatedSecond = -1;
+let progressInterval = null;
+let contador = 1;
 
 function updateCurrentTime(event) {
   const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
-
   if (newTime !== lastUpdatedSecond && isPlaying.value) {
     lastUpdatedSecond = newTime;
     currentSongTime.value =  formatTime(event.target.currentTime.toFixed(0));
@@ -273,7 +300,29 @@ function updateCurrentTime(event) {
       progress.value = (event.target.currentTime / event.target.duration) * 100;
       
     }
-    
+    // Si ya existía un intervalo, lo limpiamos para no duplicarlo
+   
+    if (progressInterval) {
+        
+        clearInterval(progressInterval);
+    }
+    if(contador  ===  0 ){
+      contador = 1;
+      // Enviamos solo si el audio se está reproduciendo
+        if (isPlaying.value) {
+          const currentTime = parseInt(event.target.currentTime.toFixed(0));
+          console.log(`userId: ${email}, songId: ${currentSong.Id}, currentTime: ${currentTime}`) 
+          streamerRef.value.socket.emit('progressUpdate', {
+            userId: email,
+            songId: currentSong.Id,
+            currentTime,
+          });
+          console.log(`[Progress]Progreso enviado: ${currentTime} segundos`);
+        }
+
+    }else{
+      contador--;
+    }
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
@@ -291,7 +340,9 @@ function playSong(song) {
   if (streamerRef.value?.startStreamSong) {
     console.log("id:",song.Id);
     console.log("nommbre:",song.Nombre);
-    streamerRef.value.startStreamSong(song.Id, song.Nombre)
+
+    streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
+
     currentSong.value = song;
     isPlaying.value = true;
   } else {
@@ -299,27 +350,45 @@ function playSong(song) {
   }
 }
 
+function setVolume(volumen) {
+  if (!player.value) return
+
+  const volume = Math.min(Math.max(volumen, 0), 1) // asegura valor entre 0 y 1
+  player.value.volume = volume
+  console.log(`[volumen] Nivel de volumen establecido: ${volume}`)
+}
+
+
+// Función para pausar/reanudar
 // Función para pausar/reanudar
 function togglePlay() {
-  
+  if (!player.value){
+    console.warn("[player] Error con el player audio")
+    return
+  } 
   if (streamerRef.value?.stopCurrentStream) {
       if (isPlaying.value){
-        streamerRef.value.stopCurrentStream()
+        // streamerRef.value.stopCurrentStream()
         currentStopTime.value = currentSongTime.value
+
+        player.value.pause()
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
       } else{
     
-        streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,currentStopTime.value)
+        // streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,email,currentStopTime.value)
+        player.value.play().catch((err) => {
+          console.warn('[player] Error al reproducir:', err)
+        })
         isPlaying.value = true;
         console.log("play");
       }
     } else {
       console.warn('No se pudo acceder a stopCurrentStream')
     }
-  
-  }
-  
+}
+
+
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
@@ -352,7 +421,7 @@ function getIconPosition(index, total) {
 const fetchResults = async () => {
    
    if (!currentSearch.value.trim()) {
-      results.value = { artistas: [], canciones: [], albums: [], listas: [] };
+      results.value = { artistas: [], canciones: [], albums: [], playlists: [] };
       return;
    }
 
@@ -371,7 +440,7 @@ const fetchResults = async () => {
       console.log("Artistas:", JSON.parse(JSON.stringify(results.value.artistas)));
       console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
       console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
-      console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
+      console.log("Playlists:", JSON.parse(JSON.stringify(results.value.playlists)));
 
    } catch (error) {
       console.error('Error:', error);
@@ -461,6 +530,12 @@ function seekAudio(event) {
   height: auto;
   filter: brightness(0) invert(1);
   cursor: pointer;
+}
+
+.logo {
+  width: 45px;
+  height: auto;
+  margin-left: 15px;
 }
 
 /* Barra de búsqueda */
@@ -614,6 +689,11 @@ select {
   font-size: 16px;
 }
 
+.numCanciones-span {
+   margin-left: 20px;
+   color: orange
+}
+
 /*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
 .player-bar {
   display: flex;
@@ -631,6 +711,15 @@ select {
   color: white;
   box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
   
+}
+
+.player-bar-right {
+  align-self: flex-end; /* mueve este hijo a la derecha del contenedor vertical */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%; /* ocupa todo el ancho posible */
+  padding-right: 20px; /* separación del borde derecho */
 }
 
 /* Controles de música */
@@ -716,5 +805,40 @@ select {
 }
 
 
+.controls-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  margin-left: 20px;
+}
+
+.volume-control input[type="range"] {
+  width: 100px;
+  height: 4px;
+  appearance: none;
+  background-color: #555;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.volume-icon {
+  filter: brightness(0) invert(1);
+  font-size: 18px;
+  margin-right: 8px;
+}
 
 </style>

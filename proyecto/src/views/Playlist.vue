@@ -73,7 +73,7 @@
                 </div>
 
                 <div class="song-buttons">
-                  <button>❤️</button>
+                  <button @click="addSongToFavorites(element)">❤️</button>
                   <button @click="playNewSong(element,index)">▶️</button>
                   <button @click="removeSong(element.id)">🗑️</button>
                 </div>
@@ -374,6 +374,28 @@ const removeSong = async (songId) => {
       showPopupMessage(error.message, "popup-error");
   }
 };
+
+const addSongToFavorites = async (song) => {
+   try {
+     console.log("Email: ", email);
+     console.log("Id canción: ", song.id);
+     const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.id}`, {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+      },
+     });
+ 
+     if (!response.ok) {
+       throw new Error('Error al añadir canción a favoritos');
+     }
+ 
+     showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
+     
+   } catch (error) {
+       showPopupMessage(error.message, "popup-error");
+   }
+ };
 
 const fetchResults = async () => {
    

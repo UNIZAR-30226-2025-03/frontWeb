@@ -3,7 +3,7 @@
       <div class="back-btn-container">
          <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
       </div>
-     <h2 class="title">🎶 Elige hasta 3 géneros musicales:</h2>
+     <h2 class="title">🎶 Elige un mínimo de 4 géneros musicales:</h2>
      <div class="genres-list">
       <div 
          v-for="genre in genres" 
@@ -62,7 +62,7 @@ if (selectedGenres.value.includes(genreName)) {
    // Quitar selección
    selectedGenres.value = selectedGenres.value.filter(g => g !== genreName);
    genre.seleccionado = false; // Actualizamos el objeto directamente
-} else if (selectedGenres.value.length < 3) {
+} else if (selectedGenres.value.length < 8) {
    // Agregar selección si hay espacio
    selectedGenres.value.push(genreName);
    genre.seleccionado = true; // Actualizamos el objeto directamente
@@ -102,8 +102,8 @@ const handleSave = async () => {
   // Comparación de arrays sin importar el orden
    const hasChanges = currentSelectedGenres.length !== initialGenres.value.length ||
       currentSelectedGenres.some(genre => !initialGenres.value.includes(genre));
-
-   if (hasChanges) {
+   console.log(currentSelectedGenres);
+   if (hasChanges && currentSelectedGenres.length >= 4) {
       try {
          const response = await fetch(`https://echobeatapi.duckdns.org/genero/add`, {
          method: 'POST',
