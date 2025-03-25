@@ -60,9 +60,10 @@
       <audio id="app-player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
       <div class="player-bar">
+
          <div class="controls">
             <button class="side-buttons">
-               <img :src="previousIcon" alt="Previous" />
+               <img :src="previousIcon" alt="Previous" @click="previousSong"/>
             </button>
 
             <button class="play-button" @click="togglePlay">
@@ -70,13 +71,14 @@
             </button>
 
             <button class="side-buttons">
-               <img :src="nextIcon" alt="Next" />
+               <img :src="nextIcon" alt="Next" @click="nextSong"/>
             </button>
 
             <button class="side-buttons" @click="playSong(currentSong)">
                <img :src="restart" alt="Restart" />
             </button>
          </div>
+
         <div class="progress-container">
           <div class="song-info">
             <!-- Mostrar la portada y el nombre de la canción -->
@@ -175,6 +177,62 @@ const hasResults = computed(() =>
   results.value.listas.length
 );
 
+// Función para gestionar siguiente cancion
+const nextSong = async() =>{
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+    if (!response.ok) throw new Error('Error al obtener next song');
+    const nextSongData = await response.json();
+    console.log("nextsong: ", nextSongData);
+
+    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${nextSongData.siguienteCancionId}`)
+      
+      if (!song.ok) {
+         throw new Error('Error al reproducir la canción ');
+      }
+      const songData = await song.json();
+      const newSong = {
+         Id: nextSongData.siguienteCancionId,
+         Nombre: songData.Nombre,
+         Portada: songData.Portada,
+         Duracion: songData.Duracion,
+      };
+      playSong(newSong);
+
+  } catch (error) {
+    console.error('Error next song:', error);
+  }
+ 
+}
+
+const previousSong = async() =>{
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/anterior?userEmail=${encodeURIComponent(email)}`);
+    if (!response.ok) throw new Error('Error al obtener previous song');
+    const previousSong = await response.json();
+    console.log("previousSong: ", previousSong);
+
+    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${previousSong.cancionAnteriorId}`)
+      
+      if (!song.ok) {
+         throw new Error('Error al reproducir la canción ');
+      }
+      const songData = await song.json();
+      const newSong = {
+         Id: previousSong.cancionAnteriorId,
+         Nombre: songData.Nombre,
+         Portada: songData.Portada,
+         Duracion: songData.Duracion,
+      };
+
+      playSong(newSong);
+
+
+  } catch (error) {
+    console.error('Error previous song:', error);
+  }
+}
+
 // Función para cerrar el desplegable de búsqueda
 const closeSearchResults = () => {
   currentSearch.value = ''; // Limpiar la búsqueda
@@ -219,6 +277,8 @@ function updateCurrentTime(event) {
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
+//Hacer otra funcion que para pner una cancion desde el reproductor await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list
+
 
 // Función para iniciar una canción
 function playSong(song) {

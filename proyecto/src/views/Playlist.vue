@@ -12,6 +12,7 @@
           <p>{{ playlistInfo.Descripcion }}</p>
           <p>{{ playlistInfo.NumLikes }} Likes</p>
         </div>
+
       </div>
 
       <div class="song-container">
@@ -22,6 +23,9 @@
             <input v-model="searchTerm" placeholder="Buscar canción" />
             <button ref="addButtonRef" class="button-action" @click="toggleSearch">
                <img :src="add_button" alt="add"/>
+            </button>
+            <button @click="playPlaylist" class="button-action">  
+               <img :src= "playIcon" alt="Play/Pause" />
             </button>
 
             <!-- El contenedor para el buscador -->
@@ -70,7 +74,7 @@
 
                 <div class="song-buttons">
                   <button>❤️</button>
-                  <button @click="playNewSong(element)">▶️</button>
+                  <button @click="playNewSong(element,index)">▶️</button>
                   <button @click="removeSong(element.id)">🗑️</button>
                 </div>
               </div>
@@ -93,6 +97,8 @@ import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
 import add_button from '@/assets/add_circle.svg';
+import pauseIcon from '@/assets/pause-circle.svg';
+import playIcon from '@/assets/play-circle.svg';
 
 const playSong = inject('playSong')
 
@@ -106,10 +112,12 @@ const currentSearch = ref('');
 const isLoading = ref(false);
 const hoveredSong = ref(null);
 
-
+const email = localStorage.getItem("email");
+const aleatorio = ref(false);
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
+const songsData = ref('');
 
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
@@ -146,15 +154,43 @@ const results = ref({
   listas: []
 });
 
-function playNewSong(song){
-   console.log(song);
+const playNewSong = async (song,posicion) => {
+   console.log("cancionid:", song);
+   console.log("posicion:", posicion);
+
    const newSong = {
     Id: song.id,
     Nombre: song.nombre,
     Portada: song.portada,
     Duracion: song.duracion,
   };
-  console.log(newSong);
+
+   console.log(newSong);
+   
+   const bodyData = {
+      userEmail: email,
+      reproduccionAleatoria: aleatorio.value,
+      posicionCola: posicion,
+      colaReproduccion: songsData.value
+   };
+
+   console.log("JSON enviado:", bodyData);   
+   
+   const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',  
+      },
+      body:  JSON.stringify(bodyData)
+   });
+
+   if (!response.ok) {
+      throw new Error('Error al reproducir playlist');
+   }
+   const playlistResponse = await response.json();
+   console.log("playlist response: ",playlistResponse );
+
    playSong(newSong);
 }
 
@@ -183,16 +219,16 @@ onMounted(async () => {
     const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
     if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
 
-    const songsData = await songsResponse.json();
-    console.log("✅ SongsData recibido: ", songsData);
+    songsData.value = await songsResponse.json();
+    console.log("✅ SongsData recibido: ", songsData.value);
 
     // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
-    if (!songsData || !Array.isArray(songsData.canciones)) {
+    if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
       throw new Error('Las canciones no llegaron en formato de array');
     }
 
     // ASIGNAR LAS CANCIONES A `playlist`
-    playlist.value = songsData.canciones;
+    playlist.value = songsData.value.canciones;
     console.log("✅ Playlist final cargada:", playlist.value);
 
   } catch (error) {
@@ -219,12 +255,57 @@ const handleImageError = (event) => {
 // Gestión al hacer clic en el botón aleatorio
 const randomClick = () => {
   isGlowing.value = !isGlowing.value;
+  aleatorio.value = !aleatorio.value;
 };
 
 function formatTime(seconds) {
     let minutes = Math.floor(seconds / 60);
     let secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+const playPlaylist = async () => {
+   try {
+      const bodyData = {
+         userEmail: email,
+         reproduccionAleatoria: aleatorio.value,
+         colaReproduccion: songsData.value
+      };
+
+      console.log("JSON enviado:", bodyData);   
+      
+      const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list`, {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body:  JSON.stringify(bodyData)
+      });
+
+      if (!response.ok) {
+         throw new Error('Error al reproducir playlist');
+      }
+      const playlistResponse = await response.json();
+      console.log("playlist response: ",playlistResponse );
+
+      const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${playlistResponse.primeraCancionId}`)
+      
+      if (!song.ok) {
+         throw new Error('Error al reproducir la canción ');
+      }
+      const songData = await song.json();
+      const newSong = {
+         Id: playlistResponse.primeraCancionId,
+         Nombre: songData.Nombre,
+         Portada: songData.Portada,
+         Duracion: songData.Duracion,
+      };
+      playSong(newSong);
+
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+ 
 }
 
 const addSong = async (song) => {
@@ -637,7 +718,7 @@ h1 {
   margin-left: 5px;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 10000;
   scrollbar-width: none;
 }
 
