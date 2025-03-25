@@ -20,7 +20,7 @@
                      <span>{{ artista.Nombre }}</span>
                   </div>
 
-                  <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
+                  <div v-for="cancion in results.canciones" :key="cancion.Id" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
                      <img :src="cancion.Portada" alt="Canción" />
                      <div class="song-quest-info">
                         <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
@@ -30,14 +30,15 @@
                      </div>
                   </div>
 
-                  <div v-for="album in results.albums" :key="album.Nombre" class="result-item">
-                     <img :src="album.Portada" alt="Preview" />
-                     <span> {{ album.Nombre }}</span>
+                  <div v-for="album in results.albums" :key="album.id" class="result-item">
+                     <img :src="album.portada" alt="Preview" />
+                     <span> {{ album.nombre }} </span>
+                     <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
                   </div>
 
-                  <div v-for="lista in results.listas" :key="lista.Nombre" class="result-item">
-                     <img :src="lista.Portada" alt="Preview" />
-                     <span> {{ lista.Nombre }}</span>
+                  <div v-for="lista in results.playlists" :key="lista.id" class="result-item">
+                     <img :src="lista.portada" alt="Preview" />
+                     <span> {{ lista.nombre }}</span>
                   </div>
                </template>
                <div v-else class="no-results">
@@ -50,7 +51,7 @@
                <option value="artistas">Artista</option>
                <option value="canciones">Canción</option>
                <option value="albums">Álbum</option>
-               <option value="listas">Lista</option>
+               <option value="playlists">Playlist</option>
             </select>
          </div>
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"
@@ -167,7 +168,7 @@ const results = ref({
   artistas: [],
   canciones: [],
   albums: [],
-  listas: []
+  playlists: []
 });
 
 const menuIcons = ref([
@@ -182,7 +183,7 @@ const hasResults = computed(() =>
   results.value.artistas.length || 
   results.value.canciones.length || 
   results.value.albums.length || 
-  results.value.listas.length
+  results.value.playlists.length
 );
 
 // Función para gestionar siguiente cancion
@@ -361,7 +362,7 @@ function getIconPosition(index, total) {
 const fetchResults = async () => {
    
    if (!currentSearch.value.trim()) {
-      results.value = { artistas: [], canciones: [], albums: [], listas: [] };
+      results.value = { artistas: [], canciones: [], albums: [], playlists: [] };
       return;
    }
 
@@ -380,7 +381,7 @@ const fetchResults = async () => {
       console.log("Artistas:", JSON.parse(JSON.stringify(results.value.artistas)));
       console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
       console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
-      console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
+      console.log("Playlists:", JSON.parse(JSON.stringify(results.value.playlists)));
 
    } catch (error) {
       console.error('Error:', error);
@@ -627,6 +628,11 @@ select {
   text-align: center;
   color: #bbb;
   font-size: 16px;
+}
+
+.numCanciones-span {
+   margin-left: 20px;
+   color: orange
 }
 
 /*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
