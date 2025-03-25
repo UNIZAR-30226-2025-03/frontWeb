@@ -1,6 +1,7 @@
 <template>
    <div class="pwd-container">
       <div v-if="!showPopupSuccess" class="pwd-box">
+         <img class="logo" :src="logo" alt="Logo"/>
          <h2>Cambiar contraseña</h2>
          <span>Introduce tu nueva contraseña y confírmala </span>
          
@@ -29,6 +30,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from 'vue-router';
+import logo from '@/assets/logo.png';
 
 const router = useRouter(); // las rutas del index
 const route = useRoute(); // route es la ruta del url
@@ -167,6 +169,10 @@ button {
 
 button:hover {
    opacity: 0.8;
+}
+
+.logo {
+   width: 100px;
 }
 
 /* Popup error */

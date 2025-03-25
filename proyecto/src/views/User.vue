@@ -590,7 +590,7 @@ button:hover {
 
 .image-selection-modal {
    position: fixed;
-   top: 25%;
+   top: 35%;
    left: 50%;
    transform: translate(-50%, -50%);
    background: #1a1a1a;

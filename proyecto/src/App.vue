@@ -6,7 +6,10 @@
       <div class="header">
 
          <!-- Imagen que activa el menú -->
-         <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+          <div class="busqueda">
+            <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+            <img class="logo" :src="logo" alt="Logo"/>
+         </div>
          <div class="busqueda" ref="searchArea" @click.stop>
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
             <div class="search-results" v-if="currentSearch && !isLoading" ref="resultsArea">
@@ -17,7 +20,7 @@
                      <span>{{ artista.Nombre }}</span>
                   </div>
 
-                  <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
+                  <div v-for="cancion in results.canciones" :key="cancion.Id" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
                      <img :src="cancion.Portada" alt="Canción" />
                      <div class="song-quest-info">
                         <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
@@ -27,14 +30,15 @@
                      </div>
                   </div>
 
-                  <div v-for="album in results.albums" :key="album.Nombre" class="result-item">
-                     <img :src="album.Portada" alt="Preview" />
-                     <span> {{ album.Nombre }}</span>
+                  <div v-for="album in results.albums" :key="album.id" class="result-item">
+                     <img :src="album.portada" alt="Preview" />
+                     <span> {{ album.nombre }} </span>
+                     <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
                   </div>
 
-                  <div v-for="lista in results.listas" :key="lista.Nombre" class="result-item">
-                     <img :src="lista.Portada" alt="Preview" />
-                     <span> {{ lista.Nombre }}</span>
+                  <div v-for="lista in results.playlists" :key="lista.id" class="result-item">
+                     <img :src="lista.portada" alt="Preview" />
+                     <span> {{ lista.nombre }}</span>
                   </div>
                </template>
                <div v-else class="no-results">
@@ -47,7 +51,7 @@
                <option value="artistas">Artista</option>
                <option value="canciones">Canción</option>
                <option value="albums">Álbum</option>
-               <option value="listas">Lista</option>
+               <option value="playlists">Playlist</option>
             </select>
          </div>
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"
@@ -60,21 +64,27 @@
       <audio id="app-player"  ref="player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
       <div class="player-bar">
-        <div class="controls">
-          <button>
-            <img :src="previousIcon" alt="Previous" @click="previousSong"/>
-          </button>
-          <button @click="togglePlay">
-            <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
-          </button>
-          <button>
-            <img :src="nextIcon" alt="Next" @click="nextSong"/>
-          </button>
-          <button>
-            <img :src="restart" alt="Restart"  />
-          </button>
-         
 
+        <div class="controls">
+          <button class="side-buttons" @click="randomClick">
+               <img :src="randomIcon" alt="random" />
+            </button>
+            <button class="side-buttons">
+               <img :src="previousIcon" alt="Previous" @click="previousSong"/>
+            </button>
+
+            <button class="play-button" @click="togglePlay">
+               <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
+            </button>
+
+            <button class="side-buttons">
+               <img :src="nextIcon" alt="Next" @click="nextSong"/>
+            </button>
+
+            <button class="side-buttons" @click="playSong(currentSong)">
+               <img :src="restart" alt="Restart" />
+            </button>
+         
         </div>
         <div class="player-bar-right">
           <span class="volume-icon">🔊</span>
@@ -90,6 +100,7 @@
         </div>
 
         
+
 
         <div class="progress-container">
           <div class="song-info">
@@ -139,6 +150,8 @@ import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
 import createList from '@/assets/task-checklist.svg';
 import restart from '@/assets/restart.svg';
+import randomIcon from '@/assets/random-button.png';
+import logo from '@/assets/logo.png';
 import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
 
@@ -172,12 +185,12 @@ const results = ref({
   artistas: [],
   canciones: [],
   albums: [],
-  listas: []
+  playlists: []
 });
 
 const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos' },
-  { src: starIcon, alt: 'Favoritos' },
+  { src: starIcon, alt: 'Favoritos', action: () => router.push('/favs')},
   { src: settingsIcon, alt: 'Configuración' },
   { src: albumIcon, alt: 'Álbum' },
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
@@ -187,7 +200,7 @@ const hasResults = computed(() =>
   results.value.artistas.length || 
   results.value.canciones.length || 
   results.value.albums.length || 
-  results.value.listas.length
+  results.value.playlists.length
 );
 
 // Función para gestionar siguiente cancion
@@ -327,7 +340,9 @@ function playSong(song) {
   if (streamerRef.value?.startStreamSong) {
     console.log("id:",song.Id);
     console.log("nommbre:",song.Nombre);
-    streamerRef.value.startStreamSong(song.Id, song.Nombre,email)
+
+    streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
+
     currentSong.value = song;
     isPlaying.value = true;
   } else {
@@ -345,6 +360,7 @@ function setVolume(volumen) {
 
 
 // Función para pausar/reanudar
+// Función para pausar/reanudar
 function togglePlay() {
   if (!player.value){
     console.warn("[player] Error con el player audio")
@@ -358,7 +374,7 @@ function togglePlay() {
         player.value.pause()
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
-      }else{
+      } else{
     
         // streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,email,currentStopTime.value)
         player.value.play().catch((err) => {
@@ -370,9 +386,9 @@ function togglePlay() {
     } else {
       console.warn('No se pudo acceder a stopCurrentStream')
     }
-  
-  }
-  
+}
+
+
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
@@ -405,7 +421,7 @@ function getIconPosition(index, total) {
 const fetchResults = async () => {
    
    if (!currentSearch.value.trim()) {
-      results.value = { artistas: [], canciones: [], albums: [], listas: [] };
+      results.value = { artistas: [], canciones: [], albums: [], playlists: [] };
       return;
    }
 
@@ -424,7 +440,7 @@ const fetchResults = async () => {
       console.log("Artistas:", JSON.parse(JSON.stringify(results.value.artistas)));
       console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
       console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
-      console.log("Listas:", JSON.parse(JSON.stringify(results.value.listas)));
+      console.log("Playlists:", JSON.parse(JSON.stringify(results.value.playlists)));
 
    } catch (error) {
       console.error('Error:', error);
@@ -514,6 +530,12 @@ function seekAudio(event) {
   height: auto;
   filter: brightness(0) invert(1);
   cursor: pointer;
+}
+
+.logo {
+  width: 45px;
+  height: auto;
+  margin-left: 15px;
 }
 
 /* Barra de búsqueda */
@@ -667,6 +689,11 @@ select {
   font-size: 16px;
 }
 
+.numCanciones-span {
+   margin-left: 20px;
+   color: orange
+}
+
 /*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
 .player-bar {
   display: flex;
@@ -698,9 +725,24 @@ select {
 /* Controles de música */
 .controls {
   display: flex;
-  justify-content: center; /* Centra los botones horizontalmente */
-  align-items: center; /* Centra los botones verticalmente */
-  gap: 20px; /* Espacio entre los botones */
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 10px; /* Espacio entre botones */
+}
+
+.side-buttons {
+  flex-grow: 0; /* Espaciado equitativo */
+  display: flex;
+  justify-content: center;
+  flex: none; 
+}
+
+.play-button {
+  flex-grow: 0;
+  transform: scale(1.2); /* Aumenta el tamaño del botón central */
+  justify-content: center;
+  flex: none; 
 }
 
 .controls button {
@@ -762,6 +804,7 @@ select {
   margin-right: 8px;
 }
 
+
 .controls-wrapper {
   display: flex;
   justify-content: space-between;
@@ -797,6 +840,5 @@ select {
   font-size: 18px;
   margin-right: 8px;
 }
-
 
 </style>

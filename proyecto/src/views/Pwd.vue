@@ -4,6 +4,7 @@
          <div class="back-btn-container">
             <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
          </div>
+         <img class="logo" :src="logo" alt="Logo"/>
          <h2>Recuperar contraseña</h2>
          <span>Intrduce tu correo electrónico y te enviaremos instrucciones para recuperar tu contraseña </span>
 
@@ -20,6 +21,8 @@
 <script setup>
 import {ref} from "vue";
 import { useRouter } from 'vue-router';
+import logo from '@/assets/logo.png';
+
 const email = ref("");
 
 const router = useRouter();
@@ -116,7 +119,7 @@ input::placeholder {
 button {
    width: 50%;
    padding: 12px;
-   margin-top: 1rem;
+   margin-top: 2rem;
    border: none;
    border-radius: 10px;
    color: #fff;
@@ -131,7 +134,7 @@ button:hover {
 
 .back-btn-container {
    position: absolute;
-   top: 220px;
+   top: 150px;
    left: 505px;
    display: flex;
    justify-content: flex-start;
@@ -151,6 +154,10 @@ button:hover {
 
 .back-btn:hover {
    background-color: rgba(255, 165, 0, 0.2);
+}
+
+.logo {
+   width: 100px;
 }
 
 

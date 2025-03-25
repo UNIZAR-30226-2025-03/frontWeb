@@ -4,6 +4,7 @@
          <div class="back-btn-container">
             <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
          </div>
+         <img class="logo" :src="logo" alt="Logo"/>
          <h2>Crear Nueva Lista</h2>
          <span>Rellena los siguientes campos para crear tu lista de reproducción</span>
 
@@ -30,7 +31,7 @@
 
          <!-- Si elige 'upload' se muestra el input para subir una imagen -->
          <div v-if="profileAction === 'upload'">
-            <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
+            <input class="profileInput" type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
          </div>
 
          <!-- Si elige 'select' se muestra el modal para elegir una imagen predeterminada -->
@@ -56,6 +57,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import logo from '@/assets/logo.png';
 
 const router = useRouter();
 const nombre = ref("");
@@ -300,7 +302,7 @@ button:hover {
 
 .back-btn-container {
    position: absolute;
-   top: 60px;
+   top: 20px;
    left: 510px;
    display: flex;
    justify-content: flex-start;
@@ -320,6 +322,21 @@ button:hover {
 
 .back-btn:hover {
    background-color: rgba(255, 165, 0, 0.2);
+}
+
+.profileInput {
+   width: 50%;
+   padding: 10px;
+   margin-top: 15px;
+   border: 1px solid #ffa500;
+   border-radius: 4px;
+   background-color: #2a2a2a;
+   color: #fff;
+   box-sizing: border-box;
+}
+
+.logo {
+   width: 100px;
 }
 
 /* Mensaje emergente */
