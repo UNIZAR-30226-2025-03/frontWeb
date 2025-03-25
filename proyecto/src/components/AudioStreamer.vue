@@ -217,16 +217,4 @@
     }
   }
 
-  async function fetchSongDuration(songId) {
-    const url = `https://echobeatapi.duckdns.org/api/getSongLength?songId=${songId}`
-    try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('No se pudo obtener la duración de la canción')
-      const data = await res.json()
-      return data.duration
-    } catch (error) {
-      console.log('[error] Error al obtener la duración de la canción: ' + error)
-      return 0
-    }
-  } 
   </script>
