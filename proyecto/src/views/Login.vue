@@ -1,6 +1,7 @@
 <template>
    <div class="login-container">
       <div class="login-box">
+         <img class="logo" :src="logo" alt="Logo"/>
          <h2>Bienvenido a EchoBeat</h2>
 
          <label for="email">Correo Electrónico</label>
@@ -30,6 +31,7 @@
 import { ref } from "vue";
 import { useRouter } from 'vue-router';
 import googleLogo from '@/assets/Google_logo.svg';
+import logo from '@/assets/logo.png';
 
 const email = ref("");
 const password = ref("");
@@ -232,6 +234,10 @@ button {
 
 button:hover {
    opacity: 0.8;
+}
+
+.logo {
+   width: 100px;
 }
 
 /* Mensaje emergente */
