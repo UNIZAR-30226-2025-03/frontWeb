@@ -57,7 +57,7 @@
       <main class="main-content">
         <router-view />
       </main>
-      <audio id="app-player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
+      <audio id="app-player"  ref="player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
       <div class="player-bar">
         <div class="controls">
@@ -73,7 +73,24 @@
           <button>
             <img :src="restart" alt="Restart"  />
           </button>
+         
+
         </div>
+        <div class="player-bar-right">
+          <span class="volume-icon">🔊</span>
+          <div class="volume-control">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              @input="setVolume($event.target.value)"
+            />
+          </div>
+        </div>
+
+        
+
         <div class="progress-container">
           <div class="song-info">
             <!-- Mostrar la portada y el nombre de la canción -->
@@ -133,6 +150,7 @@ const lastSong = ref({
   cover: '',
   minute: 0
 });
+const player = ref(null);
 
 const email =  localStorage.getItem("email");
 const isMenuOpen = ref(false);
@@ -256,10 +274,11 @@ onBeforeUnmount(() => {
 
 
 let lastUpdatedSecond = -1;
+let progressInterval = null;
+let contador = 1;
 
 function updateCurrentTime(event) {
   const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
-
   if (newTime !== lastUpdatedSecond && isPlaying.value) {
     lastUpdatedSecond = newTime;
     currentSongTime.value =  formatTime(event.target.currentTime.toFixed(0));
@@ -268,7 +287,29 @@ function updateCurrentTime(event) {
       progress.value = (event.target.currentTime / event.target.duration) * 100;
       
     }
-    
+    // Si ya existía un intervalo, lo limpiamos para no duplicarlo
+   
+    if (progressInterval) {
+        
+        clearInterval(progressInterval);
+    }
+    if(contador  ===  0 ){
+      contador = 1;
+      // Enviamos solo si el audio se está reproduciendo
+        if (isPlaying.value) {
+          const currentTime = parseInt(event.target.currentTime.toFixed(0));
+          console.log(`userId: ${email}, songId: ${currentSong.Id}, currentTime: ${currentTime}`) 
+          streamerRef.value.socket.emit('progressUpdate', {
+            userId: email,
+            songId: currentSong.Id,
+            currentTime,
+          });
+          console.log(`[Progress]Progreso enviado: ${currentTime} segundos`);
+        }
+
+    }else{
+      contador--;
+    }
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
@@ -286,7 +327,7 @@ function playSong(song) {
   if (streamerRef.value?.startStreamSong) {
     console.log("id:",song.Id);
     console.log("nommbre:",song.Nombre);
-    streamerRef.value.startStreamSong(song.Id, song.Nombre)
+    streamerRef.value.startStreamSong(song.Id, song.Nombre,email)
     currentSong.value = song;
     isPlaying.value = true;
   } else {
@@ -294,18 +335,35 @@ function playSong(song) {
   }
 }
 
+function setVolume(volumen) {
+  if (!player.value) return
+
+  const volume = Math.min(Math.max(volumen, 0), 1) // asegura valor entre 0 y 1
+  player.value.volume = volume
+  console.log(`[volumen] Nivel de volumen establecido: ${volume}`)
+}
+
+
 // Función para pausar/reanudar
 function togglePlay() {
-  
+  if (!player.value){
+    console.warn("[player] Error con el player audio")
+    return
+  } 
   if (streamerRef.value?.stopCurrentStream) {
       if (isPlaying.value){
-        streamerRef.value.stopCurrentStream()
+        // streamerRef.value.stopCurrentStream()
         currentStopTime.value = currentSongTime.value
+
+        player.value.pause()
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
       }else{
     
-        streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,currentStopTime.value)
+        // streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,email,currentStopTime.value)
+        player.value.play().catch((err) => {
+          console.warn('[player] Error al reproducir:', err)
+        })
         isPlaying.value = true;
         console.log("play");
       }
@@ -628,6 +686,15 @@ select {
   
 }
 
+.player-bar-right {
+  align-self: flex-end; /* mueve este hijo a la derecha del contenedor vertical */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%; /* ocupa todo el ancho posible */
+  padding-right: 20px; /* separación del borde derecho */
+}
+
 /* Controles de música */
 .controls {
   display: flex;
@@ -695,6 +762,41 @@ select {
   margin-right: 8px;
 }
 
+.controls-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  margin-left: 20px;
+}
+
+.volume-control input[type="range"] {
+  width: 100px;
+  height: 4px;
+  appearance: none;
+  background-color: #555;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.volume-icon {
+  filter: brightness(0) invert(1);
+  font-size: 18px;
+  margin-right: 8px;
+}
 
 
 </style>
