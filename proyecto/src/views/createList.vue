@@ -30,7 +30,7 @@
 
          <!-- Si elige 'upload' se muestra el input para subir una imagen -->
          <div v-if="profileAction === 'upload'">
-            <input type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
+            <input class="profileInput" type="file" ref="fileInput" @change="handleFileChange" accept="image/*" />
          </div>
 
          <!-- Si elige 'select' se muestra el modal para elegir una imagen predeterminada -->
@@ -320,6 +320,16 @@ button:hover {
 
 .back-btn:hover {
    background-color: rgba(255, 165, 0, 0.2);
+=======
+.profileInput {
+   width: 50%;
+   padding: 10px;
+   margin-top: 15px;
+   border: 1px solid #ffa500;
+   border-radius: 4px;
+   background-color: #2a2a2a;
+   color: #fff;
+   box-sizing: border-box;
 }
 
 /* Mensaje emergente */
