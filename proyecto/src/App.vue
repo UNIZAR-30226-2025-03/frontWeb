@@ -6,7 +6,10 @@
       <div class="header">
 
          <!-- Imagen que activa el menú -->
-         <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+          <div class="busqueda">
+            <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
+            <img class="logo" :src="logo" alt="Logo"/>
+         </div>
          <div class="busqueda" ref="searchArea" @click.stop>
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
             <div class="search-results" v-if="currentSearch && !isLoading" ref="resultsArea">
@@ -62,6 +65,9 @@
       <div class="player-bar">
 
          <div class="controls">
+            <button class="side-buttons" @click="randomClick">
+               <img :src="randomIcon" alt="random" />
+            </button>
             <button class="side-buttons">
                <img :src="previousIcon" alt="Previous" @click="previousSong"/>
             </button>
@@ -127,6 +133,8 @@ import settingsIcon from '@/assets/settings.svg';
 import albumIcon from '@/assets/folder-music.svg';
 import createList from '@/assets/task-checklist.svg';
 import restart from '@/assets/restart.svg';
+import randomIcon from '@/assets/random-button.png';
+import logo from '@/assets/logo.png';
 import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
 
@@ -164,7 +172,7 @@ const results = ref({
 
 const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos' },
-  { src: starIcon, alt: 'Favoritos' },
+  { src: starIcon, alt: 'Favoritos', action: () => router.push('/favs')},
   { src: settingsIcon, alt: 'Configuración' },
   { src: albumIcon, alt: 'Álbum' },
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
@@ -291,7 +299,7 @@ function playSong(song) {
   if (streamerRef.value?.startStreamSong) {
     console.log("id:",song.Id);
     console.log("nommbre:",song.Nombre);
-    streamerRef.value.startStreamSong(song.Id, song.Nombre)
+    streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
     currentSong.value = song;
     isPlaying.value = true;
   } else {
@@ -299,6 +307,7 @@ function playSong(song) {
   }
 }
 
+// Función para pausar/reanudar
 // Función para pausar/reanudar
 function togglePlay() {
   
@@ -317,9 +326,9 @@ function togglePlay() {
     } else {
       console.warn('No se pudo acceder a stopCurrentStream')
     }
-  
-  }
-  
+}
+
+
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
@@ -461,6 +470,12 @@ function seekAudio(event) {
   height: auto;
   filter: brightness(0) invert(1);
   cursor: pointer;
+}
+
+.logo {
+  width: 45px;
+  height: auto;
+  margin-left: 15px;
 }
 
 /* Barra de búsqueda */
@@ -714,7 +729,5 @@ select {
   margin-left: 8px;
   margin-right: 8px;
 }
-
-
 
 </style>
