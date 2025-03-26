@@ -66,7 +66,7 @@
       <div class="player-bar">
 
         <div class="controls">
-          <button class="side-buttons" @click="randomClick">
+            <button class="side-buttons" @click="randomClick">
                <img :src="randomIcon" alt="random" />
             </button>
             <button class="side-buttons">
@@ -85,35 +85,33 @@
                <img :src="restart" alt="Restart" />
             </button>
          
-        </div>
-        <div class="player-bar-right">
-          <span class="volume-icon">🔊</span>
-          <div class="volume-control">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              @input="setVolume($event.target.value)"
-            />
           </div>
-        </div>
 
-        
+          <div class="progress-container">
 
+            <div class="song-info">
+              <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
+              <span class="song-name">{{ lastSong.name }}</span>
+            </div>
 
-        <div class="progress-container">
-          <div class="song-info">
-            <!-- Mostrar la portada y el nombre de la canción -->
-            <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
-            <span class="song-name">{{ lastSong.name }}</span>
+            <div class="progress-section">
+              <div>{{ currentSongTime }}</div>
+              <input type="range" class="progress-bar" min="0" max="100" v-model="progress" @input="seekAudio" step="0.1"
+                :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }" />
+              <div>{{ lastSong.minute }}</div>
+            </div>
+
+            <div class="volume-section">
+              <span class="volume-icon">🔊</span>
+              <input type="range" min="0" max="1" step="0.01" @input="setVolume($event.target.value)" />
           </div>
-          <div>  {{ currentSongTime }} </div>
-          <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" step="0.1"
-          :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }"/>
-          <div>  {{ lastSong.minute }}</div>
+
         </div>
       </div>
+
+
+
+
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
 
@@ -757,13 +755,6 @@ select {
   filter: brightness(0) invert(1);
 }
 
-/* Contenedor de la barra de progreso */
-.progress-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
 
 /* Progreso de la canción */
 .progress-bar-filled {
@@ -773,20 +764,54 @@ select {
   transition: width 0.1s ease-in-out; /* Animación suave para el progreso */
 }
 
-/* Icono de la canción */
+.player-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #111;
+  padding: 10px 0;
+  z-index: 1000;
+  color: white;
+  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.progress-container {
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0 1rem;
+  
+}
+
 .song-info {
-  position: absolute;
-  bottom: 25px;
-  left: 20px;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  justify-self: start; /* pegado a la izquierda */
 }
 
 .song-icon {
   width: 40px;
   height: 40px;
-  filter: brightness(0) invert(1);
-  margin-right: 10px;
+  object-fit: cover;
+  border-radius: 5px;
 }
 
 .song-name {
@@ -794,51 +819,40 @@ select {
   color: white;
 }
 
-/* Barra de progreso */
+.progress-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 35vw;
+   justify-content: center;
+}
+
 .progress-bar {
-  width: 30%;
+  flex: 1;
   height: 4px;
   background: #444;
   border-radius: 2px;
-  margin-left: 8px;
-  margin-right: 8px;
 }
 
-
-.controls-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 90%;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.controls {
+.volume-section {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  justify-self: end; /* pegado a la derecha */
+  margin: auto;
 }
 
-.volume-control {
-  display: flex;
-  align-items: center;
-  margin-left: 20px;
-}
-
-.volume-control input[type="range"] {
-  width: 100px;
+.volume-section input[type="range"] {
+  width: 120px;
   height: 4px;
-  appearance: none;
   background-color: #555;
   border-radius: 4px;
+  appearance: none;
   cursor: pointer;
 }
 
-.volume-icon {
-  filter: brightness(0) invert(1);
-  font-size: 18px;
-  margin-right: 8px;
-}
+
 
 </style>
