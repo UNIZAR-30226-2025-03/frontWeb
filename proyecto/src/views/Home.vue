@@ -143,6 +143,7 @@
       const data = await response.json();
      
       data.forEach(genero => {
+         console.log('playlist genero: ', genero);
           const listElement = document.createElement("div");
           listElement.classList.add("recomendations-item");
 
@@ -164,6 +165,11 @@
           const titleElement = document.createElement("p");
           titleElement.textContent = genero.NombreGenero;
           titleElement.classList.add("recomendations-title");
+
+          // 🔗 Agregar evento de clic para redirigir a una nueva página
+         listElement.addEventListener("click", () => {
+            router.push({ path: '/playlist', query: { id: genero.IdLista } });
+         });
 
           listElement.appendChild(imgElement);
           listElement.appendChild(titleElement);
@@ -250,7 +256,11 @@
   margin-left: 0.7vw;
   margin-bottom: 22vh;
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4) ;
-  
+}
+
+/* Para Webkit (Chrome, Safari, Edge) */
+.sidebar::-webkit-scrollbar {
+   width: 0px; /* Hace la barra de desplazamiento invisible */
 }
 
 .library {
@@ -297,9 +307,14 @@
   border-radius: 12px;
   box-shadow: 4px 6px 8px rgba(0, 0, 0, 0.4);
   height: 23.5vh;
-  overflow-y: auto;
-  
+  overflow-y: auto; 
 }
+
+/* Para Webkit (Chrome, Safari, Edge) */
+.recently-played::-webkit-scrollbar {
+   width: 0px; /* Hace la barra de desplazamiento invisible */
+}
+
 .playlist-container {
   display: flex;
   flex-wrap: wrap;
@@ -370,6 +385,7 @@
   box-shadow: 4px 6px 8px rgba(0, 0, 0, 0.4);
   overflow-y: auto;
 }
+
 
 .recently-played h2,
 .recommendations h2 {
