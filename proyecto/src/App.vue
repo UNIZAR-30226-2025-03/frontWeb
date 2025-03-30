@@ -451,12 +451,21 @@ const fetchResults = async () => {
 };
 
 function seekAudio(event) {
-  const newTime = event.target.currentTime;
-  console.log(newTime)
-  event.target.currentTime = newTime
-  currentSongTime.value = newTime
+  const newProgress = event.target.value;
+  if (!player.value || !player.value.duration) return;
 
+  // Calcular el nuevo tiempo en segundos
+  const newTime = (newProgress / 100) * player.value.duration;
+
+  // Establecer el nuevo tiempo en el reproductor
+  player.value.currentTime = newTime;
+
+  // Actualizar la variable reactiva para reflejar el nuevo tiempo
+  currentSongTime.value = formatTime(Math.floor(newTime));
+
+  console.log(`[Seek] Nueva posición: ${newTime} segundos`);
 }
+
 
 // onMounted(async () => {
 //   try {
