@@ -24,7 +24,7 @@
                      <img :src="cancion.Portada" alt="Canción" />
                      <div class="song-quest-info">
                         <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
-                        <button v-if="hoveredSong === cancion.Nombre" @click="playSong(cancion)">
+                        <button v-if="hoveredSong === cancion.Nombre" @click="playFromQuest(cancion)">
                         <img :src="playIcon" alt="Play" />
                         </button>
                      </div>
@@ -99,9 +99,6 @@
           </div>
         </div>
 
-        
-
-
         <div class="progress-container">
           <div class="song-info">
             <!-- Mostrar la portada y el nombre de la canción -->
@@ -156,7 +153,7 @@ import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
 
 const streamerRef = ref(null)
-provide('playSong',playSong);
+provide('playSong', playSong);
 // Variables reactivas
 const lastSong = ref({
   name: '',
@@ -204,7 +201,7 @@ const hasResults = computed(() =>
 );
 
 // Función para gestionar siguiente cancion
-const nextSong = async() =>{
+const nextSong = async() => {
   try {
     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
     if (!response.ok) throw new Error('Error al obtener next song');
@@ -328,26 +325,105 @@ function updateCurrentTime(event) {
 }
 //Hacer otra funcion que para pner una cancion desde el reproductor await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list
 
+const clearQueue = async () => {
+   try {
+      const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/clear', {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',  
+      },
+      body: JSON.stringify({
+         userEmail: email
+      })
+      });
+
+      if (!response.ok) {
+      throw new Error('Error al vaciar la cola de reproducción');
+      }
+
+      console.log("Cola vaciada con éxito");
+
+      // // Animación antes de eliminar las canciones
+      // document.querySelectorAll('.song-item').forEach((el) => {
+      //    el.classList.add('fade-out');
+      // });
+
+      // // Espera la animación antes de limpiar la lista
+      // setTimeout(() => {
+      //    songs.value = [];
+      // }, 500);
+      
+   } catch (error) {
+      console.log(error.message);
+   }
+} 
+
+async function playFromQuest(song) {
+   try {
+      // 1️⃣ Vaciar la cola de reproducción antes de añadir la nueva canción
+      await clearQueue();
+
+      // 2️⃣ Añadir la nueva canción a la cola de reproducción
+      const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/add-song-to-queue', {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+            userEmail: email,
+            songId: song.Id
+         })
+      });
+
+      if (!response.ok) {
+         throw new Error('Error al añadir la canción a la cola de reproducción');
+      }
+
+      // 3️⃣ Actualizar el estado de la cola con solo la nueva canción
+      //songs.value = [song];
+
+      // 4️⃣ Reproducir la canción
+      lastSong.value = {
+         name: song.Nombre,
+         cover: song.Portada,
+         minute: formatTime(song.Duracion),
+      };
+
+      if (streamerRef.value?.startStreamSong) {
+         streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
+         currentSong.value = song;
+         isPlaying.value = true;
+      } else {
+         console.warn('startStreamSong no está disponible');
+      }
+
+
+   } catch (error) {
+      console.error('Error al reproducir la canción:', error);
+   }
+}
 
 // Función para iniciar una canción
 function playSong(song) {
+   
+   lastSong.value = {
+      name: song.Nombre,
+      cover: song.Portada,
+      minute: formatTime(song.Duracion),
+   };
+   if (streamerRef.value?.startStreamSong) {
+      console.log("id:",song.Id);
+      console.log("nommbre:",song.Nombre);
 
-  lastSong.value = {
-    name: song.Nombre,
-    cover: song.Portada,
-    minute: formatTime(song.Duracion),
-  };
-  if (streamerRef.value?.startStreamSong) {
-    console.log("id:",song.Id);
-    console.log("nommbre:",song.Nombre);
+      streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
 
-    streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
-
-    currentSong.value = song;
-    isPlaying.value = true;
-  } else {
-    console.warn('startStreamSong no está disponible')
-  }
+      currentSong.value = song;
+      isPlaying.value = true;
+   } else {
+      console.warn('startStreamSong no está disponible')
+   }
 }
 
 function setVolume(volumen) {

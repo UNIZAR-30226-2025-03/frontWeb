@@ -5,10 +5,27 @@
       <aside class="sidebar">
         <div class="library">
           <h2>Escuchando </h2>
+          <button class="trash-btn" @click="clearQueue">
+            🗑️
+          </button>
           <div id="songs-list">
-          <div v-for="(song, index) in songs" :key="index" class="song-item"  @click="playAsong(song.id,index)">
-            <p class="song-title">{{ song.nombre }}</p> <!-- Ajusta según la API -->
-          </div>
+            <div 
+               v-for="(song, index) in songs" 
+               :key="index" 
+               class="song-item" 
+               @mouseover="hoveredSong = song.id" 
+               @mouseleave="hoveredSong = null"
+               @click="playAsong(song.id, index)"
+               >  
+               <p class="song-title">{{ song.nombre }}</p>
+               <button 
+                  v-if="hoveredSong === song.id" 
+                  class="song-trash-btn" 
+                  @click.stop="removeSong(index)"
+               >
+                  🗑️
+               </button>
+            </div>
         </div>
         </div>
       </aside>
@@ -43,158 +60,247 @@
       </section>
 
     </main>
+    <div v-if="showPopup" :class="popupType" class="popup">
+         {{ popupMessage }}
+    </div>
   </div>
 </template>
 
 
 <script setup>
-  import { ref, onMounted,inject } from 'vue';
-  import { useRouter } from 'vue-router';
-  import default_img from  '@/assets/kebab.jpg';
+import { ref, onMounted, inject } from 'vue';
+import { useRouter } from 'vue-router';
+import default_img from  '@/assets/kebab.jpg';
 
-  const playSong = inject('playSong')
-  const router = useRouter();
-  const songsData = ref([]);
-  const email =  localStorage.getItem("email");
-  console.log("email: ", email);
-  const songs = ref([]);
-  const playlists = ref([]);//Playlist propias del usario
-  const id = ref(0);
-  const nombre = ref();
+const playSong = inject('playSong')
+const router = useRouter();
+const songsData = ref([]);
+const email =  localStorage.getItem("email");
+console.log("email: ", email);
+const songs = ref([]);
+const playlists = ref([]);//Playlist propias del usario
+const id = ref(0);
+const nombre = ref();
+const hoveredSong = ref(null);
+
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("popup-error");
+
+const showPopupMessage = (message, type) => {
+   popupMessage.value = message;
+   popupType.value = type;
+   showPopup.value = true;
+
+   setTimeout(() => {
+      showPopup.value = false;
+   }, 3000); // Cierra el popup después de 3 segundos
+};
   
-  const playAsong = async(song,posicion) => {
-    // 1. Reproducir la canción 
-    try {
-      const songResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song}`)
-      
-      if (!songResponse.ok) {
-         throw new Error('Error al reproducir la canción ');
-      }
-      const songData = await songResponse.json();
-      const newSong = {
-         Id: song,
-         Nombre: songData.Nombre,
-         Portada: songData.Portada,
-         Duracion: songData.Duracion,
-      };
-  //-------------Actualizar posición cola------------------
-      const bodyData = {
-          userEmail: email,
-          reproduccionAleatoria: false,
-          posicionCola: posicion,
-          colaReproduccion: songsData.value.ColaReproduccion
-      };
+const playAsong = async(song,posicion) => {
+   // 1. Reproducir la canción 
+   try {
+   const songResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song}`)
+   
+   if (!songResponse.ok) {
+      throw new Error('Error al reproducir la canción ');
+   }
+   const songData = await songResponse.json();
+   const newSong = {
+      Id: song,
+      Nombre: songData.Nombre,
+      Portada: songData.Portada,
+      Duracion: songData.Duracion,
+   };
+//-------------Actualizar posición cola------------------
+   const bodyData = {
+         userEmail: email,
+         reproduccionAleatoria: false,
+         posicionCola: posicion,
+         colaReproduccion: songsData.value.ColaReproduccion
+   };
 
-      console.log("JSON enviado:", bodyData);   
-      
-      const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
-          method: 'POST',
-          headers: {
-            'Accept': '*/*', 
-            'Content-Type': 'application/json',  
-          },
-          body:  JSON.stringify(bodyData)
-      });
-     
+   console.log("JSON enviado:", bodyData);   
+   
+   const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
+         method: 'POST',
+         headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',  
+         },
+         body:  JSON.stringify(bodyData)
+   });
+   
 
-      playSong(newSong);
-      
-    } catch (error) {
-      console.error('play a song:', error);
-    }
-    
-  };
+   playSong(newSong);
+   
+   } catch (error) {
+   console.error('play a song:', error);
+   }
+   
+};
 
-  const handleClick = (id) => {
-    console.log("Playlist seleccionada:", id);
-    router.push({ path: '/playlist', query: { id: id } });
-  };
+const handleClick = (id) => {
+   console.log("Playlist seleccionada:", id);
+   router.push({ path: '/playlist', query: { id: id } });
+};
  
-  onMounted(async () => {
-    try {
-      const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
-      const nickData = await nick.json();
-      nombre.value = nickData.Nick;
-    } catch (error) {
-      console.error('Nick Error:', error);
-    }
+onMounted(async () => {
+   try {
+   const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
+   const nickData = await nick.json();
+   nombre.value = nickData.Nick;
+   } catch (error) {
+   console.error('Nick Error:', error);
+   }
 
 
-    try {
-       // Obtener playlist propias
-      const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user/${encodeURIComponent(email)}`);
-      if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
-      
-      const playlistData = await playlistResponse.json();
-      playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
-    
-    
-      console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
+   try {
+      // Obtener playlist propias
+   const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user/${encodeURIComponent(email)}`);
+   if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
+   
+   const playlistData = await playlistResponse.json();
+   playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
+   
+   
+   console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
 
-      } catch (error) {
-        console.error('Playlist Error:', error);
-      }
+   } catch (error) {
+      console.error('Playlist Error:', error);
+   }
 
-      try {
-       // Obtener recomendaciones
+   try {
+      // Obtener recomendaciones
       const container = document.getElementById("recomendations-container");
       const response = await fetch(`https://echobeatapi.duckdns.org/genero/preferencia?userEmail=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Error al obtener las recomendaciones del usuario');
       const data = await response.json();
-     
+   
       data.forEach(genero => {
          console.log('playlist genero: ', genero);
-          const listElement = document.createElement("div");
-          listElement.classList.add("recomendations-item");
+         const listElement = document.createElement("div");
+         listElement.classList.add("recomendations-item");
 
-          const imgElement = document.createElement("img");
-          imgElement.src = genero.FotoGenero;
-          imgElement.alt = genero.NombreGenero;
-          imgElement.classList.add("recomendations-cover");
+         const imgElement = document.createElement("img");
+         imgElement.src = genero.FotoGenero;
+         imgElement.alt = genero.NombreGenero;
+         imgElement.classList.add("recomendations-cover");
 
-              // 🔥 Manejar error de imagen: Ocultar o cambiar a una imagen por defecto
-          imgElement.onerror = function () {
-            if (!this.dataset.error) { // Evita bucles infinitos
-                this.dataset.error = "true"; 
-                this.src = default_img; // Imagen de respaldo
-            } else {
-                this.style.display = "none"; // Si la imagen de respaldo falla, oculta la imagen
-            }
-          };
+            // 🔥 Manejar error de imagen: Ocultar o cambiar a una imagen por defecto
+         imgElement.onerror = function () {
+         if (!this.dataset.error) { // Evita bucles infinitos
+               this.dataset.error = "true"; 
+               this.src = default_img; // Imagen de respaldo
+         } else {
+               this.style.display = "none"; // Si la imagen de respaldo falla, oculta la imagen
+         }
+         };
 
-          const titleElement = document.createElement("p");
-          titleElement.textContent = genero.NombreGenero;
-          titleElement.classList.add("recomendations-title");
+         const titleElement = document.createElement("p");
+         titleElement.textContent = genero.NombreGenero;
+         titleElement.classList.add("recomendations-title");
 
-          // 🔗 Agregar evento de clic para redirigir a una nueva página
+         // 🔗 Agregar evento de clic para redirigir a una nueva página
          listElement.addEventListener("click", () => {
             router.push({ path: '/playlist', query: { id: genero.IdLista } });
          });
 
-          listElement.appendChild(imgElement);
-          listElement.appendChild(titleElement);
-          container.appendChild(listElement);
-      });
-    } catch (error) {
-      console.error('Generos Error:', error);
-    }
+         listElement.appendChild(imgElement);
+         listElement.appendChild(titleElement);
+         container.appendChild(listElement);
+   });
+   } catch (error) {
+   console.error('Generos Error:', error);
+   }
 
-    try {
-
-    const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
-    if (!songsResponse.ok) throw new Error('Error la cola');
+   try {
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
+      if (!songsResponse.ok) throw new Error('Error la cola');
       
       songsData.value = await songsResponse.json();
       console.log("songsData: ", songsData.value);
       songs.value = Array.isArray(songsData.value.ColaReproduccion.canciones) ? songsData.value.ColaReproduccion.canciones : [songsData.value.ColaReproduccion.canciones];
       console.log("songsValue: ", songs.value);
       console.log(songs.value);
-    } catch (error) {
+      } catch (error) {
       console.error('Cola Error:', error);
-    }
-  });
+      }
+});
 
-  </script>
+const clearQueue = async () => {
+   try {
+      const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/clear', {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',  
+      },
+      body: JSON.stringify({
+         userEmail: email
+      })
+      });
+
+      if (!response.ok) {
+      throw new Error('Error al vaciar la cola de reproducción');
+      }
+
+      showPopupMessage("Cola vaciada con éxito", "popup-success");
+
+      // Animación antes de eliminar las canciones
+      document.querySelectorAll('.song-item').forEach((el) => {
+         el.classList.add('fade-out');
+      });
+
+      // Espera la animación antes de limpiar la lista
+      setTimeout(() => {
+         songs.value = [];
+      }, 500);
+      
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+} 
+
+const removeSong = async (position) => {
+   try {
+      const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/delete-song-from-queue', {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',  
+      },
+      body: JSON.stringify({
+         userEmail: email,
+         posicionCola: position
+      })
+      });
+
+      if (!response.ok) {
+      throw new Error('Error al eliminar canción de la cola de reproducción');
+      }
+
+      showPopupMessage("Canción eliminada de la cola de reproducción con éxito", "popup-success");
+
+      // Animación antes de eliminar la canción
+      const songElement = document.querySelector(`.song-item[data-index="${position}"]`);
+      if (songElement) {
+         songElement.classList.add('fade-out');
+      }
+
+      // Espera la animación antes de quitar del vector
+      setTimeout(() => {
+         songs.value.splice(position, 1);
+      }, 500);
+      
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+} 
+
+
+
+</script>
   
 <style scoped>
 
@@ -207,16 +313,14 @@
 
 /* Estilo de cada canción (similar al bloque "Welcome...") */
 .song-item {
-  width: 14vw;
-  height: 5.7vh;
-  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
-  transition: box-shadow 0.3s ease-in-out;
+  transition: background 0.3s ease-in-out;
   cursor: pointer;
-  overflow: hidden;
-  text-align: left;
-  
-
 }
 
 /* Efecto hover */
@@ -234,7 +338,22 @@
     padding: 1.5vh 1.5vw; /* Más padding a los lados */
 }
 
+.song-trash-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+  color: rgba(255, 255, 255, 0.5); /* Papelera apagada */
+  margin-left: 10px; /* Espaciado */
+}
 
+/* Efecto al pasar el cursor */
+.song-trash-btn:hover {
+  transform: scale(1.3) rotate(-10deg); /* Crece y gira un poco */
+  color: red; /* Se vuelve roja */
+  text-shadow: 0 0 8px rgba(255, 0, 0, 0.7); /* Brillo */
+}
 
 .layout {
   display: flex;
@@ -299,8 +418,26 @@
   
 }
 
+.trash-btn {
+  margin-bottom: 10px;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+  color: rgba(255, 255, 255, 0.5); /* Papelera apagada */
+  margin-left: 10px; /* Espaciado */
+}
+
+/* Efecto al pasar el cursor */
+.trash-btn:hover {
+  transform: scale(1.3) rotate(-10deg); /* Crece y gira un poco */
+  color: red; /* Se vuelve roja */
+  text-shadow: 0 0 8px rgba(255, 0, 0, 0.7); /* Brillo */
+}
+
+
 .recently-played{
-  
   padding-top:5px;
   padding-left: 20px;
   background: #1e1e1e;
@@ -481,6 +618,34 @@
     }
 }
 
+/* Mensaje emergente */
+.popup {
+   position: fixed;
+   top: 20px;
+   left: 50%;
+   transform: translateX(-50%);
+   color: white;
+   padding: 10px 20px;
+   border-radius: 8px;
+   font-weight: bold;
+   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+   animation: fadeInOut 3s ease-in-out;
+   z-index: 1000;
+}
 
+.popup-error {
+   background: rgba(255, 87, 34, 0.9);
+}
+
+.popup-success {
+   background: rgba(76, 175, 80, 0.9);
+}
+
+@keyframes fadeInOut {
+   0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+   10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+   90% { opacity: 1; }
+   100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
 
 </style>
