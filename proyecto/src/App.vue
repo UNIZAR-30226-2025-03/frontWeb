@@ -185,7 +185,7 @@ const results = ref({
 });
 
 const menuIcons = ref([
-  { src: friendsIcon, alt: 'Amigos' },
+  { src: friendsIcon, alt: 'Amigos', action: () => router.push('/friends')},
   { src: starIcon, alt: 'Favoritos', action: () => router.push('/favs')},
   { src: settingsIcon, alt: 'Configuración' },
   { src: albumIcon, alt: 'Álbum' },
