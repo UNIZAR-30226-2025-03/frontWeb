@@ -8,7 +8,7 @@
          <!-- Imagen que activa el menú -->
           <div class="busqueda">
             <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
-            <img class="logo" :src="logo" alt="Logo"/>
+            <img class="logo" :src="logo" alt="Logo" @click="backHome"/>
          </div>
          <div class="busqueda" ref="searchArea" @click.stop>
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
@@ -54,8 +54,7 @@
                <option value="playlists">Playlist</option>
             </select>
          </div>
-        <img class="image-right" :src="userIcon" alt="User" @click="openUser"
-        />
+        <img class="image-right" :src="userIcon" alt="User" @click="openUser"/>
       </div>
 
       <main class="main-content">
@@ -464,7 +463,9 @@ function togglePlay() {
     }
 }
 
-
+const backHome = () => {
+   router.push('/home');
+}
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
@@ -475,7 +476,7 @@ function closeMenu() {
 }
 
 const openUser = () => {
-  router.push('/User');
+  router.push('/user');
 };
 
 function formatTime(seconds) {
@@ -621,6 +622,11 @@ function seekAudio(event) {
   width: 45px;
   height: auto;
   margin-left: 15px;
+  cursor: pointer;
+}
+
+.logo:hover {
+   transform: scale(1.2);
 }
 
 /* Barra de búsqueda */
@@ -672,6 +678,7 @@ function seekAudio(event) {
   justify-content: center;
   transition: transform 0.3s ease-in-out;
   border: none;
+  cursor: pointer;
 }
 
 .menu-item img {
