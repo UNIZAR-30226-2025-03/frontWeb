@@ -106,7 +106,7 @@ const handleFileChange = (event) => {
 
 //  Función para seleccionar una imagen predeterminada
 const selectDefaultImage = (imageUrl) => {
-   file = imageUrl;
+   file.value = imageUrl;
    profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
