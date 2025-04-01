@@ -63,49 +63,69 @@
       </main>
       <audio id="app-player"  ref="player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
-      <div class="player-bar">
 
-        <div class="controls">
-            <button class="side-buttons" @click="randomClick">
-               <img :src="randomIcon" alt="random" />
-            </button>
-            <button class="side-buttons">
-               <img :src="previousIcon" alt="Previous" @click="previousSong"/>
-            </button>
-
-            <button class="play-button" @click="togglePlay">
-               <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
-            </button>
-
-            <button class="side-buttons">
-               <img :src="nextIcon" alt="Next" @click="nextSong"/>
-            </button>
-
-            <button class="side-buttons" @click="playSong(currentSong)">
-               <img :src="restart" alt="Restart" />
-            </button>
-         
-          </div>
-
-          <div class="progress-container">
-
-            <div class="song-info">
+      <div class="bottom-bar">
+        <!-- Left -->
+        <div class="now-playing">
+          <div class="song-info">
+              <!-- Mostrar la portada y el nombre de la canción -->
               <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
               <span class="song-name">{{ lastSong.name }}</span>
             </div>
+        </div>
 
-            <div class="progress-section">
-              <div>{{ currentSongTime }}</div>
-              <input type="range" class="progress-bar" min="0" max="100" v-model="progress" @input="seekAudio" step="0.1"
-                :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }" />
-              <div>{{ lastSong.minute }}</div>
-            </div>
-
-            <div class="volume-section">
-              <span class="volume-icon">🔊</span>
-              <input type="range" min="0" max="1" step="0.01" @input="setVolume($event.target.value)" />
+        <!-- Center -->
+        <div class="controls">
+          <div class="buttons">
+            <button class="side-buttons" @click="randomClick">
+                 <img :src="randomIcon" alt="random" />
+              </button>
+              <button class="side-buttons">
+                 <img :src="previousIcon" alt="Previous" @click="previousSong"/>
+              </button>
+  
+              <button class="play-button" @click="togglePlay">
+                 <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
+              </button>
+  
+              <button class="side-buttons">
+                 <img :src="nextIcon" alt="Next" @click="nextSong"/>
+              </button>
+  
+              <button class="side-buttons" @click="playSong(currentSong)">
+                 <img :src="restart" alt="Restart" />
+              </button>
           </div>
 
+          <div class="progress">
+            
+            <div>  {{ currentSongTime }} </div>
+            <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" step="0.1"
+            :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }"/>
+            <div> 
+               {{ lastSong.minute }}
+            </div>
+           
+          </div>
+
+        </div>
+
+        <!-- Right -->
+        <div class="extras">
+          <div class="volume-wrapper">
+            <i class="fa-solid fa-volume-high" @click="muteVolumen" >🔊</i>
+            <transition name="fade">
+                <input
+                  ref="volumeSlider"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  @input="setVolume($event.target.value)"
+                  class="volume-slider"
+                />
+              </transition>
+          </div>
         </div>
       </div>
 
@@ -114,7 +134,7 @@
 
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
-
+      
       <!-- Menú en semicírculo desde la esquina superior izquierda -->
       <div v-if="isMenuOpen" class="menu-container">
         <div class="menu">
@@ -127,11 +147,15 @@
           </button>
         </div>
       </div>
+        
     </div>
   </div>
 </template>
 
 <script setup>
+
+//falta poner icono de mute
+
 import { computed, ref, provide, onMounted, onBeforeUnmount } from 'vue';
 
 // Importar las imágenes
@@ -162,7 +186,7 @@ const lastSong = ref({
   minute: 0
 });
 const player = ref(null);
-
+const mute = ref(false);
 const email =  localStorage.getItem("email");
 const isMenuOpen = ref(false);
 const isPlaying = ref(false);
@@ -347,15 +371,23 @@ function playSong(song) {
     console.warn('startStreamSong no está disponible')
   }
 }
-
+const volumeSlider = ref(null);
 function setVolume(volumen) {
   if (!player.value) return
 
   const volume = Math.min(Math.max(volumen, 0), 1) // asegura valor entre 0 y 1
   player.value.volume = volume
   console.log(`[volumen] Nivel de volumen establecido: ${volume}`)
+  mute.value = false;
+  // Cambiar visualmente el fondo
+  if (volumeSlider.value) {
+    volumeSlider.value.style.backgroundSize = `${volume * 100}% 100%`;
+  }
 }
-
+function muteVolumen(){
+  player.value.volume = 0;
+  mute.value = true;
+}
 
 // Función para pausar/reanudar
 // Función para pausar/reanudar
@@ -490,6 +522,7 @@ function seekAudio(event) {
 
 
 <style scoped>
+
 /* Fondo negro */
 .container {
   width: 100vw;
@@ -693,32 +726,6 @@ select {
 }
 
 /*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
-.player-bar {
-  display: flex;
-  flex-direction: column; /* Apila los elementos */
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height:10vh; /* Aumenta la altura para acomodar los controles */
-  background-color: #111;
-  padding: 10px 0;
-  z-index: 1000;
-  color: white;
-  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
-  
-}
-
-.player-bar-right {
-  align-self: flex-end; /* mueve este hijo a la derecha del contenedor vertical */
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 100%; /* ocupa todo el ancho posible */
-  padding-right: 20px; /* separación del borde derecho */
-}
 
 /* Controles de música */
 .controls {
@@ -819,23 +826,66 @@ select {
   color: white;
 }
 
-.progress-section {
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height:12vh; /* Aumenta la altura para acomodar los controles */
+  padding: 0 16px;
+  background-color: #111;
+  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
+  z-index: 999;
+}
+
+.now-playing {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  max-width: 35vw;
-   justify-content: center;
-}
-
-.progress-bar {
+  gap: 12px;
   flex: 1;
-  height: 4px;
-  background: #444;
-  border-radius: 2px;
+  min-width: 200px;
 }
 
-.volume-section {
+.now-playing img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.track-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.track-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.track-artist {
+  font-size: 12px;
+  color: #b3b3b3;
+}
+
+.green {
+  color: #1ed760;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 2;
+}
+
+.buttons {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -844,15 +894,125 @@ select {
   margin: auto;
 }
 
-.volume-section input[type="range"] {
-  width: 120px;
-  height: 4px;
-  background-color: #555;
-  border-radius: 4px;
-  appearance: none;
-  cursor: pointer;
+.play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
 }
 
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 500px;
+}
 
+.progress input[type="range"] {
+  flex: 1;
+  height: 4px;
+  appearance: none;
+  background-color: #404040;
+  border-radius: 2px;
+  outline: none;
+  background-image: linear-gradient(#fff, #fff);
+  background-repeat: no-repeat;
+  background-size: 70% 100%;
+}
+
+.progress .bar {
+  flex: 1;
+  height: 4px;
+  background-color: #404040;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress .fill {
+  width: 70%;
+  height: 100%;
+  background-color: #fff;
+}
+
+.time {
+  font-size: 11px;
+  color: #b3b3b3;
+}
+
+.extras {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  justify-content: flex-end;
+  
+}
+
+.volume-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.volume-wrapper i {
+  cursor: pointer;
+  font-size: 16px;
+  color: #b3b3b3;
+  transition: color 0.3s ease;
+}
+
+.volume-wrapper i:hover {
+  color: #1ed760;
+}
+
+.volume-slider {
+  right: 0;
+  width: 100px;
+  height: 4px;
+  appearance: none;
+  background: #404040;
+  border-radius: 2px;
+  outline: none;
+  background-image: linear-gradient(#fff, #fff);
+  background-repeat: no-repeat;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform-origin: top right;
+  z-index: 10;
+}
+
+/* Estilo del thumb */
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: none;
+  margin-top: -4px;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: none;
+}
+
+/* Transiciones fade volumen */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
 
 </style>
