@@ -40,6 +40,11 @@
                      <img :src="lista.portada" alt="Preview" />
                      <span> {{ lista.nombre }}</span>
                   </div>
+
+                  <div v-for="listaAmigos in results.playlistsProtegidasDeAmigos" :key="listaAmigos.id" class="result-item">
+                     <img :src="listaAmigos.portada" alt="Preview" />
+                     <span> {{ listaAmigos.nombre }}</span>
+                  </div>
                </template>
                <div v-else class="no-results">
                   ❌ Sin resultados
@@ -182,7 +187,8 @@ const results = ref({
   artistas: [],
   canciones: [],
   albums: [],
-  playlists: []
+  playlists: [],
+  playlistsProtegidasDeAmigos: []
 });
 
 const menuIcons = ref([
@@ -197,7 +203,8 @@ const hasResults = computed(() =>
   results.value.artistas.length || 
   results.value.canciones.length || 
   results.value.albums.length || 
-  results.value.playlists.length
+  results.value.playlists.length || 
+  results.value.playlistsProtegidasDeAmigos
 );
 
 // Función para gestionar siguiente cancion
@@ -517,7 +524,7 @@ function getIconPosition(index, total) {
 const fetchResults = async () => {
    
    if (!currentSearch.value.trim()) {
-      results.value = { artistas: [], canciones: [], albums: [], playlists: [] };
+      results.value = { artistas: [], canciones: [], albums: [], playlists: [], playlistsProtegidasDeAmigos: [] };
       return;
    }
 
