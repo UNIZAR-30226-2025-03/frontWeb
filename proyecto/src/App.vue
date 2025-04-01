@@ -582,7 +582,7 @@ function seekAudio(event) {
 .container {
   width: 100vw;
   height: 100vh;
-  background-color:  #222222;
+  background: linear-gradient(180deg, #141414 15%, #4a1e04 40%, #8a3a10 60%, #ffb347 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
