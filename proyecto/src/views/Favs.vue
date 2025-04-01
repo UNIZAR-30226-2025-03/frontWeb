@@ -49,7 +49,7 @@
  
          <hr>
  
-         <draggable v-model="playlist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
+         <draggable :list="filteredPlaylist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
            <template #item="{ element, index }">
              <li class="song-item" :key="element.id || index">
                <div class="song-info">
@@ -87,7 +87,7 @@
  
   
  <script setup>
- import { ref, onMounted, onUnmounted, inject} from 'vue';
+ import { ref, onMounted, onUnmounted, inject, computed } from 'vue';
  import { useRoute, useRouter } from 'vue-router';
  import draggable from 'vuedraggable';
  import randomIcon from '@/assets/random-button.png';
@@ -99,7 +99,6 @@
  
  const playSong = inject('playSong')
  
- // Variables para CSS y HTML
  const isGlowing = ref(false);
  const router = useRouter();
  const searchVisible = ref(false);
@@ -125,6 +124,16 @@
        showPopup.value = false;
     }, 3000); // Cierra el popup después de 3 segundos
  };
+
+ const filteredPlaylist = computed(() => {
+  if (!searchTerm.value.trim()) {
+    return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
+  }
+
+  return playlist.value.filter(song =>
+    song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
+});
  
  const goBack = () => {
     router.back();
