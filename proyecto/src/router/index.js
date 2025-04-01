@@ -12,6 +12,7 @@ import Playlist from '../views/Playlist.vue';
 import autenticacion from '../views/autenticacion.vue';
 import Generos from '../views/Generos.vue';
 import Favs from '../views/Favs.vue';
+import Artist from '../views/Artist.vue';
 
 
 const routes = [
@@ -26,8 +27,8 @@ const routes = [
   { path: '/playlist', component: Playlist, props: true },
   { path: '/auth/callback', component: autenticacion},
   { path: '/genres', component: Generos},
-  { path: '/favs', component: Favs}
-
+  { path: '/favs', component: Favs},
+  { path: '/artist/:artistName', component: Artist, props: true }, // Ruta dinámica para el artista
 ];
 
 const router = createRouter({

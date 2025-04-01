@@ -13,11 +13,15 @@
          <div class="busqueda" ref="searchArea" @click.stop>
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
             <div class="search-results" v-if="currentSearch && !isLoading" ref="resultsArea">
-
-               <template v-if="hasResults">
-                  <div v-for="artista in results.artistas" :key="artista.Nombre" class="result-item">
-                     <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
-                     <span>{{ artista.Nombre }}</span>
+                <template v-if="hasResults">
+                    <!-- Resultados de artistas -->
+                  <div 
+                    v-for="artista in results.artistas" 
+                    :key="artista.Nombre" 
+                    class="result-item" 
+                    @click="goToArtistProfile(artista.Nombre)">
+                    <img :src="artista.FotoPerfil || 'default-image.jpg'" alt="Artista" />
+                    <span>{{ artista.Nombre }}</span>
                   </div>
 
                   <div v-for="cancion in results.canciones" :key="cancion.Id" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
@@ -457,6 +461,10 @@ function seekAudio(event) {
   currentSongTime.value = newTime
 
 }
+// Función para redirigir al perfil del artista
+const goToArtistProfile = (artistName) => {
+  router.push(`/artist/${artistName}`);
+};
 
 // onMounted(async () => {
 //   try {
