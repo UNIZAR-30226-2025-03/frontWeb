@@ -162,6 +162,7 @@ const lastSong = ref({
 const player = ref(null);
 
 const email =  localStorage.getItem("email");
+const currentNick = ref('');
 const isMenuOpen = ref(false);
 const isPlaying = ref(false);
 const currentSongTime = ref(0);
@@ -272,9 +273,27 @@ const handleClickOutside = (event) => {
 };
 
 // Registrar el evento al montar el componente
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  try {
+      // Obtener nick del usuario
+      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
+
+      if (!userResponse.ok) {
+         throw new Error("No existe una cuenta con este correo.");
+      }
+
+      const userData = await userResponse.json();
+      currentNick.value = userData.Nick;
+      if (!userData || !userData.Nick) {
+         throw new Error("No existe una cuenta con este correo.");
+      }
+
+   } catch (error) {
+      console.error(error.message);
+   }
 });
+
 
 // Eliminar el evento cuando se desmonte el componente
 onBeforeUnmount(() => {
@@ -509,7 +528,7 @@ const fetchResults = async () => {
    try { 
       // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
       const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
-      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=${encodeURIComponent(tipo)}`);
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=${encodeURIComponent(tipo)}`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
       results.value = await response.json();

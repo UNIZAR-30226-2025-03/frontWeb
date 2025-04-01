@@ -5,7 +5,14 @@
          <button @click="activeTab = 'all'" :class="{ active: activeTab === 'all' }">Todos</button>
          <button @click="activeTab = 'requests'" :class="{ active: activeTab === 'requests' }">Solicitudes</button>
          <button @click="activeTab = 'pending'" :class="{ active: activeTab === 'pending' }">Pendientes</button>
-         <button @click="addFriend" class="add-friend-btn">➕ Añadir amigo</button>
+         <button @click="toggleAddFriend" class="add-friend-btn">➕ Añadir amigo</button>
+      </div>
+
+      <!-- Desplegable para ingresar el nick -->
+      <div v-if="showAddFriendInput" class="add-friend-container">
+         <input v-model="friendNick" type="text" placeholder="Introduce el nick del amigo" class="friend-input" />
+         <button @click="addFriend" class="confirm-btn">Enviar</button>
+         <button @click="toggleAddFriend" class="cancel-btn">Cancelar</button>
       </div>
      
       <div class="friends-list">
@@ -40,7 +47,9 @@ import { ref, onMounted } from 'vue';
 import FriendItem from '@/components/FriendItem.vue';
 
 const email =  localStorage.getItem("email");
-let currentNick = ref('');
+const currentNick = ref('');
+const showAddFriendInput = ref(false);
+const friendNick = ref("");
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -63,6 +72,12 @@ const allFriends = ref([]);
 const friendRequests = ref([]);
 const pendingRequests = ref([]);
 
+const toggleAddFriend = () => {
+   showAddFriendInput.value = !showAddFriendInput.value;
+   friendNick.value = ""; // Resetear el campo al cerrar
+};
+
+
 onMounted(async () => {
    try {
       // Obtener nick del usuario
@@ -73,7 +88,7 @@ onMounted(async () => {
       }
 
       const userData = await userResponse.json();
-      currentNick = userData.Nick;
+      currentNick.value = userData.Nick;
       if (!userData || !userData.Nick) {
          throw new Error("No existe una cuenta con este correo.");
       }
@@ -104,7 +119,7 @@ onMounted(async () => {
 const removeFriend = async (Nick) => {
   try {
     console.log("Nick: ", Nick);
-    const response = await fetch(`https://echobeatapi.duckdns.org/amistades/eliminar/${currentNick}/${Nick}`, {
+    const response = await fetch(`https://echobeatapi.duckdns.org/amistades/eliminar/${currentNick.value}/${Nick}`, {
       method: 'DELETE',
       headers: {
          'Accept': '*/*', 
@@ -123,39 +138,101 @@ const removeFriend = async (Nick) => {
       showPopupMessage(error.message, "popup-error");
   }
 };
- 
-const acceptRequest = (id) => {
-const friend = friendRequests.value.find(f => f.id === id);
-if (friend) {
-   allFriends.value.push(friend);
-   friendRequests.value = friendRequests.value.filter(f => f.id !== id);
-}
-};
- 
-const cancelRequest = (id) => {
-pendingRequests.value = pendingRequests.value.filter(f => f.id !== id);
-};
- 
-const addFriend = async () => {
+
+const rejectRequest = async (Nick) => {
    try {
-      const response = await fetch('https://echobeatapi.duckdns.org/amistades/solicitar', {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
-      },
-      body: JSON.stringify({
-         nickSender: email,
-         nickReciever: 'Adri',
-      })
+      const response = await fetch('https://echobeatapi.duckdns.org/amistades/rechazar', {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+            nickSender: Nick,
+            nickReceiver: currentNick.value,
+         }),
       });
 
-      if (!response.ok) {
-      throw new Error('Error al enviar solicitud de amistad');
-      }
+      if (!response.ok) throw new Error('Error al rechazar la solicitud de amistad');
 
-      showPopupMessage(`Solicitud enviada con éxito a ${Adri}!`, "popup-success");
+      friendRequests.value = friendRequests.value.filter(friend => friend.NickFriendSender !== Nick);
+
+      showPopupMessage(`Solicitud de ${Nick} rechazada con éxito!`, "popup-success");
+
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
    
+   
+};
+ 
+const acceptRequest = async (Nick) => {
+   try {
+      const response = await fetch('https://echobeatapi.duckdns.org/amistades/aceptar', {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+            nickSender: Nick,
+            nickReceiver: currentNick.value,
+         }),
+      });
+
+      if (!response.ok) throw new Error('Error al aceptar la solicitud de amistad');
+
+      friendRequests.value = friendRequests.value.filter(friend => friend.NickFriendSender !== Nick);
+
+      showPopupMessage(`Solicitud de ${Nick} aceptada con éxito!`, "popup-success");
+
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+};
+ 
+ 
+const addFriend = async () => {
+   if (!friendNick.value.trim()) {
+      showPopupMessage("Por favor, introduce un nick válido.", "popup-error");
+      return;
+   }
+
+   if (currentNick.value === friendNick.value) {
+      showPopupMessage("No puedes enviarte una solicitud a ti mismo.", "popup-error");
+      return;
+   }
+
+   // Verificar si ya son amigos
+   const isAlreadyFriend = allFriends.value.some(friend => friend.Nick === friendNick.value);
+   if (isAlreadyFriend) {
+      showPopupMessage(`¡${friendNick.value} ya es tu amigo!`, "popup-error");
+      return;
+   }
+
+   try {
+   
+      const response = await fetch('https://echobeatapi.duckdns.org/amistades/solicitar', {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+            nickSender: currentNick.value,
+            nickReceiver: friendNick.value,
+         }),
+      });
+
+      if (!response.ok) throw new Error('Error al enviar solicitud de amistad');
+
+      pendingRequests.value.push({
+         NickFriendReceiver: friendNick.value,
+      });
+
+      showPopupMessage(`Solicitud enviada a ${friendNick.value}!`, "popup-success");
+      toggleAddFriend(); // Cierra el input después de enviar
+
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
@@ -234,6 +311,41 @@ const addFriend = async () => {
 
 .add-friend-btn:hover {
    background: #e68900;
+}
+
+/* Desplegable para ingresar nick */
+.add-friend-container {
+   display: flex;
+   justify-content: center;
+   gap: 10px;
+   margin-bottom: 15px;
+}
+
+.friend-input {
+   padding: 8px;
+   border-radius: 5px;
+   border: none;
+   font-size: 14px;
+}
+
+.confirm-btn {
+   background: #4CAF50;
+   color: white;
+   padding: 8px 12px;
+   border-radius: 6px;
+   font-size: 14px;
+   cursor: pointer;
+   transition: 0.3s;
+}
+
+.cancel-btn {
+   background: #f44336;
+   color: white;
+   padding: 8px 12px;
+   border-radius: 6px;
+   font-size: 14px;
+   cursor: pointer;
+   transition: 0.3s;
 }
 
 /* Mensaje emergente */

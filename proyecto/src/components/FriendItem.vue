@@ -3,7 +3,7 @@
      <img :src="friend.LinkFoto" alt="Avatar" class="avatar" />
      
      <div class="friend-info">
-       <span class="friend-name">{{ friend.Nick }}</span>
+       <span class="friend-name">{{ friendName  }}</span>
  
        <!-- Última canción escuchada (solo en "Todos los amigos") -->
        <div v-if="type === 'all' && friend.CancionActual" class="last-song">
@@ -23,10 +23,27 @@
  </template>
  
  <script setup>
- defineProps({
-   friend: Object, // Datos del amigo (NickFriendSender, avatar, lastSong)
-   type: String, // Tipo de FriendItem: "request" (solicitud) o "all" (lista de amigos)
- });
+ import { computed } from 'vue';
+
+ const props = defineProps({
+  friend: Object, 
+  type: String, // Puede ser "all", "request" o "pending"
+});
+
+
+ const friendName = computed(() => {
+  if (props.type === 'request') {
+    return props.friend.NickFriendSender; 
+  }
+  else if (props.type === 'pending') {
+   console.log("Nick de pendiente: ", props.friend.NickFriendReceiver);
+   return props.friend.NickFriendReceiver;
+  }
+  else {
+   return props.friend.Nick; 
+  }
+  
+});
  </script>
  
  <style scoped>
@@ -88,6 +105,7 @@
  .accept-btn {
    background: #4caf50;
    color: white;
+   padding: 8px;
  }
  
  .accept-btn:hover {
@@ -97,6 +115,7 @@
  .reject-btn {
    background: #f44336;
    color: white;
+   padding: 8px;
  }
  
  .reject-btn:hover {
