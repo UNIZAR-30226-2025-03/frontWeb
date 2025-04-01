@@ -8,7 +8,7 @@
          <!-- Imagen que activa el menú -->
           <div class="busqueda">
             <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
-            <img class="logo" :src="logo" alt="Logo"/>
+            <img class="logo" :src="logo" alt="Logo" @click="backHome"/>
          </div>
          <div class="busqueda" ref="searchArea" @click.stop>
             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
@@ -28,7 +28,7 @@
                      <img :src="cancion.Portada" alt="Canción" />
                      <div class="song-quest-info">
                         <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
-                        <button v-if="hoveredSong === cancion.Nombre" @click="playSong(cancion)">
+                        <button v-if="hoveredSong === cancion.Nombre" @click="playFromQuest(cancion)">
                         <img :src="playIcon" alt="Play" />
                         </button>
                      </div>
@@ -44,6 +44,11 @@
                      <img :src="lista.portada" alt="Preview" />
                      <span> {{ lista.nombre }}</span>
                   </div>
+
+                  <div v-for="listaAmigos in results.playlistsProtegidasDeAmigos" :key="listaAmigos.id" class="result-item">
+                     <img :src="listaAmigos.portada" alt="Preview" />
+                     <span> {{ listaAmigos.nombre }}</span>
+                  </div>
                </template>
                <div v-else class="no-results">
                   ❌ Sin resultados
@@ -58,8 +63,7 @@
                <option value="playlists">Playlist</option>
             </select>
          </div>
-        <img class="image-right" :src="userIcon" alt="User" @click="openUser"
-        />
+        <img class="image-right" :src="userIcon" alt="User" @click="openUser"/>
       </div>
 
       <main class="main-content">
@@ -102,9 +106,6 @@
             />
           </div>
         </div>
-
-        
-
 
         <div class="progress-container">
           <div class="song-info">
@@ -160,7 +161,7 @@ import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
 
 const streamerRef = ref(null)
-provide('playSong',playSong);
+provide('playSong', playSong);
 // Variables reactivas
 const lastSong = ref({
   name: '',
@@ -170,6 +171,7 @@ const lastSong = ref({
 const player = ref(null);
 
 const email =  localStorage.getItem("email");
+const currentNick = ref('');
 const isMenuOpen = ref(false);
 const isPlaying = ref(false);
 const currentSongTime = ref(0);
@@ -189,11 +191,12 @@ const results = ref({
   artistas: [],
   canciones: [],
   albums: [],
-  playlists: []
+  playlists: [],
+  playlistsProtegidasDeAmigos: []
 });
 
 const menuIcons = ref([
-  { src: friendsIcon, alt: 'Amigos' },
+  { src: friendsIcon, alt: 'Amigos', action: () => router.push('/friends')},
   { src: starIcon, alt: 'Favoritos', action: () => router.push('/favs')},
   { src: settingsIcon, alt: 'Configuración' },
   { src: albumIcon, alt: 'Álbum' },
@@ -204,11 +207,12 @@ const hasResults = computed(() =>
   results.value.artistas.length || 
   results.value.canciones.length || 
   results.value.albums.length || 
-  results.value.playlists.length
+  results.value.playlists.length || 
+  results.value.playlistsProtegidasDeAmigos
 );
 
 // Función para gestionar siguiente cancion
-const nextSong = async() =>{
+const nextSong = async() => {
   try {
     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
     if (!response.ok) throw new Error('Error al obtener next song');
@@ -280,9 +284,27 @@ const handleClickOutside = (event) => {
 };
 
 // Registrar el evento al montar el componente
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  try {
+      // Obtener nick del usuario
+      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
+
+      if (!userResponse.ok) {
+         throw new Error("No existe una cuenta con este correo.");
+      }
+
+      const userData = await userResponse.json();
+      currentNick.value = userData.Nick;
+      if (!userData || !userData.Nick) {
+         throw new Error("No existe una cuenta con este correo.");
+      }
+
+   } catch (error) {
+      console.error(error.message);
+   }
 });
+
 
 // Eliminar el evento cuando se desmonte el componente
 onBeforeUnmount(() => {
@@ -332,26 +354,105 @@ function updateCurrentTime(event) {
 }
 //Hacer otra funcion que para pner una cancion desde el reproductor await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list
 
+const clearQueue = async () => {
+   try {
+      const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/clear', {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',  
+      },
+      body: JSON.stringify({
+         userEmail: email
+      })
+      });
+
+      if (!response.ok) {
+      throw new Error('Error al vaciar la cola de reproducción');
+      }
+
+      console.log("Cola vaciada con éxito");
+
+      // // Animación antes de eliminar las canciones
+      // document.querySelectorAll('.song-item').forEach((el) => {
+      //    el.classList.add('fade-out');
+      // });
+
+      // // Espera la animación antes de limpiar la lista
+      // setTimeout(() => {
+      //    songs.value = [];
+      // }, 500);
+      
+   } catch (error) {
+      console.log(error.message);
+   }
+} 
+
+async function playFromQuest(song) {
+   try {
+      // 1️⃣ Vaciar la cola de reproducción antes de añadir la nueva canción
+      await clearQueue();
+
+      // 2️⃣ Añadir la nueva canción a la cola de reproducción
+      const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/add-song-to-queue', {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+            userEmail: email,
+            songId: song.Id
+         })
+      });
+
+      if (!response.ok) {
+         throw new Error('Error al añadir la canción a la cola de reproducción');
+      }
+
+      // 3️⃣ Actualizar el estado de la cola con solo la nueva canción
+      //songs.value = [song];
+
+      // 4️⃣ Reproducir la canción
+      lastSong.value = {
+         name: song.Nombre,
+         cover: song.Portada,
+         minute: formatTime(song.Duracion),
+      };
+
+      if (streamerRef.value?.startStreamSong) {
+         streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
+         currentSong.value = song;
+         isPlaying.value = true;
+      } else {
+         console.warn('startStreamSong no está disponible');
+      }
+
+
+   } catch (error) {
+      console.error('Error al reproducir la canción:', error);
+   }
+}
 
 // Función para iniciar una canción
 function playSong(song) {
+   
+   lastSong.value = {
+      name: song.Nombre,
+      cover: song.Portada,
+      minute: formatTime(song.Duracion),
+   };
+   if (streamerRef.value?.startStreamSong) {
+      console.log("id:",song.Id);
+      console.log("nommbre:",song.Nombre);
 
-  lastSong.value = {
-    name: song.Nombre,
-    cover: song.Portada,
-    minute: formatTime(song.Duracion),
-  };
-  if (streamerRef.value?.startStreamSong) {
-    console.log("id:",song.Id);
-    console.log("nommbre:",song.Nombre);
+      streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
 
-    streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
-
-    currentSong.value = song;
-    isPlaying.value = true;
-  } else {
-    console.warn('startStreamSong no está disponible')
-  }
+      currentSong.value = song;
+      isPlaying.value = true;
+   } else {
+      console.warn('startStreamSong no está disponible')
+   }
 }
 
 function setVolume(volumen) {
@@ -392,7 +493,9 @@ function togglePlay() {
     }
 }
 
-
+const backHome = () => {
+   router.push('/home');
+}
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
@@ -403,7 +506,7 @@ function closeMenu() {
 }
 
 const openUser = () => {
-  router.push('/User');
+  router.push('/user');
 };
 
 function formatTime(seconds) {
@@ -425,7 +528,7 @@ function getIconPosition(index, total) {
 const fetchResults = async () => {
    
    if (!currentSearch.value.trim()) {
-      results.value = { artistas: [], canciones: [], albums: [], playlists: [] };
+      results.value = { artistas: [], canciones: [], albums: [], playlists: [], playlistsProtegidasDeAmigos: [] };
       return;
    }
 
@@ -436,7 +539,7 @@ const fetchResults = async () => {
    try { 
       // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
       const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
-      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=${encodeURIComponent(tipo)}`);
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=${encodeURIComponent(tipo)}`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
       results.value = await response.json();
@@ -455,16 +558,25 @@ const fetchResults = async () => {
 };
 
 function seekAudio(event) {
-  const newTime = event.target.currentTime;
-  console.log(newTime)
-  event.target.currentTime = newTime
-  currentSongTime.value = newTime
+  const newProgress = event.target.value;
+  if (!player.value || !player.value.duration) return;
 
+  // Calcular el nuevo tiempo en segundos
+  const newTime = (newProgress / 100) * player.value.duration;
+
+  // Establecer el nuevo tiempo en el reproductor
+  player.value.currentTime = newTime;
+
+  // Actualizar la variable reactiva para reflejar el nuevo tiempo
+  currentSongTime.value = formatTime(Math.floor(newTime));
+
+  console.log(`[Seek] Nueva posición: ${newTime} segundos`);
 }
 // Función para redirigir al perfil del artista
 const goToArtistProfile = (artistName) => {
   router.push(`/artist/${artistName}`);
 };
+
 
 // onMounted(async () => {
 //   try {
@@ -504,7 +616,7 @@ const goToArtistProfile = (artistName) => {
 .container {
   width: 100vw;
   height: 100vh;
-  background-color:  #222222;
+  background: linear-gradient(180deg, #141414 15%, #4a1e04 40%, #8a3a10 60%, #ffb347 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -544,6 +656,11 @@ const goToArtistProfile = (artistName) => {
   width: 45px;
   height: auto;
   margin-left: 15px;
+  cursor: pointer;
+}
+
+.logo:hover {
+   transform: scale(1.2);
 }
 
 /* Barra de búsqueda */
@@ -595,6 +712,7 @@ const goToArtistProfile = (artistName) => {
   justify-content: center;
   transition: transform 0.3s ease-in-out;
   border: none;
+  cursor: pointer;
 }
 
 .menu-item img {
