@@ -113,7 +113,6 @@
             <div> 
                {{ lastSong.minute }}
             </div>
-           
           </div>
 
         </div>
@@ -136,9 +135,6 @@
           </div>
         </div>
       </div>
-
-
-
 
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
@@ -855,15 +851,6 @@ select {
 
 /*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
 
-/* Controles de música */
-.controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 10px; /* Espacio entre botones */
-}
-
 .side-buttons {
   flex-grow: 0; /* Espaciado equitativo */
   display: flex;
@@ -877,19 +864,6 @@ select {
   justify-content: center;
   flex: none; 
 }
-
-.controls button {
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.controls img {
-  width: 30px;
-  height: 30px;
-  filter: brightness(0) invert(1);
-}
-
 
 /* Progreso de la canción */
 .progress-bar-filled {
@@ -913,13 +887,6 @@ select {
   z-index: 1000;
   color: white;
   box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
-}
-
-.controls {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
 }
 
 .progress-container {
@@ -1009,8 +976,20 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
   flex: 2;
+}
+
+.controls button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.controls img {
+  width: 30px;
+  height: 30px;
+  filter: brightness(0) invert(1);
 }
 
 .buttons {
