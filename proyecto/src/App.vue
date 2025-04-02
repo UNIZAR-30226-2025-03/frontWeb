@@ -71,57 +71,74 @@
       </main>
       <audio id="app-player"  ref="player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
       <!-- Barra de canción -->
-      <div class="player-bar">
 
-        <div class="controls">
-          <button class="side-buttons" @click="randomClick">
-               <img :src="randomIcon" alt="random" />
-            </button>
-            <button class="side-buttons">
-               <img :src="previousIcon" alt="Previous" @click="previousSong"/>
-            </button>
-
-            <button class="play-button" @click="togglePlay">
-               <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
-            </button>
-
-            <button class="side-buttons">
-               <img :src="nextIcon" alt="Next" @click="nextSong"/>
-            </button>
-
-            <button class="side-buttons" @click="playSong(currentSong)">
-               <img :src="restart" alt="Restart" />
-            </button>
-         
-        </div>
-        <div class="player-bar-right">
-          <span class="volume-icon">🔊</span>
-          <div class="volume-control">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              @input="setVolume($event.target.value)"
-            />
-          </div>
-        </div>
-
-        <div class="progress-container">
+      <div class="bottom-bar">
+        <!-- Left -->
+        <div class="now-playing">
           <div class="song-info">
-            <!-- Mostrar la portada y el nombre de la canción -->
-            <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
-            <span class="song-name">{{ lastSong.name }}</span>
+              <!-- Mostrar la portada y el nombre de la canción -->
+              <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
+              <span class="song-name">{{ lastSong.name }}</span>
+            </div>
+        </div>
+
+        <!-- Center -->
+        <div class="controls">
+          <div class="buttons">
+            <button class="side-buttons" @click="randomClick">
+                 <img :src="randomIcon" alt="random" />
+              </button>
+              <button class="side-buttons">
+                 <img :src="previousIcon" alt="Previous" @click="previousSong"/>
+              </button>
+  
+              <button class="play-button" @click="togglePlay">
+                 <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
+              </button>
+  
+              <button class="side-buttons">
+                 <img :src="nextIcon" alt="Next" @click="nextSong"/>
+              </button>
+  
+              <button class="side-buttons" @click="playSong(currentSong)">
+                 <img :src="restart" alt="Restart" />
+              </button>
           </div>
-          <div>  {{ currentSongTime }} </div>
-          <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" step="0.1"
-          :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }"/>
-          <div>  {{ lastSong.minute }}</div>
+
+          <div class="progress">
+            
+            <div>  {{ currentSongTime }} </div>
+            <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" step="0.1"
+            :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }"/>
+            <div> 
+               {{ lastSong.minute }}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right -->
+        <div class="extras">
+          <div class="volume-wrapper">
+            <i class="fa-solid fa-volume-high" @click="muteVolumen" >🔊</i>
+            <transition name="fade">
+                <input
+                  ref="volumeSlider"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  @input="setVolume($event.target.value)"
+                  class="volume-slider"
+                />
+              </transition>
+          </div>
         </div>
       </div>
+
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
-
+      
       <!-- Menú en semicírculo desde la esquina superior izquierda -->
       <div v-if="isMenuOpen" class="menu-container">
         <div class="menu">
@@ -134,11 +151,15 @@
           </button>
         </div>
       </div>
+        
     </div>
   </div>
 </template>
 
 <script setup>
+
+//falta poner icono de mute
+
 import { computed, ref, provide, onMounted, onBeforeUnmount } from 'vue';
 
 // Importar las imágenes
@@ -170,7 +191,7 @@ const lastSong = ref({
   minute: 0
 });
 const player = ref(null);
-
+const mute = ref(false);
 const email =  localStorage.getItem("email");
 const currentNick = ref('');
 const isMenuOpen = ref(false);
@@ -488,15 +509,23 @@ function playSong(song) {
       console.warn('startStreamSong no está disponible')
    }
 }
-
+const volumeSlider = ref(null);
 function setVolume(volumen) {
   if (!player.value) return
 
   const volume = Math.min(Math.max(volumen, 0), 1) // asegura valor entre 0 y 1
   player.value.volume = volume
   console.log(`[volumen] Nivel de volumen establecido: ${volume}`)
+  mute.value = false;
+  // Cambiar visualmente el fondo
+  if (volumeSlider.value) {
+    volumeSlider.value.style.backgroundSize = `${volume * 100}% 100%`;
+  }
 }
-
+function muteVolumen(){
+  player.value.volume = 0;
+  mute.value = true;
+}
 
 // Función para pausar/reanudar
 // Función para pausar/reanudar
@@ -613,6 +642,7 @@ const goToArtistProfile = (artistName) => {
 
 
 <style scoped>
+
 /* Fondo negro */
 .container {
   width: 100vw;
@@ -820,41 +850,6 @@ select {
 }
 
 /*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
-.player-bar {
-  display: flex;
-  flex-direction: column; /* Apila los elementos */
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height:10vh; /* Aumenta la altura para acomodar los controles */
-  background-color: #111;
-  padding: 10px 0;
-  z-index: 1000;
-  color: white;
-  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
-  
-}
-
-.player-bar-right {
-  align-self: flex-end; /* mueve este hijo a la derecha del contenedor vertical */
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 100%; /* ocupa todo el ancho posible */
-  padding-right: 20px; /* separación del borde derecho */
-}
-
-/* Controles de música */
-.controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 10px; /* Espacio entre botones */
-}
 
 .side-buttons {
   flex-grow: 0; /* Espaciado equitativo */
@@ -870,6 +865,121 @@ select {
   flex: none; 
 }
 
+/* Progreso de la canción */
+.progress-bar-filled {
+  height: 100%;
+  background: #323fa6; /* Color verde para el progreso */
+  border-radius: 2px;
+  transition: width 0.1s ease-in-out; /* Animación suave para el progreso */
+}
+
+.player-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #111;
+  padding: 10px 0;
+  z-index: 1000;
+  color: white;
+  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
+}
+
+.progress-container {
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0 1rem;
+  
+}
+
+.song-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  justify-self: start; /* pegado a la izquierda */
+}
+
+.song-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 5px;
+
+}
+
+.song-name {
+  color: white;
+}
+
+
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height:12vh; /* Aumenta la altura para acomodar los controles */
+  padding: 0 16px;
+  background-color: #111;
+  box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
+  z-index: 999;
+}
+
+.now-playing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.now-playing img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.track-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.track-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.track-artist {
+  font-size: 12px;
+  color: #b3b3b3;
+}
+
+.green {
+  color: #1ed760;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 2;
+}
+
 .controls button {
   background: none;
   border: none;
@@ -882,87 +992,134 @@ select {
   filter: brightness(0) invert(1);
 }
 
-/* Contenedor de la barra de progreso */
-.progress-container {
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  justify-self: end; /* pegado a la derecha */
+  margin: auto;
+}
+
+.play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: black;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
+  max-width: 500px;
 }
 
-/* Progreso de la canción */
-.progress-bar-filled {
-  height: 100%;
-  background: #323fa6; /* Color verde para el progreso */
-  border-radius: 2px;
-  transition: width 0.1s ease-in-out; /* Animación suave para el progreso */
-}
-
-/* Icono de la canción */
-.song-info {
-  position: absolute;
-  bottom: 25px;
-  left: 20px;
-  display: flex;
-  align-items: center;
-}
-
-.song-icon {
-  width: 65px;
-  height: 65px;
-  border-radius: 50%;
-  margin-right: 10px;
-}
-
-.song-name {
-  color: white;
-}
-
-/* Barra de progreso */
-.progress-bar {
-  width: 30%;
+.progress input[type="range"] {
+  flex: 1;
   height: 4px;
-  background: #444;
+  appearance: none;
+  background-color: #404040;
   border-radius: 2px;
-  margin-left: 8px;
-  margin-right: 8px;
+  outline: none;
+  background-image: linear-gradient(#fff, #fff);
+  background-repeat: no-repeat;
+  background-size: 70% 100%;
 }
 
+.progress .bar {
+  flex: 1;
+  height: 4px;
+  background-color: #404040;
+  border-radius: 2px;
+  overflow: hidden;
+}
 
-.controls-wrapper {
+.progress .fill {
+  width: 70%;
+  height: 100%;
+  background-color: #fff;
+}
+
+.time {
+  font-size: 11px;
+  color: #b3b3b3;
+}
+
+.extras {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  width: 90%;
-  max-width: 800px;
-  margin: 0 auto;
+  gap: 16px;
+  flex: 1;
+  justify-content: flex-end;
+  
 }
 
-.controls {
+.volume-wrapper {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
+  position: relative;
 }
 
-.volume-control {
-  display: flex;
-  align-items: center;
-  margin-left: 20px;
+.volume-wrapper i {
+  cursor: pointer;
+  font-size: 16px;
+  color: #b3b3b3;
+  transition: color 0.3s ease;
 }
 
-.volume-control input[type="range"] {
+.volume-wrapper i:hover {
+  color: #1ed760;
+}
+
+.volume-slider {
+  right: 0;
   width: 100px;
   height: 4px;
   appearance: none;
-  background-color: #555;
-  border-radius: 4px;
-  cursor: pointer;
+  background: #404040;
+  border-radius: 2px;
+  outline: none;
+  background-image: linear-gradient(#fff, #fff);
+  background-repeat: no-repeat;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform-origin: top right;
+  z-index: 10;
 }
 
-.volume-icon {
-  filter: brightness(0) invert(1);
-  font-size: 18px;
-  margin-right: 8px;
+/* Estilo del thumb */
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: none;
+  margin-top: -4px;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: none;
+}
+
+/* Transiciones fade volumen */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
 </style>
