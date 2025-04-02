@@ -164,6 +164,7 @@ const streamerRef = ref(null)
 provide('playSong', playSong);
 // Variables reactivas
 const lastSong = ref({
+  id: '',
   name: '',
   cover: '',
   minute: 0
@@ -303,6 +304,39 @@ onMounted(async () => {
    } catch (error) {
       console.error(error.message);
    }
+
+   try {
+      const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/first-song?Email=${encodeURIComponent(email)}`);
+      if (!songResponse.ok) throw new Error('Error al obtener la última canción');
+
+      const songData = await songResponse.json();
+
+      
+      // Extraer los datos de la respuesta
+      const songId = songData.PrimeraCancionId;
+      const songName = songData.Nombre;
+      const songCover = songData.Portada;
+      const songMinute = songData.MinutoEscucha;
+
+      // Asignar los datos a las variables reactivas
+      lastSong.value = {
+         id: songId,
+         name: songName,
+         cover: songCover,
+         minute: songMinute,
+      };
+
+      // Establecer la barra de progreso de acuerdo con el minuto de escucha
+      if (player.value && player.value.duration) {
+         progress.value = (lastSong.value.minute / player.value.duration) * 100;
+         player.value.currentTime = lastSong.value.minute; // Saltar al minuto guardado
+      }
+
+      console.log('Última canción:', lastSong.value);
+   } catch (error) {
+      console.error('Error:', error);
+   }
+
 });
 
 
@@ -473,15 +507,13 @@ function togglePlay() {
   } 
   if (streamerRef.value?.stopCurrentStream) {
       if (isPlaying.value){
-        // streamerRef.value.stopCurrentStream()
-        currentStopTime.value = currentSongTime.value
 
+        currentStopTime.value = currentSongTime.value
         player.value.pause()
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
       } else{
     
-        // streamerRef.value.resumeCurrentStream(currentSong.value.Id,currentSong.value.Nombre,email,currentStopTime.value)
         player.value.play().catch((err) => {
           console.warn('[player] Error al reproducir:', err)
         })
@@ -577,37 +609,6 @@ const goToArtistProfile = (artistName) => {
   router.push(`/artist/${artistName}`);
 };
 
-
-// onMounted(async () => {
-//   try {
-//     const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/last-played-song?userEmail=${encodeURIComponent(email)}`);
-//     if (!songResponse.ok) throw new Error('Error al obtener la última canción');
-
-//     const songData = await songResponse.json();
-
-    
-//     // Extraer los datos de la respuesta
-//     const songName = songData.Nombre;
-//     const songCover = songData.Portada;
-//     const songMinute = songData.MinutoEscucha;
-
-//     // Asignar los datos a las variables reactivas
-//     lastSong.value = {
-//       name: songName,
-//       cover: songCover,
-//       minute: songMinute,
-//     };
-
-//     // Establecer la barra de progreso de acuerdo con el minuto de escucha
-//     progress.value = (lastSong.value.minute / songDuration.value) * 100;
-
-//     console.log('Última canción:', lastSong.value);
-//   } catch (error) {
-//     console.error('Error:', error);
-//   }
-// });
-
-
 </script>
 
 
@@ -634,9 +635,7 @@ const goToArtistProfile = (artistName) => {
   right: 0;
   padding: 10px 15px;
   background-color: #141414;
-  
   z-index: 1000;
-
 }
 
 .main-content {
@@ -909,14 +908,13 @@ select {
 }
 
 .song-icon {
-  width: 40px;
-  height: 40px;
-  filter: brightness(0) invert(1);
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
   margin-right: 10px;
 }
 
 .song-name {
-  font-size: 14px;
   color: white;
 }
 
