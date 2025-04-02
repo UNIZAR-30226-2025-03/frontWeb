@@ -17,6 +17,9 @@
 
       <div class="song-container">
         <div class="playlist-actions">
+            <button class="button-action" @click="deletePlaylist">
+               <img :src="deleteIcon" alt="delete"/>
+            </button>
             <button class="button-action" @click="randomClick">
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
@@ -52,7 +55,7 @@
 
         <hr>
 
-        <draggable v-model="playlist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
+        <draggable :list="filteredPlaylist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
           <template #item="{ element, index }">
             <li class="song-item" :key="element.id || index">
               <div class="song-info">
@@ -91,7 +94,7 @@
 
  
 <script setup>
-import { ref, onMounted, onUnmounted, inject} from 'vue';
+import { ref, onMounted, onUnmounted, inject, computed} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
@@ -99,6 +102,7 @@ import default_img from '@/assets/kebab.jpg';
 import add_button from '@/assets/add_circle.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
+import deleteIcon from '@/assets/delete.svg';
 
 const playSong = inject('playSong')
 
@@ -128,6 +132,16 @@ const showPopupMessage = (message, type) => {
       showPopup.value = false;
    }, 3000); // Cierra el popup después de 3 segundos
 };
+
+const filteredPlaylist = computed(() => {
+  if (!searchTerm.value.trim()) {
+    return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
+  }
+
+  return playlist.value.filter(song =>
+    song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
+});
 
 const goBack = () => {
    router.back();
@@ -263,6 +277,38 @@ function formatTime(seconds) {
     let secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
+
+const deletePlaylist = async () => {
+   try {  
+      
+      const response = await fetch('https://echobeatapi.duckdns.org/playlists/delete', {
+         method: 'DELETE',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+            userEmail: email,
+            idLista: Number(Id)
+         })
+      });
+
+      if (!response.ok) {
+         throw new Error('Error al eliminar la playlist');
+      }
+
+      showPopupMessage ("Playlist eliminada correctamente", "popup-success")
+
+      // Redirigir al usuario al home
+      setTimeout(() => {
+         router.push("/home");
+      }, 2000);
+
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+}
+
 const playPlaylist = async () => {
    try {
       const bodyData = {
@@ -331,11 +377,11 @@ const addSong = async (song) => {
 
     showPopupMessage("Canción añadida con éxito", "popup-success");
     const newSong = {
-    id: song.Id,
-    nombre: song.Nombre,
-    portada: song.Portada,
-    duracion: song.Duracion,
-    numReproducciones: song.NumReproducciones
+      id: song.Id,
+      nombre: song.Nombre,
+      portada: song.Portada,
+      duracion: song.Duracion,
+      numReproducciones: song.NumReproducciones
    };
     playlist.value = [...playlist.value, newSong];
     console.log('valor canciones playlist', playlist.value);
@@ -395,7 +441,8 @@ const addSongToFavorites = async (song) => {
    } catch (error) {
        showPopupMessage(error.message, "popup-error");
    }
- };
+};
+
 
 const fetchResults = async () => {
    

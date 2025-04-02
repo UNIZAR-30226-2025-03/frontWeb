@@ -1,5 +1,11 @@
 <template>
-   <div class="login-container">
+   <!-- Muestra un spinner de carga mientras se verifica el token -->
+   <div v-if="isLoading" class="loading-spinner">
+      Cargando...
+   </div>
+
+   <!-- Si isLoading es false, renderiza la pantalla de login -->
+   <div v-else class="login-container">
       <div class="login-box">
          <img class="logo" :src="logo" alt="Logo"/>
          <h2>Bienvenido a EchoBeat</h2>
@@ -28,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from 'vue-router';
 import googleLogo from '@/assets/Google_logo.svg';
 import logo from '@/assets/logo.png';
@@ -41,6 +47,9 @@ const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
 
+// Estado de carga
+const isLoading = ref(true);
+
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -51,12 +60,38 @@ const showPopupMessage = (message, type) => {
    }, 3000);
 };
 
+// Función para verificar el token
+const validateToken = async (token) => {
+   console.log("Validando token...");
+   try {
+      const response = await fetch("https://echobeatapi.duckdns.org/auth/validate-token", {
+         method: "POST",
+         headers: {
+            "Content-Type": "application/json"
+         },
+         body: JSON.stringify({ token }) // Enviamos el token en el body
+      });
+      console.log(response);
+      if (!response.status === 201) {
+         throw new Error("Token inválido o caducado.");
+      }
+
+      const data = await response.json();
+      console.log("Data:");
+      console.log(data);
+      return data; // Token válido
+   } catch (error) {
+      console.error(error);
+      return null; // Token inválido
+   }
+};
 
 const handleRegister = () => {
    router.push('/Signin');
 };
 
 const handleLogin = async () => {
+   // Si no hay token o el token es inválido, proceder con el login normal
    if (!email.value.trim() || !password.value.trim()) {
       showPopupMessage("Correo y contraseña son obligatorios", "popup-error");
       return;
@@ -94,6 +129,7 @@ const handleLogin = async () => {
       if (!loginResponse.ok) {
          throw new Error("Credenciales incorrectas. Verifica tu correo y contraseña.");
       }
+
       const Data = await loginResponse.json();
       localStorage.setItem("token", Data.accessToken);
       localStorage.setItem("email", Data.Email);
@@ -112,7 +148,38 @@ const handleLogin = async () => {
 const loginWithGoogle = () => {
    window.location.href = "https://echobeatapi.duckdns.org/auth/google"; // 🔹 Redirige al backend
 };
+
+// Usamos onMounted para verificar el token cuando se monta el componente
+onMounted(async () => {
+   const token = localStorage.getItem("token");
+
+   // Verificar si hay un token
+   if (token) {
+      // Si hay token, validamos si es válido
+      const tokenValid = await validateToken(token);
+      if (tokenValid.message === 'Token válido') {
+         console.log(tokenValid);
+         // Si el token es válido, redirigimos al home
+         console.log("Token válido. Redirigiendo al home...");
+         router.push("/home");
+      } else {
+         // Si el token no es válido (caducado), elimina el token
+         localStorage.removeItem("token");
+         // Redirigir a la página de login ("/")
+         router.push("/"); 
+      }
+   } else {
+      // Si no hay token, seguimos en la página de login
+      isLoading.value = false;
+   }
+
+   // Después de verificar el token, actualizamos isLoading a false para renderizar el contenido
+   isLoading.value = false;
+});
 </script>
+
+
+
 
 <style scoped>
 .login-container {
