@@ -17,6 +17,9 @@
 
       <div class="song-container">
         <div class="playlist-actions">
+            <button class="button-action" @click="deletePlaylist">
+               <img :src="deleteIcon" alt="delete"/>
+            </button>
             <button class="button-action" @click="randomClick">
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
@@ -99,6 +102,7 @@ import default_img from '@/assets/kebab.jpg';
 import add_button from '@/assets/add_circle.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
+import deleteIcon from '@/assets/delete.svg';
 
 const playSong = inject('playSong')
 
@@ -273,6 +277,38 @@ function formatTime(seconds) {
     let secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
+
+const deletePlaylist = async () => {
+   try {  
+      
+      const response = await fetch('https://echobeatapi.duckdns.org/playlists/delete', {
+         method: 'DELETE',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+            userEmail: email,
+            idLista: Number(Id)
+         })
+      });
+
+      if (!response.ok) {
+         throw new Error('Error al eliminar la playlist');
+      }
+
+      showPopupMessage ("Playlist eliminada correctamente", "popup-success")
+
+      // Redirigir al usuario al home
+      setTimeout(() => {
+         router.push("/home");
+      }, 2000);
+
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+}
+
 const playPlaylist = async () => {
    try {
       const bodyData = {

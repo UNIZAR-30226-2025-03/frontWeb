@@ -267,6 +267,7 @@ const handleSave = async () => {
       return;
    }
    else {
+      let hasError = false;
       try {
          if (selectedFile.value) {
             const formData = new FormData();
@@ -286,10 +287,6 @@ const handleSave = async () => {
                const errorData = await profileResponse.text(); // Ver el error en texto
                throw new Error("Error al subir la imagen");
             }
-
-            const profiledata = await profileResponse.json();
-            // user.value.perfil = profiledata.imageUrl; // Actualizar la imagen de perfil con la nueva URL
-            // initialUser.value.perfil = data.imageUrl; 
 
             console.log("Imagen actualizada con éxito");
          }
@@ -404,11 +401,14 @@ const handleSave = async () => {
 
 
       } catch (error) {
+         hasError = true;
          showPopupMessage(error.message, "popup-error");
       }
-      showPopupMessage("Cambios guardados con éxito", "popup-success");
-      initialUser.value = JSON.parse(JSON.stringify(user.value));
-      selectedFile.value = null; // Resetear el archivo seleccionado
+      if (!hasError) {
+         showPopupMessage("Cambios guardados con éxito", "popup-success");
+         initialUser.value = JSON.parse(JSON.stringify(user.value));
+         selectedFile.value = null; // Resetear el archivo seleccionado
+      }
    }
 };
 
