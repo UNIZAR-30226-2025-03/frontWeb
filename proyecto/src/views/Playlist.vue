@@ -441,7 +441,8 @@ const addSongToFavorites = async (song) => {
    } catch (error) {
        showPopupMessage(error.message, "popup-error");
    }
- };
+};
+
 
 const fetchResults = async () => {
    

@@ -162,8 +162,7 @@ const rejectRequest = async (Nick) => {
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
-   
-   
+
 };
  
 const acceptRequest = async (Nick) => {
