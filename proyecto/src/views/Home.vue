@@ -10,19 +10,10 @@
           </button>
           <div id="songs-list">
             <div 
-               v-for="(song, index) in songs" 
-               :key="index" 
-               class="song-item" 
-               @mouseover="hoveredSong = song.id" 
-               @mouseleave="hoveredSong = null"
-               @click="playAsong(song.id, index)"
-               >  
+               v-for="(song, index) in songs" :key="index" class="song-item" @mouseover="hoveredSong = song.id" @mouseleave="hoveredSong = null" @click="playAsong(song.id, index)">  
                <p class="song-title">{{ song.nombre }}</p>
                <button 
-                  v-if="hoveredSong === song.id" 
-                  class="song-trash-btn" 
-                  @click.stop="removeSong(index)"
-               >
+                  v-if="hoveredSong === song.id" class="song-trash-btn"  @click.stop="removeSong(index)">
                   🗑️
                </button>
             </div>
@@ -140,9 +131,9 @@ const playAsong = async(song,posicion) => {
    
 };
 
-const handleClick = (id) => {
+const handleClick = (playlistId) => {
    console.log("Playlist seleccionada:", id);
-   router.push({ path: '/playlist', query: { id: id } });
+   router.push({ path: '/playlist', query: { id: playlistId, type: "personalizada" } });
 };
  
 onMounted(async () => {
@@ -208,7 +199,7 @@ onMounted(async () => {
 
          // 🔗 Agregar evento de clic para redirigir a una nueva página
          listElement.addEventListener("click", () => {
-            router.push({ path: '/playlist', query: { id: genero.IdLista } });
+            router.push({ path: '/playlist', query: { id: genero.IdLista, type: "predefinida" } });
          });
 
          listElement.appendChild(imgElement);

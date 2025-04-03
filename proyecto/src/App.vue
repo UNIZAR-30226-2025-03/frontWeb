@@ -34,7 +34,7 @@
                      </div>
                   </div>
 
-                  <div v-for="album in results.albums" :key="album.id" class="result-item">
+                  <div v-for="album in results.albums" :key="album.id" class="result-item" @click="GoToAlbum(album.id)">
                      <img :src="album.portada" alt="Preview" />
                      <span> {{ album.nombre }} </span>
                      <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
@@ -546,7 +546,6 @@ function togglePlay() {
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
       } else{
-    
         player.value.play().catch((err) => {
           console.warn('[player] Error al reproducir:', err)
         })
@@ -637,10 +636,16 @@ function seekAudio(event) {
 
   console.log(`[Seek] Nueva posición: ${newTime} segundos`);
 }
+
 // Función para redirigir al perfil del artista
 const goToArtistProfile = (artistName) => {
   router.push(`/artist/${artistName}`);
 };
+
+const GoToAlbum = (albumId) => {
+   console.log("Álbum seleccionado:", albumId);
+   router.push({ path: '/album', query: { id: albumId } });
+}
 
 </script>
 
