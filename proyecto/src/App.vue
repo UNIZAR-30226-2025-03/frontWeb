@@ -38,6 +38,7 @@
                      <img :src="album.portada" alt="Preview" />
                      <span> {{ album.nombre }} </span>
                      <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
+                     <button @click="likePlaylist"> Me gusta </button>
                   </div>
 
                   <div v-for="lista in results.playlists" :key="lista.id" class="result-item">
@@ -157,7 +158,14 @@
       </div>
         
     </div>
+
+    <div v-if="showPopup" :class="popupType" class="popup">
+         {{ popupMessage }}
+    </div>
+   
   </div>
+
+  
 </template>
 
 <script setup>
@@ -212,6 +220,20 @@ const progress = ref(0); // Valor de la barra (0 a 100)
 const searchArea = ref(null);
 const resultsArea = ref(null);
 
+//pop up 
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("popup-error");
+
+const showPopupMessage = (message, type) => {
+   popupMessage.value = message;
+   popupType.value = type;
+   showPopup.value = true;
+
+   setTimeout(() => {
+      showPopup.value = false;
+   }, 3000);
+};
 
 const results = ref({
   artistas: [],
@@ -225,7 +247,7 @@ const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos', action: () => router.push('/friends')},
   { src: starIcon, alt: 'Favoritos', action: () => router.push('/favs')},
   { src: settingsIcon, alt: 'Configuración' },
-  { src: albumIcon, alt: 'Álbum' },
+  { src: albumIcon, alt: 'Álbum', action: () => router.push('/fav-playlists') },
   { src: createList, alt: 'List', action: () => router.push('/createList') }, 
 ]);
 
@@ -236,6 +258,8 @@ const hasResults = computed(() =>
   results.value.playlists.length || 
   results.value.playlistsProtegidasDeAmigos
 );
+
+
 
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
@@ -292,6 +316,23 @@ const previousSong = async() =>{
     console.error('Error previous song:', error);
   }
 }
+
+// Funciones de like a playlist
+const likePlaylist = async (idLista) => {
+ try {
+  
+
+    const responseLike = await fetch(`https://echobeatapi.duckdns.org/playlists/like/${email}/${idLista}`, {
+        method: 'POST',
+        });
+    if(!responseLike.ok) throw new Error(" No se ha podido dar like a la playlist");
+    showPopupMessage(" Playlist likeada","popup-success"); 
+    
+  } catch (error) {
+    showPopupMessage(error,"popup-error");
+  }
+
+};
 
 // Función para cerrar el desplegable de búsqueda
 const closeSearchResults = () => {
@@ -1141,6 +1182,35 @@ select {
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+
+/*Pop up */
+.popup {
+   position: fixed;
+   top: 20px;
+   left: 50%;
+   transform: translateX(-50%);
+   color: white;
+   padding: 10px 20px;
+   border-radius: 8px;
+   font-weight: bold;
+   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+   animation: fadeInOut 3s ease-in-out;
+}
+  
+.popup-error {
+   background: rgba(255, 87, 34, 0.9);
+}
+  
+.popup-success {
+   background: rgba(76, 175, 80, 0.9);
+}
+  
+@keyframes fadeInOut {
+   0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+   10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+   90% { opacity: 1; }
+   100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
 
 </style>
