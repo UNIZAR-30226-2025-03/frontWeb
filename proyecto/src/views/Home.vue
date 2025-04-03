@@ -161,8 +161,13 @@ onMounted(async () => {
    if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
    
    const playlistData = await playlistResponse.json();
-   playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
-   
+   console.log("Playlist data: ", playlistData);
+   if (playlistData.message === 'El usuario no tiene playlists') {
+      playlists.value = [];
+   }
+   else {
+      playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
+   }
    
    console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
 

@@ -346,7 +346,7 @@ onMounted(async () => {
          cover: songCover,
          minute: songMinute,
       };
-
+      currentSong.value = lastSong.value
       // Establecer la barra de progreso de acuerdo con el minuto de escucha
       if (player.value && player.value.duration) {
          progress.value = (lastSong.value.minute / player.value.duration) * 100;
@@ -398,12 +398,14 @@ function updateCurrentTime(event) {
             songId: currentSong.Id,
             currentTime,
           });
+
           console.log(`[Progress]Progreso enviado: ${currentTime} segundos`);
         }
 
     }else{
       contador--;
     }
+    
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
@@ -509,6 +511,7 @@ function playSong(song) {
       console.warn('startStreamSong no está disponible')
    }
 }
+
 const volumeSlider = ref(null);
 function setVolume(volumen) {
   if (!player.value) return
@@ -522,6 +525,7 @@ function setVolume(volumen) {
     volumeSlider.value.style.backgroundSize = `${volume * 100}% 100%`;
   }
 }
+
 function muteVolumen(){
   player.value.volume = 0;
   mute.value = true;
