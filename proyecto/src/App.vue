@@ -372,6 +372,9 @@ let progressInterval = null;
 let contador = 1;
 
 function updateCurrentTime(event) {
+   console.log("Tiempo actualizado:", event.target.currentTime); 
+   console.log("Progress:", progress.value, "CurrentTime:", event.target.currentTime);
+
   const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
   if (newTime !== lastUpdatedSecond && isPlaying.value) {
     lastUpdatedSecond = newTime;
