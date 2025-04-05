@@ -34,7 +34,9 @@
                      </div>
                   </div>
 
+
                   <div v-for="album in results.albums" :key="album.id" class="result-item" @click='handleClick(album.id, "album")' >
+
                      <img :src="album.portada" alt="Preview" />
                      <span> {{ album.nombre }} </span>
                      <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
@@ -132,7 +134,6 @@
             <div> 
                {{ lastSong.minute }}
             </div>
-           
           </div>
 
         </div>
@@ -155,9 +156,6 @@
           </div>
         </div>
       </div>
-
-
-
 
       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
@@ -422,7 +420,7 @@ onMounted(async () => {
          cover: songCover,
          minute: songMinute,
       };
-
+      currentSong.value = lastSong.value
       // Establecer la barra de progreso de acuerdo con el minuto de escucha
       if (player.value && player.value.duration) {
          progress.value = (lastSong.value.minute / player.value.duration) * 100;
@@ -448,6 +446,9 @@ let progressInterval = null;
 let contador = 1;
 
 function updateCurrentTime(event) {
+   console.log("Tiempo actualizado:", event.target.currentTime); 
+   console.log("Progress:", progress.value, "CurrentTime:", event.target.currentTime);
+
   const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
   if (newTime !== lastUpdatedSecond && isPlaying.value) {
     lastUpdatedSecond = newTime;
@@ -474,12 +475,14 @@ function updateCurrentTime(event) {
             songId: currentSong.Id,
             currentTime,
           });
+
           console.log(`[Progress]Progreso enviado: ${currentTime} segundos`);
         }
 
     }else{
       contador--;
     }
+    
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
@@ -585,6 +588,7 @@ function playSong(song) {
       console.warn('startStreamSong no está disponible')
    }
 }
+
 const volumeSlider = ref(null);
 function setVolume(volumen) {
   if (!player.value) return
@@ -598,6 +602,7 @@ function setVolume(volumen) {
     volumeSlider.value.style.backgroundSize = `${volume * 100}% 100%`;
   }
 }
+
 function muteVolumen(){
   player.value.volume = 0;
   mute.value = true;
@@ -618,7 +623,6 @@ function togglePlay() {
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
       } else{
-    
         player.value.play().catch((err) => {
           console.warn('[player] Error al reproducir:', err)
         })
@@ -710,10 +714,16 @@ function seekAudio(event) {
 
   console.log(`[Seek] Nueva posición: ${newTime} segundos`);
 }
+
 // Función para redirigir al perfil del artista
 const goToArtistProfile = (artistName) => {
   router.push(`/artist/${artistName}`);
 };
+
+const GoToAlbum = (albumId) => {
+   console.log("Álbum seleccionado:", albumId);
+   router.push({ path: '/album', query: { id: albumId } });
+}
 
 </script>
 
@@ -928,15 +938,6 @@ select {
 
 /*  ESTILOS DE LA BARRA DE REPRODUCCIÓN */
 
-/* Controles de música */
-.controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 10px; /* Espacio entre botones */
-}
-
 .side-buttons {
   flex-grow: 0; /* Espaciado equitativo */
   display: flex;
@@ -950,19 +951,6 @@ select {
   justify-content: center;
   flex: none; 
 }
-
-.controls button {
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.controls img {
-  width: 30px;
-  height: 30px;
-  filter: brightness(0) invert(1);
-}
-
 
 /* Progreso de la canción */
 .progress-bar-filled {
@@ -986,13 +974,6 @@ select {
   z-index: 1000;
   color: white;
   box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
-}
-
-.controls {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
 }
 
 .progress-container {
@@ -1082,8 +1063,20 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
   flex: 2;
+}
+
+.controls button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.controls img {
+  width: 30px;
+  height: 30px;
+  filter: brightness(0) invert(1);
 }
 
 .buttons {

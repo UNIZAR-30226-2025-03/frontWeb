@@ -10,19 +10,10 @@
           </button>
           <div id="songs-list">
             <div 
-               v-for="(song, index) in songs" 
-               :key="index" 
-               class="song-item" 
-               @mouseover="hoveredSong = song.id" 
-               @mouseleave="hoveredSong = null"
-               @click="playAsong(song.id, index)"
-               >  
+               v-for="(song, index) in songs" :key="index" class="song-item" @mouseover="hoveredSong = song.id" @mouseleave="hoveredSong = null" @click="playAsong(song.id, index)">  
                <p class="song-title">{{ song.nombre }}</p>
                <button 
-                  v-if="hoveredSong === song.id" 
-                  class="song-trash-btn" 
-                  @click.stop="removeSong(index)"
-               >
+                  v-if="hoveredSong === song.id" class="song-trash-btn"  @click.stop="removeSong(index)">
                   🗑️
                </button>
             </div>
@@ -144,6 +135,11 @@ const handleClick = (id,playlistType) => {
    console.log("Playlist seleccionada:", id);
    localStorage.setItem("type", playlistType);
    router.push({ path: '/playlist', query: { id: id } });
+
+const handleClick = (playlistId) => {
+   console.log("Playlist seleccionada:", id);
+   router.push({ path: '/playlist', query: { id: playlistId, type: "personalizada" } });
+
 };
  
 onMounted(async () => {
@@ -162,8 +158,13 @@ onMounted(async () => {
    if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
    
    const playlistData = await playlistResponse.json();
-   playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
-   
+   console.log("Playlist data: ", playlistData);
+   if (playlistData.message === 'El usuario no tiene playlists') {
+      playlists.value = [];
+   }
+   else {
+      playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
+   }
    
    console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
 
@@ -205,6 +206,7 @@ onMounted(async () => {
          // 🔗 Agregar evento de clic para redirigir a una nueva página
          listElement.addEventListener("click", () => {
             handleClick( genero.IdLista,"album");
+
          });
 
          listElement.appendChild(imgElement);

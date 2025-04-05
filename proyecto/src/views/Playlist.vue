@@ -17,14 +17,20 @@
 
       <div class="song-container">
         <div class="playlist-actions">
+
             <button class="button-action" @click="deletePlaylist" v-if="type === 'ListaReproduccion'" >
+
+            <button v-if="!isPredefined" class="button-action" @click="deletePlaylist">
+
                <img :src="deleteIcon" alt="delete"/>
             </button>
             <button class="button-action" @click="randomClick">
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
             <input v-model="searchTerm" placeholder="Buscar canción" />
+
             <button ref="addButtonRef" class="button-action" @click="toggleSearch"  v-if="type === 'ListaReproduccion'" >
+            
                <img :src="add_button" alt="add"/>
             </button>
             <button @click="playPlaylist" class="button-action">  
@@ -79,6 +85,7 @@
                   <button @click="addSongToFavorites(element)">❤️</button>
                   <button @click="playNewSong(element,index)">▶️</button>
                   <button @click="removeSong(element.id)"  v-if="type === 'ListaReproduccion'" >🗑️</button>
+
                 </div>
               </div>
             </li>
@@ -144,17 +151,9 @@ const filteredPlaylist = computed(() => {
   );
 });
 
-const goBack = () => {
-   router.back();
-};
-
-// Toggle para mostrar/ocultar el buscador
-const toggleSearch = () => {
-  searchVisible.value = !searchVisible.value;
-};
-
 const route = useRoute();
 const Id = route.query.id;
+
 console.log('ID de la playlist:', Id);
 console.log('Type de la playlist:', type);
 
@@ -168,6 +167,15 @@ const results = ref({
   albums: [],
   listas: []
 });
+
+const goBack = () => {
+   router.back();
+};
+
+// Toggle para mostrar/ocultar el buscador
+const toggleSearch = () => {
+  searchVisible.value = !searchVisible.value;
+};
 
 const playNewSong = async (song,posicion) => {
    console.log("cancionid:", song);
@@ -658,11 +666,15 @@ hr{
    transition: transform 0.2s ease-in-out;
 }
 
-.glow-effect {
-   mix-blend-mode: screen; /* Hace que las partes oscuras del icono se iluminen */
-   filter: drop-shadow(0px 0px 8px rgba(255, 165, 0, 0.8)); /* Agrega brillo */
+@keyframes glowPulse {
+    0% { filter: drop-shadow(0px 0px 8px rgba(20, 18, 166, 0.888)); }
+    50% { filter: drop-shadow(0px 0px 15px rgba(255, 215, 0, 1)); }
+    100% { filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.8)); }
 }
 
+.glow-effect {
+    animation: glowPulse 1.5s infinite alternate ease-in-out;
+}
 
 .song-titles {
    display: flex;
