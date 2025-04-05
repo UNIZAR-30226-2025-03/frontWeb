@@ -1,55 +1,38 @@
 <template>
    <div class="layout">
-     <div class="playlist-container">
+     <div class="album-container">
        <div class="back-btn-container">
           <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
        </div>
-       <div class="playlist-header">
-         <img :src="favs_cover" alt="Playlist" @error="handleImageError($event)">
-         <div class="playlist-info">
-           <h1>Favoritos</h1>
+       <div class="album-header">
+         <img :src="albumInfo.portada" alt="Album" @error="handleImageError($event)">
+         <div class="album-info">
+           <h1>{{ albumInfo.nombre }}</h1>
+           <div class="album-autor">
+               <p>{{ albumInfo.autor }}</p>
+               <p> Fecha de lanzamiento: {{ formatDate(albumInfo.fechaLanzamiento) }} </p>
+            </div>
+           <p>{{ albumInfo.numCanciones }} canciones</p>
+           <p>{{ albumInfo.numLikes }} Likes</p>
+           <p>{{ albumInfo.numReproducciones }} Reproducciones</p>
          </div>
  
        </div>
  
        <div class="song-container">
-         <div class="playlist-actions">
+         <div class="album-actions">
              <button class="button-action" @click="randomClick">
                 <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
              </button>
              <input v-model="searchTerm" placeholder="Buscar canción" />
-             <button ref="addButtonRef" class="button-action" @click="toggleSearch">
-                <img :src="add_button" alt="add"/>
-             </button>
-             <button @click="playPlaylist" class="button-action">  
+             <button @click="playAlbum" class="button-action">  
                 <img :src= "playIcon" alt="Play/Pause" />
              </button>
- 
-             <!-- El contenedor para el buscador -->
-             <div v-if="searchVisible" ref="searchContainerRef" class="search-container" :class="{'active': searchVisible}">
-                <input type="text" placeholder="Buscar canción..." v-model="currentSearch" @input="fetchResults"/>
-                <div class="search-results" v-if="currentSearch && !isLoading">
-                   <div v-if="results?.canciones.length">
-                      <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item" @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
-                         <img :src="cancion.Portada || 'ruta/a/imagen/default.jpg'" alt="Canción" />
-                         <div class="song-quest-info">
-                            <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
-                            <!-- Botón para agregar la canción seleccionada -->
-                            <button class="addButton" v-if="hoveredSong === cancion.Nombre" @click="addSong(cancion)">Añadir</button>
-                         </div>
-                      </div>
-                   </div>
- 
-                   <div v-else class="no-results">
-                      ❌ Sin resultados
-                   </div>
-                </div>
-             </div>
          </div>
  
          <hr>
  
-         <draggable :list="filteredPlaylist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
+         <draggable :list="filteredAlbum" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
            <template #item="{ element, index }">
              <li class="song-item" :key="element.id || index">
                <div class="song-info">
@@ -61,17 +44,13 @@
                    <p>{{ element.nombre }} ({{ formatTime(element.duracion) }})</p>
                  </div>
  
-                 <div class="song-album">
-                   <p v-if="playlistInfo.type === 'playlist'">Álbum: {{ element.album }}</p>
-                 </div>
- 
                  <div class="song-plays">
                    <p>Reproducciones: {{ element.numReproducciones }}</p>
                  </div>
  
                  <div class="song-buttons">
+                   <button @click="addSongToFavorites(element)">❤️</button>
                    <button @click="playNewSong(element,index)">▶️</button>
-                   <button @click="removeSong(element.id)">🗑️</button>
                  </div>
                </div>
              </li>
@@ -87,26 +66,18 @@
  
   
  <script setup>
- import { ref, onMounted, onUnmounted, inject, computed } from 'vue';
+ import { ref, onMounted, onUnmounted, inject, computed} from 'vue';
  import { useRoute, useRouter } from 'vue-router';
  import draggable from 'vuedraggable';
  import randomIcon from '@/assets/random-button.png';
  import default_img from '@/assets/kebab.jpg';
- import add_button from '@/assets/add_circle.svg';
- import pauseIcon from '@/assets/pause-circle.svg';
  import playIcon from '@/assets/play-circle.svg';
- import favs_cover from '@/assets/favoritos-cover.jpg';
  
  const playSong = inject('playSong')
  
+ // Variables para CSS y HTML
  const isGlowing = ref(false);
  const router = useRouter();
- const searchVisible = ref(false);
- const searchContainerRef = ref(null); // Referencia al contenedor del menú de búsqueda
- const addButtonRef = ref(null); 
- const currentSearch = ref('');
- const isLoading = ref(false);
- const hoveredSong = ref(null);
  
  const email = localStorage.getItem("email");
  const aleatorio = ref(false);
@@ -124,41 +95,29 @@
        showPopup.value = false;
     }, 3000); // Cierra el popup después de 3 segundos
  };
-
- const filteredPlaylist = computed(() => {
-  if (!searchTerm.value.trim()) {
-    return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
-  }
-
-  return playlist.value.filter(song =>
-    song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
-  );
-});
+ 
+ const filteredAlbum = computed(() => {
+   if (!searchTerm.value.trim()) {
+     return album.value; // Si no hay búsqueda, mostrar todo el álbum
+   }
+ 
+   return album.value.filter(song =>
+     song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+   );
+ });
  
  const goBack = () => {
     router.back();
  };
  
- // Toggle para mostrar/ocultar el buscador
- const toggleSearch = () => {
-   searchVisible.value = !searchVisible.value;
- };
- 
  const route = useRoute();
  const Id = route.query.id;
  
- console.log('ID de la playlist:', Id);
+ console.log('ID del album:', Id);
  
- const playlistInfo = ref({}); // Inicializado como objeto vacío
- const playlist = ref([]); // Inicializado como array vacío
+ const albumInfo = ref({}); // Inicializado como objeto vacío
+ const album = ref([]); // Inicializado como array vacío
  const searchTerm = ref('');
- 
- const results = ref({
-   artistas: [],
-   canciones: [],
-   albums: [],
-   listas: []
- });
  
  const playNewSong = async (song,posicion) => {
     console.log("cancionid:", song);
@@ -192,32 +151,26 @@
     });
  
     if (!response.ok) {
-       throw new Error('Error al reproducir playlist');
+       throw new Error('Error al reproducir álbum');
     }
-    const playlistResponse = await response.json();
-    console.log("playlist response: ",playlistResponse );
+    const albumResponse = await response.json();
+    console.log("album response: ", albumResponse );
  
     playSong(newSong);
  }
  
- // Función que oculta el menú de búsqueda cuando se hace clic fuera de él
- const handleClickOutside = (event) => {
-   // Si el clic es fuera del contenedor del menú y del botón de añadir, ocultamos el menú
-   if (
-     searchContainerRef.value && 
-     !searchContainerRef.value.contains(event.target) && 
-     !addButtonRef.value.contains(event.target)
-   ) {
-     searchVisible.value = false; // Oculta el desplegable
-   }
- };
- 
  onMounted(async () => {
    try {
+     // OBTENER INFO DEL ÁLBUM
+     const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/album/${Id}`);
+     if (!infoResponse.ok) throw new Error('Error al obtener la información del álbum');
+     
+     albumInfo.value = await infoResponse.json();
+     console.log("✅ AlbumInfo cargada: ", albumInfo.value);
  
-     //  OBTENER CANCIONES FAVORITAS
-     const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(email)}`);
-     if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
+     //  OBTENER CANCIONES DEL ÁLBUM
+     const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
+     if (!songsResponse.ok) throw new Error('Error al obtener las canciones del álbum');
  
      songsData.value = await songsResponse.json();
      console.log("✅ SongsData recibido: ", songsData.value);
@@ -227,24 +180,13 @@
        throw new Error('Las canciones no llegaron en formato de array');
      }
  
-     // ASIGNAR LAS CANCIONES A `playlist`
-     playlist.value = songsData.value.canciones;
-     console.log("✅ Playlist final cargada:", playlist.value);
+     // ASIGNAR LAS CANCIONES A `álbum`
+     album.value = songsData.value.canciones;
+     console.log("✅ Álbum final cargado:", album.value);
  
    } catch (error) {
-     console.error('Error al cargar la playlist:', error);
+     console.error('Error al cargar el álbum:', error);
    }
- });
- 
- onMounted(() => {
-   // Añadir el listener al documento para detectar clics fuera
-   document.addEventListener('click', handleClickOutside);
- });
- 
- onUnmounted(() => {
-   console.log("Saliendo de la página...");
-   // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
-   document.removeEventListener('click', handleClickOutside);
  });
  
  // Imagen de reemplazo
@@ -264,7 +206,16 @@
      return `${minutes}:${secs.toString().padStart(2, '0')}`;
  }
 
- const playPlaylist = async () => {
+ function formatDate(isoString) {
+    const date = new Date(isoString);
+    const day = date.getUTCDate().toString().padStart(2, '0');
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const year = date.getUTCFullYear();
+    
+    return `${day}-${month}-${year}`;
+}
+ 
+ const playAlbum = async () => {
     try {
        const bodyData = {
           userEmail: email,
@@ -284,19 +235,19 @@
        });
  
        if (!response.ok) {
-          throw new Error('Error al reproducir playlist');
+          throw new Error('Error al reproducir álbum');
        }
-       const playlistResponse = await response.json();
-       console.log("playlist response: ",playlistResponse );
+       const albumResponse = await response.json();
+       console.log("album response: ", albumResponse );
  
-       const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${playlistResponse.primeraCancionId}`)
+       const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${albumResponse.primeraCancionId}`)
        
        if (!song.ok) {
           throw new Error('Error al reproducir la canción ');
        }
        const songData = await song.json();
        const newSong = {
-          Id: playlistResponse.primeraCancionId,
+          Id: albumResponse.primeraCancionId,
           Nombre: songData.Nombre,
           Portada: songData.Portada,
           Duracion: songData.Duracion,
@@ -309,83 +260,25 @@
   
  }
  
- const addSong = async (song) => {
-   try {
-     console.log("Email: ", email);
-     console.log("Id canción: ", song.Id);
-     const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.Id}`, {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-      },
-     });
- 
-     if (!response.ok) {
-       throw new Error('Error al añadir canción a favoritos');
-     }
- 
-     showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
-     const newSong = {
-      id: song.Id,
-      nombre: song.Nombre,
-      portada: song.Portada,
-      duracion: song.Duracion,
-      numReproducciones: song.NumReproducciones
-    };
-     playlist.value = [...playlist.value, newSong];
-     console.log('valor canciones playlist', playlist.value);
-     
-   } catch (error) {
-       showPopupMessage(error.message, "popup-error");
-   }
- };
- 
- const removeSong = async (songId) => {
-   try {
-     console.log("Email: ", email);
-     console.log("Id canción: ", songId);
-     const response = await fetch(`https://echobeatapi.duckdns.org/cancion/unlike/${email}/${songId}`, {
-      method: 'DELETE',
-      headers: {
-         'Accept': '*/*', 
-      },
-     });
- 
-     if (!response.ok) {
-       throw new Error('Error al eliminar la canción de favoritos');
-     }
- 
-     // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
-     playlist.value = playlist.value.filter(song => song.id !== songId);
-     showPopupMessage("Canción eliminada con éxito", "popup-success");
-     
-   } catch (error) {
-       showPopupMessage(error.message, "popup-error");
-   }
- };
- 
- const fetchResults = async () => {
-    
-    if (!currentSearch.value.trim()) {
-       results.value.canciones = [];
-       return;
-    }
- 
-    isLoading.value = true;
-    console.log("Texto de búsqueda:", currentSearch.value);
- 
-    try { 
-       const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
-       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
- 
-       results.value = await response.json();
-       console.log("Respuesta de la API:", results.value);
- 
+ const addSongToFavorites = async (song) => {
+    try {
+      console.log("Email: ", email);
+      console.log("Id canción: ", song.id);
+      const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.id}`, {
+       method: 'POST',
+       headers: {
+          'Accept': '*/*', 
+       },
+      });
+  
+      if (!response.ok) {
+        throw new Error('Error al añadir canción a favoritos');
+      }
+  
+      showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
+      
     } catch (error) {
-       console.error('Error:', error);
- 
-    } finally {
-       isLoading.value = false; 
+        showPopupMessage(error.message, "popup-error");
     }
  };
  
@@ -411,7 +304,7 @@
     align-items: center;
  }
  
- .playlist-container {
+ .album-container {
     align-items: center;
     width: 100%;
     height: calc(100vh - 21vh);
@@ -425,7 +318,7 @@
     background-attachment: fixed;
  }
  
- .playlist-header {
+ .album-header {
     min-height: 20vh;
     display: flex;
     align-items: center;
@@ -435,31 +328,39 @@
     margin-bottom: 30px; 
  }
  
- .playlist-header img {
-    width: 12vw;
-    height: 12vw;
+ .album-header img {
+    width: 15vw;
+    height: 15vw;
     object-fit: cover; /* Hace que la imagen llene el div sin deformarse */
     border-radius: 8px; /* Mantiene el mismo borde redondeado */
  }
  
  
- .playlist-info {
+ .album-info {
     color: white;
     text-align: left;
     max-width: 500px;
  }
  
- .playlist-info h1 {
+ .album-info h1 {
     margin: 10px 0;
     font-family: 'Montserrat', sans-serif;
-    font-size: 2.8rem;
+    font-size: 2rem;
     font-weight: bold;
     color: #ffb347;  /* Naranja brillante */
     text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); /* Sombra para mejor legibilidad */
     letter-spacing: 1px;
  }
+
+ .album-autor p{
+    margin: 5px 0;
+    font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    margin: 4px 0; /* Espaciado entre líneas */
+ }
  
- .playlist-info p {
+ .album-info > p {
     margin: 5px 0;
     font-family: 'Inter', sans-serif;
     font-size: 1.2rem;
@@ -469,7 +370,7 @@
     margin: 4px 0; /* Espaciado entre líneas */
  }
  
- .playlist-actions {
+ .album-actions {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -478,9 +379,9 @@
     width: 100%;
  }
  
- .playlist-actions input,
- .playlist-actions select,
- .playlist-actions button {
+ .album-actions input,
+ .album-actions select,
+ .album-actions button {
     background-color: #2d1405;
     border: none;
     padding: 10px;
@@ -490,24 +391,24 @@
     transition: background 0.3s, border 0.3s;
  }
  
- .playlist-actions input {
+ .album-actions input {
     width: 220px;
     background-color: #8A3A1B;   
  }
  
- .playlist-actions input::placeholder {
+ .album-actions input::placeholder {
     color: white; /* Color del placeholder dorado para mejor visibilidad */
     opacity: 0.5;
  }
  
- .playlist-actions select {
+ .album-actions select {
     width: 160px;
     background-color: transparent;
     color: white;
     opacity: 0.5;
  }
  
- .playlist-actions button {
+ .album-actions button {
     background-color: transparent;
  }
  
@@ -525,6 +426,7 @@
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
     cursor: pointer; 
  }
+
  .song-list li:hover {
     transition: 0.2s;
     transform: scale(1.03,1.03);  
@@ -540,6 +442,7 @@
     margin: 0 auto;
     
  }
+
  .song-cover {
     text-align: center;
     width: 60px;  /* Define un tamaño fijo para la portada */
@@ -549,7 +452,6 @@
     justify-content: center;
     border-radius: 8px; /* Bordes redondeados opcionales */
  }
- 
  
  .song-cover img {
     width: 100%;
@@ -576,12 +478,16 @@
     transform: scale(1.2);
     transition: transform 0.2s ease-in-out;
  }
- 
- .glow-effect {
-    mix-blend-mode: screen; /* Hace que las partes oscuras del icono se iluminen */
-    filter: drop-shadow(0px 0px 8px rgba(255, 165, 0, 0.8)); /* Agrega brillo */
- }
- 
+
+ @keyframes glowPulse {
+    0% { filter: drop-shadow(0px 0px 8px rgba(20, 18, 166, 0.888)); }
+    50% { filter: drop-shadow(0px 0px 15px rgba(255, 215, 0, 1)); }
+    100% { filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.8)); }
+}
+
+.glow-effect {
+    animation: glowPulse 1.5s infinite alternate ease-in-out;
+}
  
  .song-titles {
     display: flex;
@@ -603,8 +509,7 @@
  .song-plays,
  .song-buttons {
     width: 22%;
-    text-align: center;
-    
+    text-align: center;  
  }
  
  h1 {
@@ -618,10 +523,10 @@
     width: 40px; height: 40px
     
  }
+
  .song-buttons button:hover {
     background-color: #2d1405; /* Naranja más oscuro en hover */
  }
- 
  
  .controls-container {
     display: flex;
@@ -672,120 +577,6 @@
  
  .back-btn:hover {
     background-color: rgba(255, 165, 0, 0.2);
- }
- 
- /* Contenedor del buscador */
- .search-container {
-   opacity: 0;
-   transform: translateY(-20px);
-   transition: opacity 0.3s ease, transform 0.3s ease;
-   z-index: 999;
- }
- 
- .search-container input {
-   padding: 8px;
-   font-size: 16px;
-   width: 415px; 
- }
- 
- /* Aparece cuando el buscador está visible */
- .search-container.active {
-   opacity: 1;
-   transform: translateY(0);
- }
- 
- .search-results {
-   position: absolute;
-   width: 430px;
-   background-color: #333;
-   color: white;
-   border-radius: 8px;
-   border-width: 10px;
-   border-color: white;
-   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-   margin-top: 5px;
-   margin-left: 5px;
-   max-height: 300px;
-   overflow-y: auto;
-   z-index: 10000;
-   scrollbar-width: none;
- }
- 
- .result-item {
-   display: flex;
-   align-items: center;
-   padding: 10px;
-   border-bottom: 1px solid #444;
-   cursor: pointer;
-   position: relative;
- }
- 
- .result-item img {
-   width: 40px;
-   height: 40px;
-   border-radius: 50%;
-   margin-right: 10px;
- }
- 
- .result-item:hover {
-   background-color: #555;
- }
- 
- .result-item button {
-   background: none;
-   border: none;
-   cursor: pointer;
-   margin-left: auto;
- }
- 
- .result-item button img {
-   width: 25px;
-   height: 25px;
-   filter: brightness(0) invert(1);
-   transition: transform 0.2s ease-in-out;
- }
- 
- .result-item button:hover img {
-   transform: scale(1.2);
- }
- 
- .song-quest-info {
-   display: flex;
-   align-items: center;
-   justify-content: space-between;
-   flex-grow: 1; 
- }
- 
- .no-results {
-   padding: 15px;
-   text-align: center;
-   color: #bbb;
-   font-size: 16px;
- }
- 
- .addButton {
-   background-color: #ffb347; /* Naranja brillante */
-   color: white;
-   padding: 10px 10px;
-   border-radius: 8px;
-   font-weight: bold;
-   border: none;
-   cursor: pointer;
-   transition: all 0.3s ease;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
- }
- 
- .addButton:hover {
-   background-color: #e68a00; /* Naranja más oscuro */
-   transform: scale(1.05);
- }
- 
- .addButton:focus {
-   outline: none;
-   box-shadow: 0 0 8px rgba(255, 165, 0, 0.7);
  }
  
  

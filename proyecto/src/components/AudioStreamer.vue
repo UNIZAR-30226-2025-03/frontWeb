@@ -5,7 +5,7 @@
 
   const socket = io('https://echobeatapi.duckdns.org', { transports: ['websocket'] })
 
-  defineExpose({ startStreamSong, stopCurrentStream,resumeCurrentStream,socket })
+  defineExpose({ startStreamSong, stopCurrentStream,socket })
 
   const connectionStatus = ref('Desconectado')
   const MIN_BUFFERED_SECONDS = 3
@@ -137,20 +137,6 @@
     hasStartedPlaying = false
   }
 
-
-  function resumeCurrentStream(songId, songName,email, startSeconds) {
-    currentSong = songName
-    streamingActive = true
-    initMediaSource()
-    console.log(`[info] Reanudando streaming para '${songName}' desde ${startSeconds}s (ID ${songId})...`)
-
-    socket.emit('startStream', {
-      songId: songId,
-      userId: email,
-      startSeconds
-    })
-  }
-
   function initMediaSource() {
     queue = []
     hasStartedPlaying = false
@@ -217,6 +203,5 @@
       }, 250)
     }
   }
-
 
   </script>
