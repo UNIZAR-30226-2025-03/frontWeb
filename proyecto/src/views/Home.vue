@@ -28,7 +28,7 @@
       <section class="recently-played">
         <h2>Bienvenido {{ nombre }}</h2>
         <div class="playlist-container">
-          <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item" @click="handleClick(playlist.Id)" >
+          <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item" @click="handleClick(playlist.Id, playlist.lista.TipoLista)" >
             <div class="playlist-image">
               <img 
                 :src="playlist.lista?.Portada" 
@@ -131,9 +131,15 @@ const playAsong = async(song,posicion) => {
    
 };
 
+const handleClick = (id,playlistType) => {
+   console.log("Playlist seleccionada:", id);
+   localStorage.setItem("type", playlistType);
+   router.push({ path: '/playlist', query: { id: id } });
+
 const handleClick = (playlistId) => {
    console.log("Playlist seleccionada:", id);
    router.push({ path: '/playlist', query: { id: playlistId, type: "personalizada" } });
+
 };
  
 onMounted(async () => {
@@ -199,7 +205,8 @@ onMounted(async () => {
 
          // 🔗 Agregar evento de clic para redirigir a una nueva página
          listElement.addEventListener("click", () => {
-            router.push({ path: '/playlist', query: { id: genero.IdLista, type: "predefinida" } });
+            handleClick( genero.IdLista,"album");
+
          });
 
          listElement.appendChild(imgElement);

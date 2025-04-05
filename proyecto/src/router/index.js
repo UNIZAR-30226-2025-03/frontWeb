@@ -14,7 +14,11 @@ import Generos from '../views/Generos.vue';
 import Favs from '../views/Favs.vue';
 import Artist from '../views/Artist.vue';
 import Friends from '../views/Friends.vue';
+
+import Favourites from '../views/favourites.vue';
+
 import Album from '../views/Album.vue';
+
 
 
 const routes = [
@@ -33,6 +37,7 @@ const routes = [
   { path: '/artist/:artistName', component: Artist, props: true },
   { path: '/friends', component: Friends},
   { path: '/album', component: Album, props: true },
+  { path: '/fav-playlists', component: Favourites}
 
 ];
 
