@@ -17,14 +17,14 @@
 
       <div class="song-container">
         <div class="playlist-actions">
-            <button class="button-action" @click="deletePlaylist">
+            <button class="button-action" @click="deletePlaylist" v-if="type === 'ListaReproduccion'" >
                <img :src="deleteIcon" alt="delete"/>
             </button>
             <button class="button-action" @click="randomClick">
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
             <input v-model="searchTerm" placeholder="Buscar canción" />
-            <button ref="addButtonRef" class="button-action" @click="toggleSearch">
+            <button ref="addButtonRef" class="button-action" @click="toggleSearch"  v-if="type === 'ListaReproduccion'" >
                <img :src="add_button" alt="add"/>
             </button>
             <button @click="playPlaylist" class="button-action">  
@@ -78,7 +78,7 @@
                 <div class="song-buttons">
                   <button @click="addSongToFavorites(element)">❤️</button>
                   <button @click="playNewSong(element,index)">▶️</button>
-                  <button @click="removeSong(element.id)">🗑️</button>
+                  <button @click="removeSong(element.id)"  v-if="type === 'ListaReproduccion'" >🗑️</button>
                 </div>
               </div>
             </li>
@@ -105,7 +105,8 @@ import playIcon from '@/assets/play-circle.svg';
 import deleteIcon from '@/assets/delete.svg';
 
 const playSong = inject('playSong')
-
+const type = localStorage.getItem("type")
+localStorage.removeItem("type");
 // Variables para CSS y HTML
 const isGlowing = ref(false);
 const router = useRouter();
@@ -154,8 +155,8 @@ const toggleSearch = () => {
 
 const route = useRoute();
 const Id = route.query.id;
-
 console.log('ID de la playlist:', Id);
+console.log('Type de la playlist:', type);
 
 const playlistInfo = ref({}); // Inicializado como objeto vacío
 const playlist = ref([]); // Inicializado como array vacío
