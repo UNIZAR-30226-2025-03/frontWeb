@@ -427,7 +427,7 @@ const logout = () => {
    left: 0;
    width: 100%;
    height: 100vh;
-   background-color: #1a1a1a; 
+   background: linear-gradient(180deg, #141414 15%, #4a1e04 40%, #8a3a10 60%, #ffb347 100%);
    z-index: 9999; 
    display: flex;
    justify-content: center;

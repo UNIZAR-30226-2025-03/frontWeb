@@ -15,6 +15,7 @@ import Favs from '../views/Favs.vue';
 import Artist from '../views/Artist.vue';
 import Friends from '../views/Friends.vue';
 import Album from '../views/Album.vue';
+import Chat from '../views/Chat.vue';
 
 
 const routes = [
@@ -33,6 +34,7 @@ const routes = [
   { path: '/artist/:artistName', component: Artist, props: true },
   { path: '/friends', component: Friends},
   { path: '/album', component: Album, props: true },
+  { path: '/chat/:friendNick', component: Chat}
 
 ];
 

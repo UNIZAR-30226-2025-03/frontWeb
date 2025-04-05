@@ -18,7 +18,7 @@
      </div>
  
      <!-- Botón para eliminar amigos -->
-     <button v-if="type === 'all'" class="delete-btn" @click="$emit('remove', friend.Nick)">❌</button>
+     <button v-if="type === 'all'" class="delete-btn" @click.stop="$emit('remove', friend.Nick)">❌</button>
    </div>
  </template>
  
@@ -35,10 +35,7 @@
   if (props.type === 'request') {
     return props.friend.NickFriendSender; 
   }
-  else if (props.type === 'pending') {
-   console.log("Nick de pendiente: ", props.friend.NickFriendReceiver);
-   return props.friend.NickFriendReceiver;
-  }
+
   else {
    return props.friend.Nick; 
   }
