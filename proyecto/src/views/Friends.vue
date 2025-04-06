@@ -17,7 +17,7 @@
       <div class="friends-list">
          <div v-if="activeTab === 'chats'">
             <h3>Chats recientes</h3>
-            <FriendItem v-for="friend in chattedFriends" :key="friend.id" :friend="friend" />
+            <FriendItem v-for="friend in chattedFriends" :key="friend.Nick" :friend="friend" type="chats" @click="goToChats(friend)"/>
          </div>
        
          <div v-else-if="activeTab === 'all'">
@@ -25,7 +25,7 @@
                <h3>Todos los amigos</h3>
                <input v-model="searchTerm" type="text" placeholder="Buscar amigo" class="search-friend-input"/>
             </div>
-            <FriendItem v-for="friend in filteredFriends" :key="friend.Nick" :friend="friend" type="all" @click="goToChat(friend.Nick)" @remove="removeFriend"/>
+            <FriendItem v-for="friend in filteredFriends" :key="friend.Nick" :friend="friend" type="all" @click="goToChat(friend)" @remove="removeFriend"/>
          </div>
          
          <div v-else-if="activeTab === 'requests'">
@@ -87,8 +87,12 @@ const filteredFriends = computed(() => {
   );
 });
 
-const goToChat = (Nick) => {
-  router.push(`/chat/${Nick}`);
+const goToChat = (friend) => {
+  router.push(`/chat/${friend.Email}`);
+};
+
+const goToChats = (friend) => {
+  router.push(`/chat/${friend.contact}`);
 };
 
 onMounted(async () => {
@@ -115,6 +119,7 @@ onMounted(async () => {
       
       console.log("requests data ", friendRequests.value); 
 
+      // Obtener todos los amigos registrados
       const friendsResponse = await fetch(`https://echobeatapi.duckdns.org/amistades/verAmigos/${encodeURIComponent(userData.Nick)}`);
       if (!friendsResponse.ok) throw new Error('Error al obtener los amigos del usuario');
       
@@ -123,6 +128,44 @@ onMounted(async () => {
       
       
       console.log("friends data ", allFriends.value); 
+
+      // Obtener todos los chats
+      const chatResponse = await fetch(`https://echobeatapi.duckdns.org/chat/chatsDelUsuario?userEmail=${encodeURIComponent(email)}`);
+      if (!chatResponse.ok) throw new Error('Error al obtener los chats del usuario');
+
+      const chatData = await chatResponse.json();
+
+      // Crear array temporal
+      const enrichedChats = [];
+
+      for (const chat of chatData) {
+      console.log("Contact:", chat.contact);
+
+      const userChatResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(chat.contact)}`);
+
+      if (!userChatResponse.ok) {
+         console.error(`No se pudo obtener el nick para: ${chat.contact}`);
+         continue; // Sigue con el siguiente chat en caso de error
+      }
+
+      const userChatData = await userChatResponse.json();
+
+      if (!userChatData || !userChatData.Nick) {
+         console.error(`Nick no encontrado para: ${chat.contact}`);
+         continue;
+      }
+
+      // Agrega el chat enriquecido al array
+      enrichedChats.push({
+         ...chat,
+         Nick: userChatData.Nick,
+      });
+      }
+
+      // Asigna todos los chats enriquecidos a chattedFriends
+      chattedFriends.value = enrichedChats;
+
+      console.log("Chat data final con nick:", chattedFriends.value);
 
    } catch (error) {
       console.error(error.message);
@@ -254,7 +297,7 @@ const addFriend = async () => {
       }
       else {
          showPopupMessage(`Solicitud enviada a ${friendNick.value}!`, "popup-success");
-         toggleAddFriend(); // Cierra el input después de enviar
+         toggleAddFriend(); 
       }
       
    } catch (error) {

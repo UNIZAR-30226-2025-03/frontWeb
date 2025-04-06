@@ -10,6 +10,16 @@
          🎵 Última canción: <strong>{{ friend.CancionActual }}</strong>
        </div>
      </div>
+
+     <!-- Último mensaje -->
+      <div v-if="type === 'chats'">
+         <span class="last-message">
+            {{ lastMessageDisplay }}
+            <span v-if="showReadStatus" class="read-status">
+               {{ friend.Leido ? '✔ Leído' : '⏳ No leído' }}
+            </span>
+         </span>
+      </div>
  
      <!-- Botones para solicitudes recibidas -->
      <div v-if="type === 'request'" class="action-buttons">
@@ -27,20 +37,33 @@
 
  const props = defineProps({
   friend: Object, 
-  type: String, // Puede ser "all", "request" o "pending"
+  type: String, // Puede ser "all" o "request" o "chats"
 });
-
 
  const friendName = computed(() => {
   if (props.type === 'request') {
     return props.friend.NickFriendSender; 
   }
 
-  else {
+  else if (props.type === 'all' || props.type === 'chats') {
    return props.friend.Nick; 
   }
-  
 });
+
+const lastMessageDisplay = computed(() => {
+  return props.friend.mensaje ? `"${props.friend.mensaje}"` : 'Sin mensajes aún';
+});
+
+const showReadStatus = computed(() => {
+  // Solo mostrar si el último mensaje fue enviado por ti y existe el campo "Leido"
+  //const currentUserEmail = localStorage.getItem('email');
+  return (
+    props.type === 'chats' &&
+    props.friend?.contact &&
+    props.friend?.Leido !== undefined
+  );
+});
+
  </script>
  
  <style scoped>
@@ -53,6 +76,7 @@
    background: #2a2a2a;
    border-radius: 10px;
    transition: background 0.2s ease-in-out;
+   margin: 10px auto;
  }
  
  .friend-item:hover {
@@ -66,9 +90,7 @@
  }
  
  .friend-info {
-   flex: 1;
    color: white;
-   display: flex;
    flex-direction: column;
  }
  
@@ -127,5 +149,20 @@
  .delete-btn:hover {
    background: #f57c00;
  }
+
+ .last-message {
+  font-size: 13px;
+  color: #ccc;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  margin-left: 20px;
+}
+
+.read-status {
+  font-size: 12px;
+  color: #ff9800;
+  margin-left: 5px;
+}
  </style>
  
