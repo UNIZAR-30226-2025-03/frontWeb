@@ -38,7 +38,7 @@ const routes = [
   { path: '/artist/:artistName', component: Artist, props: true },
   { path: '/friends', component: Friends},
   { path: '/album', component: Album, props: true },
-  { path: '/fav-playlists', component: Favourites}
+  { path: '/fav-playlists', component: Favourites},
   { path: '/chat/:email', component: Chat}
 
 ];

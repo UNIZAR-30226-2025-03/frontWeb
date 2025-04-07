@@ -44,13 +44,13 @@
                         @mouseenter="hoverLike[album.id] = true"
                         @mouseleave="hoverLike[album.id] = false"
                         class="like-hover"
-                        @click="likePlaylist(album.id)"
+                        @click.stop="likePlaylist(album.id)"
                       >
                         <span>{{ hoverLike[album.id] ? '❤️' : '🤍' }}</span>
                      </button>
                   </div>
 
-                  <div v-for="lista in results.playlists" :key="lista.id" class="result-item"  @click='handleClick(lista.id, "album")' >
+                  <div v-for="lista in results.playlists" :key="lista.id" class="result-item"  @click='handleClick(lista.id, "")' >
                      <img :src="lista.portada" alt="Preview" />
                      <span> {{ lista.nombre }}</span>
 
@@ -58,7 +58,7 @@
                         @mouseenter="playlistHoverLike[lista.id] = true"
                         @mouseleave="playlistHoverLike[lista.id] = false"
                         class="like-hover"
-                        @click="likePlaylist(lista.id)"
+                        @click.stop="likePlaylist(lista.id)"
                       >
                         <span>{{ playlistHoverLike[lista.id] ? '❤️' : '🤍' }}</span>
                      </button>
@@ -341,9 +341,14 @@ const previousSong = async() =>{
   }
 }
 const handleClick = (id,playlistType) => {
-   console.log("Playlist seleccionada:", id);
-   localStorage.setItem("type", playlistType);
-   router.push({ path: '/playlist', query: { id: id } });
+   if (playlistType === "album") {
+      router.push({ path: '/album', query: { id: id } });
+   }
+   else {
+      console.log("Playlist seleccionada:", id);
+      localStorage.setItem("type", playlistType);
+      router.push({ path: '/playlist', query: { id: id } });
+   }
 };
  
 // Funciones de like a playlist
