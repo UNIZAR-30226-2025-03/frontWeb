@@ -135,11 +135,7 @@ const handleClick = (id,playlistType) => {
    console.log("Playlist seleccionada:", id);
    localStorage.setItem("type", playlistType);
    router.push({ path: '/playlist', query: { id: id } });
-
-const handleClick = (playlistId) => {
-   console.log("Playlist seleccionada:", id);
-   router.push({ path: '/playlist', query: { id: playlistId, type: "personalizada" } });
-
+   
 };
  
 onMounted(async () => {
