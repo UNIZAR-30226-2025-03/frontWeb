@@ -10,13 +10,16 @@
          :isSentByMe="msg.sender === email"
        />
      </div>
- 
-     <ChatInput @send="sendMessage" />
+     
+     <div class="chat-input-wrapper">
+      <ChatInput @send="sendMessage" />
+     </div>
+
    </div>
  </template>
  
  <script setup>
- import { ref, onMounted, watch, nextTick } from 'vue'
+ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
  import { useRoute } from 'vue-router'
  import ChatMessage from '@/components/ChatMessage.vue'
  import ChatInput from '@/components/ChatInput.vue'
@@ -27,8 +30,42 @@
  
  const messages = ref([])
  const messageContainer = ref(null)
+
+ let pollingInterval;
+
+onMounted(() => {
+  startPolling();
+});
+
+const startPolling = () => {
+  pollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`https://echobeatapi.duckdns.org/chat/historialDelChat?userPrincipal=${encodeURIComponent(email)}&userAmigo=${encodeURIComponent(friendMail)}`);
+      if (!res.ok) throw new Error("Error al obtener los mensajes");
+      const data = await res.json();
+
+      const formattedMessages = data.map(msg => ({
+        ...msg,
+        posicion: msg.EmailSender === email ? 'right' : 'left',
+      }));
+
+      // Solo actualiza si hay mensajes nuevos
+      if (JSON.stringify(formattedMessages) !== JSON.stringify(messages.value)) {
+        messages.value = formattedMessages;
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error("Polling error:", error.message);
+    }
+  }, 3000); // cada 3 segundos
+};
+
+// Limpia el intervalo al desmontar el componente
+onUnmounted(() => {
+  clearInterval(pollingInterval);
+});
  
- onMounted(async () => {
+onMounted(async () => {
    try {
       console.log("Email: ", email);
       console.log("Friend mail: ", friendMail);
@@ -99,7 +136,7 @@
    color: white;
    border-radius: 16px;
  }
- 
+
  .chat-title {
    font-size: 20px;
    margin-bottom: 12px;
@@ -130,5 +167,11 @@
 .chat-messages::-webkit-scrollbar-track {
    background: #252525;
 }
- </style>
+
+.chat-input-wrapper {
+  width: 90%;
+  max-width: 75vw;
+  margin: 0 auto;
+}
  
+ </style>

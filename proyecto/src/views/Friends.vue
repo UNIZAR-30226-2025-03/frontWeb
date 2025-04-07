@@ -3,7 +3,12 @@
       <div class="tabs">
          <button @click="activeTab = 'chats'" :class="{ active: activeTab === 'chats' }">Chats</button>
          <button @click="activeTab = 'all'" :class="{ active: activeTab === 'all' }">Todos</button>
-         <button @click="activeTab = 'requests'" :class="{ active: activeTab === 'requests' }">Solicitudes</button>
+         <button @click="activeTab = 'requests'" :class="{ active: activeTab === 'requests' }" class="tab-btn">
+            Solicitudes
+            <span v-if="pendingRequestsCount > 0" class="notification-badge">
+               {{ pendingRequestsCount }}
+            </span>
+         </button>
          <button @click="toggleAddFriend" class="add-friend-btn">➕ Añadir amigo</button>
       </div>
 
@@ -76,6 +81,8 @@ const toggleAddFriend = () => {
    showAddFriendInput.value = !showAddFriendInput.value;
    friendNick.value = ""; // Resetear el campo al cerrar
 };
+
+const pendingRequestsCount = computed(() => friendRequests.value.length);
 
 const filteredFriends = computed(() => {
   if (!searchTerm.value.trim()) {
@@ -346,7 +353,7 @@ const addFriend = async () => {
 
 .friends-list {
    margin-top: 20px;
-   max-height: 360px; /* Ajusta la altura según lo que necesites */
+   max-height: 385px; /* Ajusta la altura según lo que necesites */
    overflow-y: auto;
    scrollbar-width: thin; /* Para navegadores compatibles */
    scrollbar-color: #555 #252525; /* Color del scroll */
@@ -458,6 +465,25 @@ const addFriend = async () => {
 .confirm-btn:hover {
    opacity: 0.8;
 }
+
+.tab-btn {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #f44336;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 50%;
+  padding: 3px 6px;
+  line-height: 1;
+  display: inline-block;
+}
+
 
 /* Mensaje emergente */
 .popup {

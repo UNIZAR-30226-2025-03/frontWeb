@@ -1,10 +1,12 @@
 <template>
    <div :class="['message', message.posicion]">
-     <div class="message-content">
-       <p>{{ message.Mensaje }}</p>
-       <span class="timestamp">{{ formattedDate }}</span>
+     <div class="message-wrapper">
+       <div class="message-content">
+         <p>{{ message.Mensaje }}</p>
+         <span class="timestamp">{{ formattedDate }}</span>
+       </div>
+       <div v-if="!message.Leido" class="unread-indicator">No leído</div>
      </div>
-     <div v-if="!message.Leido" class="unread-indicator">No leído</div>
    </div>
  </template>
  
@@ -18,43 +20,58 @@
    }
  });
  
- // Formatear la fecha para mostrarla de una forma legible
  const formattedDate = computed(() => {
    const date = new Date(props.message.Fecha);
-   return `${date.getHours()}:${date.getMinutes()} ${date.toLocaleDateString()}`;
+   const hours = date.getHours().toString().padStart(2, '0');
+   const mins = date.getMinutes().toString().padStart(2, '0');
+   return `${hours}:${mins} · ${date.toLocaleDateString()}`;
  });
  </script>
  
  <style scoped>
  .message {
    display: flex;
-   margin: 10px 0;
-   align-items: center;
+   margin: 12px 0;
+   width: 100%;
+   animation: fadeIn 0.3s ease-in;
+ }
+ 
+ .message-wrapper {
+   display: flex;
+   align-items: flex-end;
+   max-width: 70%;
  }
  
  .message-content {
-   background-color: #3b3b3b;
    padding: 10px;
    border-radius: 10px;
    max-width: 80%;
    color: white;
- }
- 
- .timestamp {
+}
+
+.right .message-content {
+   background-color: #4caf50; /* Verde suave para los mensajes del amigo */
+   margin-left: auto; /* Alineación a la derecha */
+}
+
+.left .message-content {
+   background-color: #8e9eab; /* Azul claro o gris para los mensajes enviados por ti */
+}
+
+.timestamp {
    display: block;
    font-size: 0.8rem;
    margin-top: 5px;
    text-align: right;
- }
+}
  
  .unread-indicator {
-   background-color: #ff9800;
-   color: white;
-   padding: 5px;
-   border-radius: 8px;
-   font-size: 0.9rem;
    margin-left: 10px;
-   text-align: center;
+   background-color: #ff9800;
+   color: black;
+   padding: 4px 8px;
+   border-radius: 8px;
+   font-size: 0.75rem;
  }
  
  .right {
@@ -65,6 +82,11 @@
  .left {
    justify-content: flex-start;
    text-align: left;
+ }
+ 
+ @keyframes fadeIn {
+   from { opacity: 0; transform: translateY(8px); }
+   to { opacity: 1; transform: translateY(0); }
  }
  </style>
  
