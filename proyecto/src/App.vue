@@ -34,20 +34,41 @@
                      </div>
                   </div>
 
-                  <div v-for="album in results.albums" :key="album.id" class="result-item" @click="GoToAlbum(album.id)">
+
+                  <div v-for="album in results.albums" :key="album.id" class="result-item" @click='handleClick(album.id, "album")' >
+
                      <img :src="album.portada" alt="Preview" />
                      <span> {{ album.nombre }} </span>
                      <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
+                     <button
+                        @mouseenter="hoverLike[album.id] = true"
+                        @mouseleave="hoverLike[album.id] = false"
+                        class="like-hover"
+                        @click="likePlaylist(album.id)"
+                      >
+                        <span>{{ hoverLike[album.id] ? '❤️' : '🤍' }}</span>
+                     </button>
                   </div>
 
-                  <div v-for="lista in results.playlists" :key="lista.id" class="result-item">
+                  <div v-for="lista in results.playlists" :key="lista.id" class="result-item"  @click='handleClick(lista.id, "album")' >
                      <img :src="lista.portada" alt="Preview" />
                      <span> {{ lista.nombre }}</span>
+
+                     <button
+                        @mouseenter="playlistHoverLike[lista.id] = true"
+                        @mouseleave="playlistHoverLike[lista.id] = false"
+                        class="like-hover"
+                        @click="likePlaylist(lista.id)"
+                      >
+                        <span>{{ playlistHoverLike[lista.id] ? '❤️' : '🤍' }}</span>
+                     </button>
+
                   </div>
 
                   <div v-for="listaAmigos in results.playlistsProtegidasDeAmigos" :key="listaAmigos.id" class="result-item">
                      <img :src="listaAmigos.portada" alt="Preview" />
                      <span> {{ listaAmigos.nombre }}</span>
+ 
                   </div>
                </template>
                <div v-else class="no-results">
@@ -153,7 +174,14 @@
       </div>
         
     </div>
+
+    <div v-if="showPopup" :class="popupType" class="popup">
+         {{ popupMessage }}
+    </div>
+   
   </div>
+
+  
 </template>
 
 <script setup>
@@ -180,7 +208,7 @@ import randomIcon from '@/assets/random-button.png';
 import logo from '@/assets/logo.png';
 import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
-
+import CorazonVacio from '@/assets/me-gusta.png';
 const streamerRef = ref(null)
 provide('playSong', playSong);
 // Variables reactivas
@@ -207,7 +235,23 @@ const progress = ref(0); // Valor de la barra (0 a 100)
 
 const searchArea = ref(null);
 const resultsArea = ref(null);
+const hoverLike = ref({});
+const playlistHoverLike = ref({});
 
+//pop up 
+const showPopup = ref(false);
+const popupMessage = ref("");
+const popupType = ref("popup-error");
+
+const showPopupMessage = (message, type) => {
+   popupMessage.value = message;
+   popupType.value = type;
+   showPopup.value = true;
+
+   setTimeout(() => {
+      showPopup.value = false;
+   }, 1500);
+};
 
 const results = ref({
   artistas: [],
@@ -218,12 +262,18 @@ const results = ref({
 });
 
 const menuIcons = ref([
-  { src: friendsIcon, alt: 'Amigos', action: () => router.push('/friends')},
-  { src: starIcon, alt: 'Favoritos', action: () => router.push('/favs')},
+  { src: friendsIcon, alt: 'Amigos', action: () => actionIcon('/friends')},
+  { src: starIcon, alt: 'Favoritos', action: () => actionIcon('/favs')},
   { src: settingsIcon, alt: 'Configuración' },
-  { src: albumIcon, alt: 'Álbum' },
-  { src: createList, alt: 'List', action: () => router.push('/createList') }, 
+  { src: albumIcon, alt: 'Álbum', action: () => actionIcon('/fav-playlists') },
+  { src: createList, alt: 'List', action: () => actionIcon('/createList') }, 
 ]);
+
+const actionIcon = (pagina) => {
+ 
+ router.push(pagina);
+ closeMenu();
+}
 
 const hasResults = computed(() => 
   results.value.artistas.length || 
@@ -232,6 +282,8 @@ const hasResults = computed(() =>
   results.value.playlists.length || 
   results.value.playlistsProtegidasDeAmigos
 );
+
+
 
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
@@ -288,6 +340,28 @@ const previousSong = async() =>{
     console.error('Error previous song:', error);
   }
 }
+const handleClick = (id,playlistType) => {
+   console.log("Playlist seleccionada:", id);
+   localStorage.setItem("type", playlistType);
+   router.push({ path: '/playlist', query: { id: id } });
+};
+ 
+// Funciones de like a playlist
+const likePlaylist = async (idLista) => {
+ try {
+  
+    const responseLike = await fetch(`https://echobeatapi.duckdns.org/playlists/like/${email}/${idLista}`, {
+        method: 'POST',
+        });
+
+    if(!responseLike.ok) throw new Error(" No se ha podido dar like a la playlist");
+    showPopupMessage(" Playlist likeada","popup-success"); 
+ 
+  } catch (error) {
+    showPopupMessage(error,"popup-error");
+  }
+
+};
 
 // Función para cerrar el desplegable de búsqueda
 const closeSearchResults = () => {
@@ -569,6 +643,7 @@ function toggleMenu() {
 }
 
 function closeMenu() {
+  
   isMenuOpen.value = false;
 }
 
@@ -1132,6 +1207,46 @@ select {
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
+}
+/* like album*/
+
+.like-hover {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+
+
+/*Pop up */
+.popup {
+  z-index: 100000;
+   position: fixed;
+   top: 20px;
+   left: 50%;
+   transform: translateX(-50%);
+   color: white;
+   padding: 10px 20px;
+   border-radius: 8px;
+   font-weight: bold;
+   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+   animation: fadeInOut 3s ease-in-out;
+}
+  
+.popup-error {
+   background: rgba(255, 87, 34, 0.9);
+}
+  
+.popup-success {
+   background: rgba(76, 175, 80, 0.9);
+}
+  
+@keyframes fadeInOut {
+   0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+   10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+   90% { opacity: 1; }
+   100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
 
 </style>
