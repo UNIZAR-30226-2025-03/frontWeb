@@ -2,7 +2,7 @@
    <div class="friend-item">
      <!-- Sección izquierda -->
      <div class="left-section">
-       <img :src="friend.LinkFoto" alt="Avatar" class="avatar" />
+       <img :src="foto" alt="Avatar" class="avatar" />
  
        <div class="friend-info">
          <span class="friend-name">{{ friendName }}</span>
@@ -51,17 +51,26 @@
      return props.friend.Nick;
    }
  });
+
+ const foto = computed(() => {
+   if (props.type === 'chats') {
+      return props.friend.foto;
+   } else {
+      return props.friend.LinkFoto;
+   }
+ })
  
  const lastMessageDisplay = computed(() => {
    return props.friend.mensaje ? `"${props.friend.mensaje}"` : 'Sin mensajes aún';
  });
  
  const showReadStatus = computed(() => {
+   const currentUserEmail = localStorage.getItem('email');
    return (
      props.type === 'chats' &&
      props.friend?.contact &&
      props.friend?.Leido !== undefined &&
-     !props.friend?.unreadFecha
+     currentUserEmail === props.friend?.lastMensaje
    );
  });
  

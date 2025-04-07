@@ -63,7 +63,6 @@
    font-weight: bold;
    font-size: 1rem;
    cursor: pointer;
-   transition: transform 0.2s ease, background 0.2s ease;
  }
  
  .send-button:hover {
