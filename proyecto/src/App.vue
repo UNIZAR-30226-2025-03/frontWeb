@@ -211,6 +211,7 @@ import AudioStreamer from './components/AudioStreamer.vue'
 import CorazonVacio from '@/assets/me-gusta.png';
 const streamerRef = ref(null)
 provide('playSong', playSong);
+provide('playFromQuest', playFromQuest);
 // Variables reactivas
 const lastSong = ref({
   id: '',
