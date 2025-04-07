@@ -18,6 +18,7 @@ import Friends from '../views/Friends.vue';
 import Favourites from '../views/favourites.vue';
 
 import Album from '../views/Album.vue';
+import Chat from '../views/Chat.vue';
 
 
 
@@ -38,6 +39,7 @@ const routes = [
   { path: '/friends', component: Friends},
   { path: '/album', component: Album, props: true },
   { path: '/fav-playlists', component: Favourites}
+  { path: '/chat/:email', component: Chat}
 
 ];
 
