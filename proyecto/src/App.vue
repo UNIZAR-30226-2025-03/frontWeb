@@ -183,6 +183,7 @@ import AudioStreamer from './components/AudioStreamer.vue'
 
 const streamerRef = ref(null)
 provide('playSong', playSong);
+provide('playFromQuest', playFromQuest);
 // Variables reactivas
 const lastSong = ref({
   id: '',

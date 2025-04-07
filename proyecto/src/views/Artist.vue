@@ -56,8 +56,9 @@
               backgroundImage: `url(${cancion.Portada})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-            }" @click="playSong(cancion.Id)"
-          >
+            }" 
+            @click="Song(cancion)"
+            >
             <div class="song-info">
               <p>{{ cancion.Nombre }}</p>
               <span>{{ cancion.NumReproducciones }} reproducciones</span>
@@ -75,8 +76,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, inject, watch } from 'vue';
 import { useRouter } from 'vue-router';  // Importar Vue Router para redirigir
+
+// En el componente donde usas playSong
+const playSong = inject('playSong');
+
+// Inyectar la función playFromQuest
+const playFromQuest = inject('playFromQuest');
 
 // Definir las propiedades que recibirá el componente
 const props = defineProps({
@@ -142,15 +149,18 @@ onMounted(() => {
   fetchArtistData(props.artistName);
 });
 
-// Redirigir a la página del álbum
 const redirectToAlbum = (albumId) => {
-  router.push({ name: 'album', params: { albumId } });
+  router.push({ path: '/album', query: { id: albumId } });
 };
 
-// Reproducir la canción (actualmente no implementado)
-const playSong = (songId) => {
-  console.log("Reproduciendo canción con ID:", songId);
-  // Aquí puedes añadir la lógica para reproducir la canción
+// Función para reproducir la canción
+const Song = (cancion) => {
+  console.log("Reproduciendo canción con ID:", cancion.Id);
+  
+  // Llamar a la función playFromQuest para vaciar la cola y añadir la nueva canción
+  if (playFromQuest) {
+    playFromQuest(cancion);  // Pasamos la canción a playFromQuest
+  }
 };
 
 // Watcher para actualizar los datos cuando cambia el nombre del artista
@@ -192,7 +202,7 @@ h1 {
 
 /* Tarjetas de Biografía y Discografía */
 .bio-card, .discography-card, .top-songs-card {
-  background-color: #444;
+  background-color: #1e1e1e;
   padding: 15px;
   border-radius: 12px;
   box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
@@ -325,7 +335,7 @@ h1 {
   margin-top: 20px;
   margin-bottom: 200px;
   text-align: center;
-  background-color: #444;
+  background-color: #1e1e1e;
   padding: 15px;
   border-radius: 12px;  
 }
