@@ -1002,18 +1002,9 @@ select {
   justify-self: start; /* pegado a la izquierda */
 }
 
-.song-icon {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-  border-radius: 5px;
-
-}
-
 .song-name {
   color: white;
 }
-
 
 .bottom-bar {
   position: fixed;
@@ -1039,8 +1030,8 @@ select {
 }
 
 .now-playing img {
-  width: 56px;
-  height: 56px;
+   width: 72px;
+  height: 72px;
   object-fit: cover;
   border-radius: 4px;
 }
