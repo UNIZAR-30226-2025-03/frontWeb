@@ -253,8 +253,9 @@ const handleClick = (id,type) => {
 }
 
 .trash-btn:hover {
-  transform: scale(1.2);
-  color: #ff2e2e;
+  transform: scale(1.3) rotate(-10deg); /* Crece y gira un poco */
+  color: red; 
+  text-shadow: 0 0 8px rgba(255, 0, 0, 0.7); 
 }
 
 
