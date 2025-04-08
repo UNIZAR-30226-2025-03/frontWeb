@@ -1,5 +1,8 @@
 <template>
    <div class="friends-container">
+      <div class="back-btn-container">
+         <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
+      </div>
       <div class="tabs">
          <button @click="activeTab = 'chats'" :class="{ active: activeTab === 'chats' }" class="tab-btn">
             Chats
@@ -104,6 +107,10 @@ const filteredFriends = computed(() => {
   );
 });
 
+const goBack = () => {
+   router.back();
+};
+
 const goToChat = (friend) => {
   router.push(`/chat/${friend.Email}`);
 };
@@ -191,21 +198,21 @@ onMounted(async () => {
 
 const removeFriend = async (Nick) => {
   try {
-    console.log("Nick: ", Nick);
-    const response = await fetch(`https://echobeatapi.duckdns.org/amistades/eliminar/${currentNick.value}/${Nick}`, {
-      method: 'DELETE',
-      headers: {
-         'Accept': '*/*', 
-      },
-    });
+      console.log("Nick: ", Nick);
+      const response = await fetch(`https://echobeatapi.duckdns.org/amistades/eliminar/${currentNick.value}/${Nick}`, {
+         method: 'DELETE',
+         headers: {
+            'Accept': '*/*', 
+         },
+      });
 
-    if (!response.ok) {
-      throw new Error('Error en la eliminación del amigo');
-    }
+      if (!response.ok) {
+         throw new Error('Error en la eliminación del amigo');
+      }
 
-    // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
-    allFriends.value = allFriends.value.filter(friend => friend.Nick !== Nick);
-    showPopupMessage("Amigo eliminado con éxito", "popup-success");
+      // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
+      allFriends.value = allFriends.value.filter(friend => friend.Nick !== Nick);
+      showPopupMessage("Amigo eliminado con éxito", "popup-success");
     
   } catch (error) {
       showPopupMessage(error.message, "popup-error");
@@ -494,6 +501,29 @@ const addFriend = async () => {
   display: inline-block;
 }
 
+.back-btn-container {
+   position: absolute;
+   top: 60px;
+   left: 10px;
+   display: flex;
+   justify-content: flex-start;
+}
+
+.back-btn {
+   background-color: transparent;
+   border: 1px solid #ffa500;
+   color: #ffa500;
+   padding: 6px 12px;
+   border-radius: 6px;
+   font-weight: bold;
+   cursor: pointer;
+   transition: background-color 0.3s ease;
+   min-width: 100px;
+}
+
+.back-btn:hover {
+   background-color: rgba(255, 165, 0, 0.2);
+}
 
 /* Mensaje emergente */
 .popup {
