@@ -66,7 +66,7 @@
  
   
  <script setup>
- import { ref, onMounted, onUnmounted, inject, computed} from 'vue';
+ import { ref, onMounted, watch, inject, computed } from 'vue';
  import { useRoute, useRouter } from 'vue-router';
  import draggable from 'vuedraggable';
  import randomIcon from '@/assets/random-button.png';
@@ -281,6 +281,34 @@
         showPopupMessage(error.message, "popup-error");
     }
  };
+
+ watch(() => route.query.id, async (newId, oldId) => {
+  if (!newId || newId === oldId) return;
+
+  try {
+    // OBTENER INFO DEL ÁLBUM
+    const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/album/${newId}`);
+    if (!infoResponse.ok) throw new Error('Error al obtener la información del álbum');
+
+    albumInfo.value = await infoResponse.json();
+
+    // OBTENER CANCIONES DEL ÁLBUM
+    const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${newId}/songs`);
+    if (!songsResponse.ok) throw new Error('Error al obtener las canciones del álbum');
+
+    songsData.value = await songsResponse.json();
+
+    if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
+      throw new Error('Las canciones no llegaron en formato de array');
+    }
+
+    album.value = songsData.value.canciones;
+    searchTerm.value = ''; // Resetea la búsqueda
+  } catch (error) {
+    console.error('Error al actualizar el álbum:', error);
+    showPopupMessage(error.message, "popup-error");
+  }
+});
  
  </script>
  

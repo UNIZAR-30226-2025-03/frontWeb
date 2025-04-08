@@ -135,9 +135,10 @@ const handleClick = (id,playlistType) => {
    console.log("Playlist seleccionada:", id);
    localStorage.setItem("type", playlistType);
    router.push({ path: '/playlist', query: { id: id } });
-   
-};
- 
+
+}
+
+
 onMounted(async () => {
    try {
    const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
