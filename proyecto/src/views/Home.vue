@@ -138,6 +138,7 @@ const handleClick = (id,playlistType) => {
 
 }
 
+
 onMounted(async () => {
    try {
    const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)

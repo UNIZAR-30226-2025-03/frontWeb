@@ -20,6 +20,7 @@
 
             <button class="button-action" @click="deletePlaylist" v-if="type === 'ListaReproduccion'" >
 
+
                <img :src="deleteIcon" alt="delete"/>
             </button>
             <button class="button-action" @click="randomClick">
