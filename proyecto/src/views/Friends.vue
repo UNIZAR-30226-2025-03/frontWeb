@@ -26,35 +26,45 @@
       </div>
      
       <div class="friends-list">
+
          <div v-if="activeTab === 'chats'">
             <h3>Chats recientes</h3>
-            <FriendItem v-for="friend in chattedFriends" :key="friend.Nick" :friend="friend" type="chats" :hasNewMessages="friend.hasNewMessages" @click="goToChats(friend)"/>
+            <FriendItem v-for="friend in chattedFriends" :key="friend.Nick" :friend="friend" type="chats" :hasNewMessages="friend.hasNewMessages" @click="goToChats(friend)"  @profile="profileRequest(friend)"/>
          </div>
-       
+         
          <div v-else-if="activeTab === 'all'">
             <div class="friends-header">
                <h3>Todos los amigos</h3>
                <input v-model="searchTerm" type="text" placeholder="Buscar amigo" class="search-friend-input"/>
             </div>
-            <FriendItem v-for="friend in filteredFriends" :key="friend.Nick" :friend="friend" type="all" @click="goToChat(friend)" @remove="removeFriend"/>
+            <FriendItem v-for="friend in filteredFriends" :key="friend.Nick" :friend="friend" type="all" @click="goToChat(friend)" @remove="removeFriend" @profile="profileRequest(friend)"/>
          </div>
-         
+
          <div v-else-if="activeTab === 'requests'">
             <h3>Solicitudes recibidas</h3>
-            <FriendItem v-for="friend in friendRequests" :key="friend.NickFriendSender" :friend="friend" type="request" @accept="acceptRequest" @reject="rejectRequest"/>
+            <FriendItem v-for="friend in friendRequests" :key="friend.NickFriendSender" :friend="friend" type="request" @accept="acceptRequest" @reject="rejectRequest" @profile="profileRequest(friend)"/>
          </div>
-   
+         <transition name="slide-up">
+         <Profile
+               v-if="showProfile"
+               :friend="selectedUser"
+               @close="showProfile = false"
+            />
+         </transition>
       </div>
       <div v-if="showPopup" :class="popupType" class="popup">
             {{ popupMessage }}
       </div>
    </div>
+   <div class="layout"  v-if="showProfile"></div>
  </template>
  
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import FriendItem from '@/components/FriendItem.vue';
+import Profile from '@/components/profile.vue'
+
 
 const email =  localStorage.getItem("email");
 const currentNick = ref('');
@@ -103,6 +113,14 @@ const filteredFriends = computed(() => {
     friend.Nick.toLowerCase().includes(searchTerm.value.toLowerCase())
   );
 });
+
+const selectedUser = ref(null)       // Usuario seleccionado
+const showProfile = ref(false)       // Controla si el modal está visible
+
+function openProfile(user) {
+  selectedUser.value = user
+  showProfile.value = true
+}
 
 const goToChat = (friend) => {
   router.push(`/chat/${friend.Email}`);
@@ -238,6 +256,12 @@ const rejectRequest = async (Nick) => {
 
 };
  
+const profileRequest = async (friend) => {
+   console.log("aaaa",friend);
+   selectedUser.value = friend;
+   showProfile.value = true;
+  
+};
 const acceptRequest = async (Nick) => {
    try {
       const response = await fetch('https://echobeatapi.duckdns.org/amistades/aceptar', {
@@ -524,4 +548,42 @@ const addFriend = async () => {
    90% { opacity: 1; }
    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
+
+.layout {
+  height: 100vh; /* ocupa toda la altura visible */
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  backdrop-filter: blur(6px);
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+
+.scale-fade-enter-active {
+  animation: scaleIn 0.25s ease-out;
+}
+.scale-fade-leave-active {
+  animation: scaleOut 0.2s ease-in forwards;
+}
+
+
+/* Opción 2 transición pop up */
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100px);
+  opacity: 0;
+}
+.slide-up-enter-to,
+.slide-up-leave-from {
+  transform: translateY(0);
+  opacity: 1;
+}
+
 </style>

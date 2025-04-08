@@ -2,7 +2,7 @@
    <div class="friend-item">
      <!-- Sección izquierda -->
      <div class="left-section">
-       <img :src="foto" alt="Avatar" class="avatar" />
+       <img :src="foto" alt="Avatar" class="avatar" @click.stop="$emit('profile')" />
  
        <div class="friend-info">
          <span class="friend-name">{{ friendName }}</span>
@@ -107,6 +107,7 @@
    width: 50px;
    height: 45px;
    border-radius: 50%;
+   cursor: pointer;
  }
  
  .friend-info {
