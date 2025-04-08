@@ -6,7 +6,8 @@
  
        <div class="friend-info">
          <span class="friend-name">{{ friendName }}</span>
- 
+         
+         <span v-if="hasNewMessages" class="message-dot"></span>
          <!-- Última canción escuchada -->
          <div v-if="type === 'all' && friend.CancionActual" class="last-song">
            🎵 Última canción: <strong>{{ friend.CancionActual }}</strong>
@@ -42,6 +43,7 @@
  const props = defineProps({
    friend: Object,
    type: String, // "chats", "all" o "request"
+   hasNewMessages: Boolean
  });
  
  const friendName = computed(() => {
@@ -184,5 +186,33 @@
  .delete-btn:hover {
    background: #f57c00;
  }
+
+ .message-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #ff3b30;
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+
  </style>
  

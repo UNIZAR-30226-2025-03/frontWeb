@@ -1,7 +1,13 @@
 <template>
    <div class="friends-container">
       <div class="tabs">
-         <button @click="activeTab = 'chats'" :class="{ active: activeTab === 'chats' }">Chats</button>
+         <button @click="activeTab = 'chats'" :class="{ active: activeTab === 'chats' }" class="tab-btn">
+            Chats
+            <span v-if="hasUnreadMessages" class="notification-badge">
+               {{ chattedFriends.filter(chat => chat.hasNewMessages).length }}
+            </span>
+
+         </button>
          <button @click="activeTab = 'all'" :class="{ active: activeTab === 'all' }">Todos</button>
          <button @click="activeTab = 'requests'" :class="{ active: activeTab === 'requests' }" class="tab-btn">
             Solicitudes
@@ -22,7 +28,7 @@
       <div class="friends-list">
          <div v-if="activeTab === 'chats'">
             <h3>Chats recientes</h3>
-            <FriendItem v-for="friend in chattedFriends" :key="friend.Nick" :friend="friend" type="chats" @click="goToChats(friend)"/>
+            <FriendItem v-for="friend in chattedFriends" :key="friend.Nick" :friend="friend" type="chats" :hasNewMessages="friend.hasNewMessages" @click="goToChats(friend)"/>
          </div>
        
          <div v-else-if="activeTab === 'all'">
@@ -84,6 +90,10 @@ const toggleAddFriend = () => {
 
 const pendingRequestsCount = computed(() => friendRequests.value.length);
 
+const hasUnreadMessages = computed(() => {
+  return chattedFriends.value.some(chat => chat.hasNewMessages);
+});
+
 const filteredFriends = computed(() => {
   if (!searchTerm.value.trim()) {
     return allFriends.value; 
@@ -141,7 +151,7 @@ onMounted(async () => {
       if (!chatResponse.ok) throw new Error('Error al obtener los chats del usuario');
 
       const chatData = await chatResponse.json();
-
+      console.log('Chat de API: ', chatData);
       // Crear array temporal
       const enrichedChats = [];
 
@@ -166,12 +176,12 @@ onMounted(async () => {
       enrichedChats.push({
          ...chat,
          Nick: userChatData.Nick,
+         hasNewMessages: chat.unreadFecha && !isNaN(new Date(chat.unreadFecha).getTime())
       });
       }
 
       // Asigna todos los chats enriquecidos a chattedFriends
       chattedFriends.value = enrichedChats;
-
       console.log("Chat data final con nick:", chattedFriends.value);
 
    } catch (error) {

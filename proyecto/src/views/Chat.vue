@@ -1,6 +1,9 @@
 <template>
    <div class="chat-view">
-     <h2 class="chat-title">Chat con {{ friendMail }}</h2>
+     <div class="chat-header">
+      <img :src="user.perfil" alt="Avatar" class="avatar" />
+      <h2 class="chat-title">Chat con {{ user.nick }}</h2>
+     </div>
  
      <div class="chat-messages" ref="messageContainer">
        <ChatMessage
@@ -29,6 +32,11 @@
  
  const messages = ref([]);
  const messageContainer = ref(null);
+
+ const user = ref({
+   nick: '',
+   perfil: '',
+});
  
  let pollingInterval;
  
@@ -76,6 +84,23 @@
          posicion: msg.EmailSender === email ? 'right' : 'left',
        }));
        scrollToBottom();
+
+       // Obtener foto de perfil y nick del usuario
+      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(friendMail)}`);
+      if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
+
+      const userData = await userResponse.json();
+
+      // Extraer los datos de la respuesta
+      const UserNick = userData.Nick;
+      const UserPerfil = userData.LinkFoto;
+
+      // Asignar los datos a las variables reactivas
+      user.value = {
+         nick: UserNick,
+         perfil: UserPerfil,
+      }
+
     } catch (error) {
        console.error(error.message);
     }
@@ -132,14 +157,31 @@
     position: relative;
     overflow: hidden;
  }
+
+ .chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  justify-content: center;
+ }
  
  .chat-title {
-    font-size: 20px;
-    margin-bottom: 12px;
+    font-size: 22px;
+    margin: 0;
     color: #ff9800;
     text-align: center;
  }
  
+ .avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ff9800;
+  align-self: center;
+}
+
  .chat-messages {
     width: 90%;
     max-width: 75vw;
@@ -152,6 +194,10 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); /* Sombra para resaltar */
     border: 2px solid rgba(255, 255, 255, 0.2); /* Borde sutil pero visible */
     transition: border-color 0.3s ease; /* Transición suave en el borde */
+    overflow-y: auto;
+    overflow-x: hidden; /* <- evita el scroll horizontal */
+    word-wrap: break-word;
+    word-break: break-word; /* fuerza el corte del texto largo */
  }
  
  .chat-messages:hover {
@@ -178,5 +224,6 @@
     max-width: 75vw;
     margin: 0 auto;
  }
+
  </style>
  
