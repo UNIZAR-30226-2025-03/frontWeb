@@ -341,6 +341,7 @@ const previousSong = async() =>{
     console.error('Error previous song:', error);
   }
 }
+
 const handleClick = (id,playlistType) => {
    if (playlistType === "album") {
       router.push({ path: '/album', query: { id: id } });
@@ -725,11 +726,6 @@ function seekAudio(event) {
 const goToArtistProfile = (artistName) => {
   router.push(`/artist/${artistName}`);
 };
-
-const GoToAlbum = (albumId) => {
-   console.log("Álbum seleccionado:", albumId);
-   router.push({ path: '/album', query: { id: albumId } });
-}
 
 </script>
 
@@ -1213,8 +1209,6 @@ select {
   font-size: 24px;
   cursor: pointer;
 }
-
-
 
 /*Pop up */
 .popup {
