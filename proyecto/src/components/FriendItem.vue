@@ -1,8 +1,10 @@
 <template>
    <div class="friend-item">
-      <!-- Sección izquierda -->
-      <div class="left-section">
-         <img :src="foto" alt="Avatar" class="avatar" />
+
+     <!-- Sección izquierda -->
+     <div class="left-section">
+       <img :src="foto" alt="Avatar" class="avatar" @click.stop="$emit('profile')" />
+
  
          <div class="friend-info">
             <span class="friend-name">{{ friendName }}</span>
@@ -107,8 +109,10 @@ const showReadStatus = computed(() => {
    width: 50px;
    height: 45px;
    border-radius: 50%;
-}
 
+   cursor: pointer;
+ }
+ 
 .friend-info {
    color: white;
    display: flex;
