@@ -55,53 +55,53 @@ const goBack = () => {
 
 // Función para alternar la selección de géneros
 const toggleGenre = (genreName) => {
-const genre = genres.value.find(g => g.NombreGenero === genreName);
-if (!genre) return;
+   const genre = genres.value.find(g => g.NombreGenero === genreName);
+   if (!genre) return;
 
-if (selectedGenres.value.includes(genreName)) {
-   // Quitar selección
-   selectedGenres.value = selectedGenres.value.filter(g => g !== genreName);
-   genre.seleccionado = false; // Actualizamos el objeto directamente
-} else if (selectedGenres.value.length < 8) {
-   // Agregar selección si hay espacio
-   selectedGenres.value.push(genreName);
-   genre.seleccionado = true; // Actualizamos el objeto directamente
-}
+   if (selectedGenres.value.includes(genreName)) {
+      // Quitar selección
+      selectedGenres.value = selectedGenres.value.filter(g => g !== genreName);
+      genre.seleccionado = false; // Actualizamos el objeto directamente
+   } else if (selectedGenres.value.length < 8) {
+      // Agregar selección si hay espacio
+      selectedGenres.value.push(genreName);
+      genre.seleccionado = true; // Actualizamos el objeto directamente
+   }
 };
 
- // Cargar los géneros desde la API y establecer los géneros seleccionados
- onMounted(async () => {
-  try {
-   console.log('Correo: ', email);
-    const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
-    if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
+// Cargar los géneros desde la API y establecer los géneros seleccionados
+onMounted(async () => {
+   try {
+      console.log('Correo: ', email);
+      const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
+      if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
 
-    const data = await genderResponse.json();
-    genres.value = data;
-    console.log("Géneros cargados:", genres.value);
+      const data = await genderResponse.json();
+      genres.value = data;
+      console.log("Géneros cargados:", genres.value);
 
-    // Guardamos los géneros iniciales
-    initialGenres.value = genres.value
-      .filter(g => g.seleccionado)
-      .map(g => g.NombreGenero);
+      // Guardamos los géneros iniciales
+      initialGenres.value = genres.value
+         .filter(g => g.seleccionado)
+         .map(g => g.NombreGenero);
 
-    // Establecemos los géneros seleccionados iniciales
-    selectedGenres.value = [...initialGenres.value];
+      // Establecemos los géneros seleccionados iniciales
+      selectedGenres.value = [...initialGenres.value];
 
-    console.log("Géneros seleccionados al inicio:", selectedGenres.value);
+      console.log("Géneros seleccionados al inicio:", selectedGenres.value);
 
-  } catch (error) {
-    console.error('Error:', error);
-  }
+   } catch (error) {
+      console.error('Error:', error);
+   }
 });
 
- // Función para guardar los cambios
+// Función para guardar los cambios
 const handleSave = async () => {
    const currentSelectedGenres = genres.value.filter(g => g.seleccionado).map(g => g.NombreGenero);
 
-  // Comparación de arrays sin importar el orden
+   // Comparación de arrays sin importar el orden
    const hasChanges = currentSelectedGenres.length !== initialGenres.value.length ||
-      currentSelectedGenres.some(genre => !initialGenres.value.includes(genre));
+   currentSelectedGenres.some(genre => !initialGenres.value.includes(genre));
    console.log(currentSelectedGenres);
    if (hasChanges && currentSelectedGenres.length >= 4) {
       try {
@@ -140,11 +140,10 @@ const handleSave = async () => {
    }
 };
 
-
 </script>
  
- <style scoped>
- .genres-container {
+<style scoped>
+.genres-container {
    position: fixed;
    top: 0;
    left: 0;
@@ -158,17 +157,17 @@ const handleSave = async () => {
    align-items: center;
    font-family: 'Arial', sans-serif; 
    color: #fff;
- }
+}
  
- .title {
+.title {
    font-size: 1.8rem;
    margin-bottom: 1.5rem;
    color: #ffa500; /* Color de texto llamativo */
    font-weight: 600;
    text-align: center;
- }
+}
  
- .genres-list {
+.genres-list {
    text-align: center;
    background-color: #1f1f1f; /* Fondo ligeramente más claro para contrastar */
    padding: 2rem;
@@ -177,13 +176,13 @@ const handleSave = async () => {
    width: 100%;
    max-width: 610px; /* Mayor ancho para más comodidad */
    transition: all 0.3s ease-in-out;
- }
+}
  
- .genres-list:hover {
+.genres-list:hover {
    transform: scale(1.05); /* Efecto de expansión suave */
- }
+}
  
- .genre-item {
+.genre-item {
    background-color: #333;
    color: white;
    padding: 12px 20px;
@@ -198,35 +197,35 @@ const handleSave = async () => {
    width: 100%;
    max-width: 250px;
    text-align: center;
- }
+}
  
- .genre-item:hover {
+.genre-item:hover {
    background-color: #ff5722;
    transform: translateY(-3px); /* Efecto de movimiento al pasar el ratón */
- }
+}
  
- .genre-item.selected {
+.genre-item.selected {
    background-color: #ff5722;
    border-color: #ff5722;
    color: white;
    font-weight: bold;
    box-shadow: 0 0 10px rgba(255, 87, 34, 0.8); /* Sombra más intensa */
- }
+}
  
- .selected-info {
+.selected-info {
    margin-top: 25px;
    font-size: 1.2rem;
    color: #fff;
    font-weight: 500;
    text-align: center;
- }
+}
  
- .selected-info span {
+.selected-info span {
    font-weight: bold;
    color: #ffa500; /* Resaltar los géneros seleccionados */
- }
+}
 
- button {
+button {
    width: 25%;
    padding: 12px;
    margin-top: 1rem;
@@ -236,9 +235,9 @@ const handleSave = async () => {
    font-weight: bold;
    cursor: pointer;
    background-color: #ff5722;
- }
+}
 
- button:hover {
+button:hover {
    opacity: 0.8;
 }
 
@@ -295,4 +294,4 @@ const handleSave = async () => {
    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
 
- </style>
+</style>
