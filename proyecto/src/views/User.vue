@@ -35,7 +35,7 @@
                      v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
                   />
                </div>
-               <button @click="closeImageSelection">Cerrar</button>
+               <button class="close-btn" @click="closeImageSelection">Cerrar</button>
             </div>
          </div>
 
@@ -211,13 +211,13 @@ const handleFileChange = (event) => {
 };
 
 
-// 🔹 Función para seleccionar una imagen predeterminada
+// Función para seleccionar una imagen predeterminada
 const selectDefaultImage = (imageUrl) => {
    user.value.perfil = imageUrl;
    profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
-// 🔹 Cerrar el modal de selección de imagen
+// Cerrar el modal de selección de imagen
 const closeImageSelection = () => {
    showImageSelection.value = false;
    profileAction.value = "";
@@ -645,6 +645,22 @@ button:hover {
 
 .back-btn:hover {
    background-color: rgba(255, 165, 0, 0.2);
+}
+
+.close-btn {
+   width: 60%;
+   padding: 12px;
+   margin-top: 2rem;
+   border: none;
+   border-radius: 4px;
+   color: #fff;
+   font-weight: bold;
+   cursor: pointer;
+   background-color: #ff5722;
+}
+
+.close-btn:hover {
+   opacity: 0.8;
 }
   
 /* Mensaje emergente */

@@ -5,11 +5,11 @@
          <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
       </div>
       <div class="playlist-header">
-         <div class="image-container" @mouseover="showEditOverlay = true" @mouseleave="showEditOverlay = false">
+         <div class="image-container" @mouseover="showEditOverlay = true && type === 'ListaReproduccion' " @mouseleave="showEditOverlay = false && type === 'ListaReproduccion'" >
             <img :src="previewImageUrl || playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
             <div v-if="showEditOverlay" class="edit-overlay">
-               <button @click="triggerFileInput">Subir Imagen</button>
-               <!-- <button v-for="img in defaultImages" :key="img" @click="updateImage(img)">Elegir predefinida</button> -->
+               <button v-if="type === 'ListaReproduccion'" @click="triggerFileInput">Subir Imagen</button>
+               <button v-if="type === 'ListaReproduccion'" @click="profileAction = 'select'">Elegir predeterminada</button>
             </div>
             <input ref="fileInputRef" type="file" accept="image/*" @change="handleFileUpload" style="display: none;" />
          </div>
@@ -20,13 +20,19 @@
             <p>{{ playlistInfo.NumLikes }} Likes</p>
          </div>
       </div>
+      <div v-if="profileAction === 'select'" class="image-selection-modal">
+         <h3>Selecciona una imagen</h3>
+         <div class="image-grid">
+            <img 
+               v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
+            />
+         </div>
+         <button class="close-btn" @click="closeImageSelection">Cerrar</button>
+      </div>
 
       <div class="song-container">
         <div class="playlist-actions">
-
             <button class="button-action" @click="deletePlaylist" v-if="type === 'ListaReproduccion'" >
-
-
                <img :src="deleteIcon" alt="delete"/>
             </button>
             <button class="button-action" @click="randomClick">
@@ -169,6 +175,8 @@ const showEditOverlay = ref(false);
 const fileInputRef = ref(null);
 const previewImageUrl = ref(null);
 const defaultImages = ref([]);
+const profileAction = ref(null);
+
 
 const results = ref({
    artistas: [],
@@ -213,9 +221,21 @@ watch(() => route.query.id, async (newId, oldId) => {
    }
 });
 
+// Función para seleccionar una imagen predeterminada
+const selectDefaultImage = (image) => {
+   updateImage(image);
+   previewImageUrl.value = image;
+   profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
+};
+
+// Cerrar el modal de selección de imagen
+const closeImageSelection = () => {
+   profileAction.value = "";
+};
+
 const updateImage = async (newUrl) => {
    try {
-      console.log("Archivo a subir:", user.value.perfil);
+      console.log("Archivo a subir:", newUrl);
       const response = await fetch("https://echobeatapi.duckdns.org/playlists/update-cover", {
          method: 'POST',
          headers: {
@@ -230,10 +250,11 @@ const updateImage = async (newUrl) => {
       });
 
       if (!response.ok) {
-         console.log("Error con la imagen predeterminada")
+         console.error("Error con la imagen predeterminada")
          throw new Error("Error al actualizar la imagen ");
       }
-
+      
+      showPopupMessage("Imagen actualizada con éxito", "popup-success");
       console.log("Imagen predeterminada actualizada correctamente");
    } catch (error) {
       showPopupMessage("Error al actualizar la imagen", "popup-error");
@@ -1010,14 +1031,73 @@ h1 {
 }
 
 .edit-overlay button {
-  background-color: #ffffff;
-  color: #000;
+  background-color: #ffffffdd;
+  color: #1e1e1e;
   border: none;
-  padding: 6px 12px;
-  border-radius: 5px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+.edit-overlay button:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.image-selection-modal {
+   position: fixed;
+   top: 45%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   background: #1a1a1a;
+   padding: 20px;
+   border-radius: 10px;
+   box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+   text-align: center;
+   z-index: 1000;
+}
+
+.image-grid {
+   display: flex;
+   gap: 15px;
+   flex-wrap: wrap;
+   justify-content: center;
+   margin: 10px 0;
+}
+
+.selectable-image {
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   cursor: pointer;
+   transition: 0.3s;
+   object-fit: cover;
+   border: 2px solid #ffa500;
+}
+
+.selectable-image:hover {
+   transform: scale(1.1);
+}
+
+.close-btn {
+   width: 60%;
+   padding: 12px;
+   margin-top: 2rem;
+   border: none;
+   border-radius: 4px;
+   color: #fff;
+   font-weight: bold;
+   cursor: pointer;
+   background-color: #ff5722;
+}
+
+.close-btn:hover {
+   opacity: 0.8;
+}
 
 /* Mensaje emergente */
 .popup {

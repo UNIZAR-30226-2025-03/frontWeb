@@ -285,7 +285,6 @@ const hasResults = computed(() =>
 );
 
 
-
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
   try {

@@ -39,8 +39,7 @@
             <h3>Selecciona una imagen</h3>
             <div class="image-grid">
                <img 
-                  v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
-               />
+                  v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image" :class="{ selected: selectedDefaultImage === image }"/>
             </div>
             <button @click="closeImageSelection">Cerrar</button>
          </div>
@@ -70,6 +69,7 @@ const selectedFile = ref(null);
 const profileAction = ref(""); // Acción seleccionada (subir imagen o elegir predeterminada)
 const showImageSelection = ref(false); // Modal para seleccionar imagen predeterminada
 const defaultImages = ref([]);  // Aquí se guardarán las imágenes predeterminadas
+const selectedDefaultImage = ref(null);
 
 const showPopup = ref(false);
 const popupMessage = ref("");
@@ -107,8 +107,9 @@ const handleFileChange = (event) => {
 //  Función para seleccionar una imagen predeterminada
 const selectDefaultImage = (imageUrl) => {
    file.value = imageUrl;
-   profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
+   selectedDefaultImage.value = imageUrl;
 };
+
 
 //  Cerrar el modal de selección de imagen
 const closeImageSelection = () => {
@@ -268,7 +269,7 @@ button:hover {
 .image-selection-modal {
    position: fixed;
    top: 65%;
-   left: 50%;
+   left: 80%;
    transform: translate(-50%, -50%);
    background: #1a1a1a;
    padding: 20px;
@@ -280,7 +281,7 @@ button:hover {
 
 .image-grid {
    display: flex;
-   gap: 10px;
+   gap: 15px;
    flex-wrap: wrap;
    justify-content: center;
    margin: 10px 0;
@@ -293,11 +294,16 @@ button:hover {
    cursor: pointer;
    transition: 0.3s;
    object-fit: cover;
+   border: 2px solid #ffa500;
 }
 
 .selectable-image:hover {
    transform: scale(1.1);
-   border: 2px solid #ffa500;
+}
+
+.selectable-image.selected {
+  border: 3px solid #4caf50;
+  box-shadow: 0 0 10px #4caf50;
 }
 
 .back-btn-container {
