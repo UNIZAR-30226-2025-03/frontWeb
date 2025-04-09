@@ -39,9 +39,16 @@
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
             <input v-model="searchTerm" placeholder="Buscar canción" />
+            <div class="select-wrapper">
+               <select class="filterSelect" v-model="sortOption" @change="sortSongs">
+                  <option disabled value=""> Orden playlist </option>
+                  <option value="default">Predefinida</option>
+                  <option value="name">Nombre</option>
+                  <option value="plays">Reproducciones</option>
+               </select>
+            </div>
 
             <button ref="addButtonRef" class="button-action" @click="toggleSearch"  v-if="type === 'ListaReproduccion'" >
-            
                <img :src="add_button" alt="add"/>
             </button>
             <button @click="playPlaylist" class="button-action">  
@@ -135,6 +142,29 @@ const currentSearch = ref('');
 const isLoading = ref(false);
 const hoveredSong = ref(null);
 
+const route = useRoute();
+const Id = route.query.id;
+
+console.log('ID de la playlist:', Id);
+console.log('Type de la playlist:', type);
+
+const playlistInfo = ref({}); // Inicializado como objeto vacío
+const playlist = ref([]); // Inicializado como array vacío
+const searchTerm = ref('');
+const showEditOverlay = ref(false);
+const fileInputRef = ref(null);
+const previewImageUrl = ref(null);
+const defaultImages = ref([]);
+const profileAction = ref(null);
+const sortOption = ref('default');
+
+const results = ref({
+   artistas: [],
+   canciones: [],
+   albums: [],
+   listas: []
+});
+
 const email = localStorage.getItem("email");
 const aleatorio = ref(false);
 const showPopup = ref(false);
@@ -162,28 +192,6 @@ const filteredPlaylist = computed(() => {
    );
 });
 
-const route = useRoute();
-const Id = route.query.id;
-
-console.log('ID de la playlist:', Id);
-console.log('Type de la playlist:', type);
-
-const playlistInfo = ref({}); // Inicializado como objeto vacío
-const playlist = ref([]); // Inicializado como array vacío
-const searchTerm = ref('');
-const showEditOverlay = ref(false);
-const fileInputRef = ref(null);
-const previewImageUrl = ref(null);
-const defaultImages = ref([]);
-const profileAction = ref(null);
-
-
-const results = ref({
-   artistas: [],
-   canciones: [],
-   albums: [],
-   listas: []
-});
 
 const goBack = () => {
    router.back();
@@ -193,6 +201,40 @@ const goBack = () => {
 const toggleSearch = () => {
    searchVisible.value = !searchVisible.value;
 };
+
+async function sortSongs() {
+   const idLista = Number(Id);
+   try {
+      let filtro;
+
+      switch (sortOption.value) {
+         case 'default':
+         filtro = 0;
+         break;
+         case 'name': // No está soportado en la API, opcionalmente muestra un mensaje o ignora
+         filtro = 1;
+         break;
+         case 'plays':
+         filtro = 2;
+         break;
+         default:
+         filtro = 0;
+      }
+
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
+      
+      if (!response.ok) throw new Error("Error al ordenar las canciones");
+
+      const data = await response.json();
+      playlist.value = data.canciones;
+
+      showPopupMessage('Playlist ordenada correctamente', 'popup-success');
+   } catch (error) {
+      console.error(error);
+      showPopupMessage(' Error al ordenar la playlist', 'popup-error');
+   }
+}
+
 
 watch(() => route.query.id, async (newId, oldId) => {
    if (!newId || newId === oldId) return;
@@ -697,7 +739,6 @@ hr{
 }
 
 .playlist-actions input,
-.playlist-actions select,
 .playlist-actions button {
    background-color: #2d1405;
    border: none;
@@ -715,13 +756,6 @@ hr{
 
 .playlist-actions input::placeholder {
    color: white; /* Color del placeholder dorado para mejor visibilidad */
-   opacity: 0.5;
-}
-
-.playlist-actions select {
-   width: 160px;
-   background-color: transparent;
-   color: white;
    opacity: 0.5;
 }
 
@@ -1098,6 +1132,50 @@ h1 {
 .close-btn:hover {
    opacity: 0.8;
 }
+
+.filterSelect {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #8A3A1B;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.3s ease;
+}
+
+.filterSelect:hover {
+  border-color: #888;
+}
+
+.filterSelect:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+}
+
+.filterSelect option {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #aaa;
+}
+
 
 /* Mensaje emergente */
 .popup {
