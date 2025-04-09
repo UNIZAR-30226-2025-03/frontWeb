@@ -152,6 +152,7 @@ const scrollToBottom = async () => {
    messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
    }
 }
+
 </script>
  
  <style scoped>

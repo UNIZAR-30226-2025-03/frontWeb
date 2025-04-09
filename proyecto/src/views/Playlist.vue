@@ -5,14 +5,20 @@
          <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
       </div>
       <div class="playlist-header">
-        <img :src="playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
-        <div class="playlist-info">
-          <h1>{{ playlistInfo.Nombre }}</h1>
-          <p>{{ playlistInfo.NumCanciones }} canciones</p>
-          <p>{{ playlistInfo.Descripcion }}</p>
-          <p>{{ playlistInfo.NumLikes }} Likes</p>
-        </div>
-
+         <div class="image-container" @mouseover="showEditOverlay = true" @mouseleave="showEditOverlay = false">
+            <img :src="previewImageUrl || playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
+            <div v-if="showEditOverlay" class="edit-overlay">
+               <button @click="triggerFileInput">Subir Imagen</button>
+               <!-- <button v-for="img in defaultImages" :key="img" @click="updateImage(img)">Elegir predefinida</button> -->
+            </div>
+            <input ref="fileInputRef" type="file" accept="image/*" @change="handleFileUpload" style="display: none;" />
+         </div>
+         <div class="playlist-info">
+            <h1>{{ playlistInfo.Nombre }}</h1>
+            <p>{{ playlistInfo.NumCanciones }} canciones</p>
+            <p>{{ playlistInfo.Descripcion }}</p>
+            <p>{{ playlistInfo.NumLikes }} Likes</p>
+         </div>
       </div>
 
       <div class="song-container">
@@ -159,6 +165,10 @@ console.log('Type de la playlist:', type);
 const playlistInfo = ref({}); // Inicializado como objeto vacío
 const playlist = ref([]); // Inicializado como array vacío
 const searchTerm = ref('');
+const showEditOverlay = ref(false);
+const fileInputRef = ref(null);
+const previewImageUrl = ref(null);
+const defaultImages = ref([]);
 
 const results = ref({
    artistas: [],
@@ -202,6 +212,73 @@ watch(() => route.query.id, async (newId, oldId) => {
       console.error('Error al actualizar la playlist:', error);
    }
 });
+
+const updateImage = async (newUrl) => {
+   try {
+      console.log("Archivo a subir:", user.value.perfil);
+      const response = await fetch("https://echobeatapi.duckdns.org/playlists/update-cover", {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+            userEmail: email,  
+            playlistId: Number(Id),
+            imageUrl: newUrl,
+         })
+      });
+
+      if (!response.ok) {
+         console.log("Error con la imagen predeterminada")
+         throw new Error("Error al actualizar la imagen ");
+      }
+
+      console.log("Imagen predeterminada actualizada correctamente");
+   } catch (error) {
+      showPopupMessage("Error al actualizar la imagen", "popup-error");
+   }
+};
+
+const handleFileUpload = async (event) => {
+   const file = event.target.files[0];
+   if (!file) return;
+
+   const reader = new FileReader();
+   reader.onload = async (e) => {
+      previewImageUrl.value = e.target.result;
+      const formData = new FormData();
+      formData.append('userEmail', email);
+      console.log('Email Actualizar playlist: ', email);
+      formData.append('file', file);
+      const idLista = Number(Id);
+      console.log('IdLista: ', idLista);
+      console.log("Archivo a subir:", file);
+      try {
+         const response = await fetch(`https://echobeatapi.duckdns.org/playlists/update-photo/${idLista}`, { 
+            method: "POST",
+            headers: {},
+            body: 
+               formData,
+            })
+         
+         if (!response.ok) {
+            const errorData = await response.text(); // Ver el error en texto
+            throw new Error("Error al subir la imagen");
+         }
+         console.log("Imagen actualizada con éxito");
+         showPopupMessage("Imagen actualizada con éxito", "popup-success");
+      } catch (error) {
+         console.error(error.message, "popup-error");
+      }
+      };
+
+   reader.readAsDataURL(file); // Esto genera la vista previa
+};
+
+const triggerFileInput = () => {
+   fileInputRef.value?.click();
+};
 
 const playNewSong = async (song,posicion) => {
    console.log("cancionid:", song);
@@ -279,6 +356,12 @@ onMounted(async () => {
       // ASIGNAR LAS CANCIONES A `playlist`
       playlist.value = songsData.value.canciones;
       console.log("✅ Playlist final cargada:", playlist.value);
+
+      // Imágenes predeterminadas
+      const ImageResponse = await fetch("https://echobeatapi.duckdns.org/playlists/default-photos");
+      if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
+      defaultImages.value = await ImageResponse.json();
+      console.log('Canciones predeterminadas', defaultImages.value)
 
    } catch (error) {
       console.error('Error al cargar la playlist:', error);
@@ -904,6 +987,37 @@ h1 {
    outline: none;
    box-shadow: 0 0 8px rgba(255, 165, 0, 0.7);
 }
+
+.image-container {
+  position: relative;
+  width: fit-content;
+}
+
+.edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.edit-overlay button {
+  background-color: #ffffff;
+  color: #000;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
 
 /* Mensaje emergente */
 .popup {
