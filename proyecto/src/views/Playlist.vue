@@ -5,31 +5,50 @@
          <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
       </div>
       <div class="playlist-header">
-        <img :src="playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
-        <div class="playlist-info">
-          <h1>{{ playlistInfo.Nombre }}</h1>
-          <p>{{ playlistInfo.NumCanciones }} canciones</p>
-          <p>{{ playlistInfo.Descripcion }}</p>
-          <p>{{ playlistInfo.NumLikes }} Likes</p>
-        </div>
-
+         <div class="image-container" @mouseover="showEditOverlay = true && type === 'ListaReproduccion' " @mouseleave="showEditOverlay = false && type === 'ListaReproduccion'" >
+            <img :src="previewImageUrl || playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
+            <div v-if="showEditOverlay" class="edit-overlay">
+               <button v-if="type === 'ListaReproduccion'" @click="triggerFileInput">Subir Imagen</button>
+               <button v-if="type === 'ListaReproduccion'" @click="profileAction = 'select'">Elegir predeterminada</button>
+            </div>
+            <input ref="fileInputRef" type="file" accept="image/*" @change="handleFileUpload" style="display: none;" />
+         </div>
+         <div class="playlist-info">
+            <h1>{{ playlistInfo.Nombre }}</h1>
+            <p>{{ playlistInfo.NumCanciones }} canciones</p>
+            <p>{{ playlistInfo.Descripcion }}</p>
+            <p>{{ playlistInfo.NumLikes }} Likes</p>
+         </div>
+      </div>
+      <div v-if="profileAction === 'select'" class="image-selection-modal">
+         <h3>Selecciona una imagen</h3>
+         <div class="image-grid">
+            <img 
+               v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
+            />
+         </div>
+         <button class="close-btn" @click="closeImageSelection">Cerrar</button>
       </div>
 
       <div class="song-container">
         <div class="playlist-actions">
-
             <button class="button-action" @click="deletePlaylist" v-if="type === 'ListaReproduccion'" >
-
-
                <img :src="deleteIcon" alt="delete"/>
             </button>
             <button class="button-action" @click="randomClick">
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
             <input v-model="searchTerm" placeholder="Buscar canción" />
+            <div class="select-wrapper">
+               <select class="filterSelect" v-model="sortOption" @change="sortSongs">
+                  <option disabled value=""> Orden playlist </option>
+                  <option value="default">Predefinida</option>
+                  <option value="name">Nombre</option>
+                  <option value="plays">Reproducciones</option>
+               </select>
+            </div>
 
             <button ref="addButtonRef" class="button-action" @click="toggleSearch"  v-if="type === 'ListaReproduccion'" >
-            
                <img :src="add_button" alt="add"/>
             </button>
             <button @click="playPlaylist" class="button-action">  
@@ -123,6 +142,29 @@ const currentSearch = ref('');
 const isLoading = ref(false);
 const hoveredSong = ref(null);
 
+const route = useRoute();
+const Id = route.query.id;
+
+console.log('ID de la playlist:', Id);
+console.log('Type de la playlist:', type);
+
+const playlistInfo = ref({}); // Inicializado como objeto vacío
+const playlist = ref([]); // Inicializado como array vacío
+const searchTerm = ref('');
+const showEditOverlay = ref(false);
+const fileInputRef = ref(null);
+const previewImageUrl = ref(null);
+const defaultImages = ref([]);
+const profileAction = ref(null);
+const sortOption = ref('default');
+
+const results = ref({
+   artistas: [],
+   canciones: [],
+   albums: [],
+   listas: []
+});
+
 const email = localStorage.getItem("email");
 const aleatorio = ref(false);
 const showPopup = ref(false);
@@ -150,22 +192,6 @@ const filteredPlaylist = computed(() => {
    );
 });
 
-const route = useRoute();
-const Id = route.query.id;
-
-console.log('ID de la playlist:', Id);
-console.log('Type de la playlist:', type);
-
-const playlistInfo = ref({}); // Inicializado como objeto vacío
-const playlist = ref([]); // Inicializado como array vacío
-const searchTerm = ref('');
-
-const results = ref({
-   artistas: [],
-   canciones: [],
-   albums: [],
-   listas: []
-});
 
 const goBack = () => {
    router.back();
@@ -175,6 +201,40 @@ const goBack = () => {
 const toggleSearch = () => {
    searchVisible.value = !searchVisible.value;
 };
+
+async function sortSongs() {
+   const idLista = Number(Id);
+   try {
+      let filtro;
+
+      switch (sortOption.value) {
+         case 'default':
+         filtro = 0;
+         break;
+         case 'name': // No está soportado en la API, opcionalmente muestra un mensaje o ignora
+         filtro = 1;
+         break;
+         case 'plays':
+         filtro = 2;
+         break;
+         default:
+         filtro = 0;
+      }
+
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
+      
+      if (!response.ok) throw new Error("Error al ordenar las canciones");
+
+      const data = await response.json();
+      playlist.value = data.canciones;
+
+      showPopupMessage('Playlist ordenada correctamente', 'popup-success');
+   } catch (error) {
+      console.error(error);
+      showPopupMessage(' Error al ordenar la playlist', 'popup-error');
+   }
+}
+
 
 watch(() => route.query.id, async (newId, oldId) => {
    if (!newId || newId === oldId) return;
@@ -202,6 +262,86 @@ watch(() => route.query.id, async (newId, oldId) => {
       console.error('Error al actualizar la playlist:', error);
    }
 });
+
+// Función para seleccionar una imagen predeterminada
+const selectDefaultImage = (image) => {
+   updateImage(image);
+   previewImageUrl.value = image;
+   profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
+};
+
+// Cerrar el modal de selección de imagen
+const closeImageSelection = () => {
+   profileAction.value = "";
+};
+
+const updateImage = async (newUrl) => {
+   try {
+      console.log("Archivo a subir:", newUrl);
+      const response = await fetch("https://echobeatapi.duckdns.org/playlists/update-cover", {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+            userEmail: email,  
+            playlistId: Number(Id),
+            imageUrl: newUrl,
+         })
+      });
+
+      if (!response.ok) {
+         console.error("Error con la imagen predeterminada")
+         throw new Error("Error al actualizar la imagen ");
+      }
+      
+      showPopupMessage("Imagen actualizada con éxito", "popup-success");
+      console.log("Imagen predeterminada actualizada correctamente");
+   } catch (error) {
+      showPopupMessage("Error al actualizar la imagen", "popup-error");
+   }
+};
+
+const handleFileUpload = async (event) => {
+   const file = event.target.files[0];
+   if (!file) return;
+
+   const reader = new FileReader();
+   reader.onload = async (e) => {
+      previewImageUrl.value = e.target.result;
+      const formData = new FormData();
+      formData.append('userEmail', email);
+      console.log('Email Actualizar playlist: ', email);
+      formData.append('file', file);
+      const idLista = Number(Id);
+      console.log('IdLista: ', idLista);
+      console.log("Archivo a subir:", file);
+      try {
+         const response = await fetch(`https://echobeatapi.duckdns.org/playlists/update-photo/${idLista}`, { 
+            method: "POST",
+            headers: {},
+            body: 
+               formData,
+            })
+         
+         if (!response.ok) {
+            const errorData = await response.text(); // Ver el error en texto
+            throw new Error("Error al subir la imagen");
+         }
+         console.log("Imagen actualizada con éxito");
+         showPopupMessage("Imagen actualizada con éxito", "popup-success");
+      } catch (error) {
+         console.error(error.message, "popup-error");
+      }
+      };
+
+   reader.readAsDataURL(file); // Esto genera la vista previa
+};
+
+const triggerFileInput = () => {
+   fileInputRef.value?.click();
+};
 
 const playNewSong = async (song,posicion) => {
    console.log("cancionid:", song);
@@ -279,6 +419,12 @@ onMounted(async () => {
       // ASIGNAR LAS CANCIONES A `playlist`
       playlist.value = songsData.value.canciones;
       console.log("✅ Playlist final cargada:", playlist.value);
+
+      // Imágenes predeterminadas
+      const ImageResponse = await fetch("https://echobeatapi.duckdns.org/playlists/default-photos");
+      if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
+      defaultImages.value = await ImageResponse.json();
+      console.log('Canciones predeterminadas', defaultImages.value)
 
    } catch (error) {
       console.error('Error al cargar la playlist:', error);
@@ -593,7 +739,6 @@ hr{
 }
 
 .playlist-actions input,
-.playlist-actions select,
 .playlist-actions button {
    background-color: #2d1405;
    border: none;
@@ -611,13 +756,6 @@ hr{
 
 .playlist-actions input::placeholder {
    color: white; /* Color del placeholder dorado para mejor visibilidad */
-   opacity: 0.5;
-}
-
-.playlist-actions select {
-   width: 160px;
-   background-color: transparent;
-   color: white;
    opacity: 0.5;
 }
 
@@ -904,6 +1042,140 @@ h1 {
    outline: none;
    box-shadow: 0 0 8px rgba(255, 165, 0, 0.7);
 }
+
+.image-container {
+  position: relative;
+  width: fit-content;
+}
+
+.edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.edit-overlay button {
+  background-color: #ffffffdd;
+  color: #1e1e1e;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.edit-overlay button:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.image-selection-modal {
+   position: fixed;
+   top: 45%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   background: #1a1a1a;
+   padding: 20px;
+   border-radius: 10px;
+   box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+   text-align: center;
+   z-index: 1000;
+}
+
+.image-grid {
+   display: flex;
+   gap: 15px;
+   flex-wrap: wrap;
+   justify-content: center;
+   margin: 10px 0;
+}
+
+.selectable-image {
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   cursor: pointer;
+   transition: 0.3s;
+   object-fit: cover;
+   border: 2px solid #ffa500;
+}
+
+.selectable-image:hover {
+   transform: scale(1.1);
+}
+
+.close-btn {
+   width: 60%;
+   padding: 12px;
+   margin-top: 2rem;
+   border: none;
+   border-radius: 4px;
+   color: #fff;
+   font-weight: bold;
+   cursor: pointer;
+   background-color: #ff5722;
+}
+
+.close-btn:hover {
+   opacity: 0.8;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #8A3A1B;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.3s ease;
+}
+
+.filterSelect:hover {
+  border-color: #888;
+}
+
+.filterSelect:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+}
+
+.filterSelect option {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  top: 50%;
+  right: 3px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #aaa;
+}
+
 
 /* Mensaje emergente */
 .popup {

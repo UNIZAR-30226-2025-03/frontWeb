@@ -110,6 +110,17 @@ onMounted(async () => {
          perfil: UserPerfil,
       }
 
+      // Marcar los mensajes como leídos
+      const result = await fetch(`https://echobeatapi.duckdns.org/chat/marcarComoLeidos?senderId=${encodeURIComponent(friendMail)}&receiverId=${encodeURIComponent(email)}`, {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*',
+      },
+      });
+      if (!result.ok) {
+         throw new Error("Error al leer los mensajes");
+      }
+
    } catch (error) {
       console.error(error.message);
    }
@@ -152,6 +163,7 @@ const scrollToBottom = async () => {
    messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
    }
 }
+
 </script>
  
  <style scoped>
