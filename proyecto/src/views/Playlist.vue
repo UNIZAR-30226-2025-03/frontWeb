@@ -130,6 +130,7 @@ const popupMessage = ref("");
 const popupType = ref("popup-error");
 const songsData = ref('');
 
+
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -290,11 +291,39 @@ onMounted(() => {
    document.addEventListener('click', handleClickOutside);
 });
 
+onUnmounted(async() => {
+   console.log("Actualizando lista...");
+   try {
+      const canciones = filteredPlaylist.value;
+      const cancionesJson = { canciones };
+
+      const responde = await fetch ("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({
+               idPlaylist: Number(Id),
+               cancionesJson: cancionesJson
+            })
+         })
+
+      if (!responde.ok) throw new Error('Error al actualizando lista');
+
+      
+   } catch (error) {
+      console.error(error);
+   }
+
+});
+
 onUnmounted(() => {
    console.log("Saliendo de la página...");
    // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
    document.removeEventListener('click', handleClickOutside);
 });
+
+
 
 // Imagen de reemplazo
 const handleImageError = (event) => {

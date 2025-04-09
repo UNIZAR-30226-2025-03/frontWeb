@@ -209,6 +209,8 @@ import logo from '@/assets/logo.png';
 import router from './router';
 import AudioStreamer from './components/AudioStreamer.vue'
 import CorazonVacio from '@/assets/me-gusta.png';
+import { emitter } from '@/js/event-bus';
+
 const streamerRef = ref(null)
 provide('playSong', playSong);
 provide('playFromQuest', playFromQuest);
@@ -363,6 +365,7 @@ const likePlaylist = async (idLista) => {
 
     if(!responseLike.ok) throw new Error(" No se ha podido dar like a la playlist");
     showPopupMessage(" Playlist likeada","popup-success"); 
+    emitter.emit('likedLists-updated');
  
   } catch (error) {
     showPopupMessage(error,"popup-error");
@@ -445,6 +448,15 @@ onMounted(async () => {
 // Eliminar el evento cuando se desmonte el componente
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
+
+  const currentTime = player.value.currentTime;
+
+  streamerRef.value.socket.emit('progressUpdate', {
+      userId: email,
+      songId: currentSong.Id,
+      currentTime,
+  });
+  console.log (currentTime)
 });
 
 
@@ -465,31 +477,8 @@ function updateCurrentTime(event) {
       progress.value = (event.target.currentTime / event.target.duration) * 100;
       
     }
-    // Si ya existía un intervalo, lo limpiamos para no duplicarlo
-   
-    if (progressInterval) {
-        
-        clearInterval(progressInterval);
-    }
-    if(contador  ===  0 ){
-      contador = 1;
-      // Enviamos solo si el audio se está reproduciendo
-        if (isPlaying.value) {
-          const currentTime = parseInt(event.target.currentTime.toFixed(0));
-          console.log(`userId: ${email}, songId: ${currentSong.Id}, currentTime: ${currentTime}`) 
-          streamerRef.value.socket.emit('progressUpdate', {
-            userId: email,
-            songId: currentSong.Id,
-            currentTime,
-          });
-
-          console.log(`[Progress]Progreso enviado: ${currentTime} segundos`);
-        }
-
-    }else{
-      contador--;
-    }
     
+
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
