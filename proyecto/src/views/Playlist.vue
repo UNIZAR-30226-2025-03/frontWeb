@@ -14,10 +14,23 @@
             <input ref="fileInputRef" type="file" accept="image/*" @change="handleFileUpload" style="display: none;" />
          </div>
          <div class="playlist-info">
-            <h1>{{ playlistInfo.Nombre }}</h1>
-            <p>{{ playlistInfo.NumCanciones }} canciones</p>
+            <div class="playlist-title">
+               <h1>{{ playlistInfo.Nombre }}</h1>
+               <img :src="infoIcon" alt="info" class="info-icon" @click="showInfoPopup"/>
+            </div>
+            <p>{{ playlistInfo.NumCanciones }} canciones</p> 
             <p>{{ playlistInfo.Descripcion }}</p>
             <p>{{ playlistInfo.NumLikes }} Likes</p>
+         </div>
+
+         <!-- Popup para mostrar información adicional -->
+         <div v-if="isPopupOpen" class="popup-overlay" @click="closePopup">
+            <div class="popup-content">
+               <h2>Información de la Playlist</h2>
+               <p><strong>Género:</strong> {{ playlistDetails.Genero }}</p>
+               <p><strong>Privacidad:</strong> {{ playlistDetails.TipoPrivacidad }}</p>
+               <button @click="closePopup">Cerrar</button>
+            </div>
          </div>
       </div>
       <div v-if="profileAction === 'select'" class="image-selection-modal">
@@ -128,6 +141,7 @@ import add_button from '@/assets/add_circle.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
 import deleteIcon from '@/assets/delete.svg';
+import infoIcon from '@/assets/info.svg';
 
 const playSong = inject('playSong')
 const type = localStorage.getItem("type")
@@ -157,6 +171,8 @@ const previewImageUrl = ref(null);
 const defaultImages = ref([]);
 const profileAction = ref(null);
 const sortOption = ref('default');
+const songsData = ref('');
+const playlistDetails = ref([]);
 
 const results = ref({
    artistas: [],
@@ -165,12 +181,24 @@ const results = ref({
    listas: []
 });
 
+// Popp-up detalles playlist
+const isPopupOpen = ref(false);
+
+// Función para abrir el popup
+const showInfoPopup = () => {
+  isPopupOpen.value = true;
+};
+
+// Función para cerrar el popup
+const closePopup = () => {
+  isPopupOpen.value = false;
+};
+
 const email = localStorage.getItem("email");
 const aleatorio = ref(false);
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
-const songsData = ref('');
 
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
@@ -211,7 +239,7 @@ async function sortSongs() {
          case 'default':
          filtro = 0;
          break;
-         case 'name': // No está soportado en la API, opcionalmente muestra un mensaje o ignora
+         case 'name': 
          filtro = 1;
          break;
          case 'plays':
@@ -403,6 +431,13 @@ onMounted(async () => {
       
       playlistInfo.value = await infoResponse.json();
       console.log("✅ PlaylistInfo cargada: ", playlistInfo.value);
+
+      // OBTENER DETALLES DE LA PLAYLIST
+      const detailsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/playlist/${Id}`);
+      if (!detailsResponse.ok) throw new Error('Error al obtener los detalles de la playlist');
+      
+      playlistDetails.value = await detailsResponse.json();
+      console.log("✅ Playlist details: ", playlistDetails.value);
 
       //  OBTENER CANCIONES DE LA PLAYLIST
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
@@ -660,6 +695,7 @@ hr{
    opacity: 0.8;
    width: 100vw;
 }
+
 .layout {
    display: flex;
    height: 100vh;
@@ -707,6 +743,24 @@ hr{
    color: white;
    text-align: left;
    max-width: 500px;
+}
+
+.playlist-title {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* espacio entre el texto y el icono */
+}
+
+.playlist-title h1 {
+  margin: 0;
+}
+
+.playlist-info .info-icon {
+  width: 40px;  /* Ajusta el tamaño */
+  height: 40px;
+  object-fit: contain;  /* Evita distorsión de la imagen */
+  cursor: pointer;
+  filter: brightness(0) invert(1);
 }
 
 .playlist-info h1 {
@@ -790,7 +844,6 @@ hr{
    align-items: center;
    padding: 6px;
    margin: 0 auto;
-   
 }
 
 .song-cover {
@@ -1176,6 +1229,82 @@ h1 {
   color: #aaa;
 }
 
+/* Estilos para el popup */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8); /* Fondo oscuro semitransparente */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Estilo para el contenido del popup */
+.popup-content {
+  background-color: #463f3b;  
+  padding: 20px;
+  border-radius: 12px;
+  width: 320px;
+  max-width: 90%;
+  color: #ffb347; 
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Título del popup */
+.popup-content h2 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  font-weight: bold;
+  color: #ffb347;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7); 
+}
+
+/* Estilo para las etiquetas del popup (Género, Privacidad) */
+.popup-content p {
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+  opacity: 0.9;
+}
+
+/* Estilo para el botón de cerrar */
+.popup-content button {
+  background-color: #c14a1b;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  font-size: 1rem;
+}
+
+.popup-content button:hover {
+  background-color: #ffb347;
+  color: #2d1405;
+}
+
+/* Animación para el popup */
+.popup-content {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 /* Mensaje emergente */
 .popup {
