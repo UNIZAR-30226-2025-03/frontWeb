@@ -5,6 +5,7 @@
          <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
       </div>
       <div class="playlist-header">
+
          <div class="image-container" @mouseover="showEditOverlay = true && type === 'ListaReproduccion' " @mouseleave="showEditOverlay = false && type === 'ListaReproduccion'" >
             <img :src="previewImageUrl || playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
             <div v-if="showEditOverlay" class="edit-overlay">
@@ -13,25 +14,35 @@
             </div>
             <input ref="fileInputRef" type="file" accept="image/*" @change="handleFileUpload" style="display: none;" />
          </div>
+
          <div class="playlist-info">
             <div class="playlist-title">
-               <h1>{{ playlistInfo.Nombre }}</h1>
-               <img :src="infoIcon" alt="info" class="info-icon" @click="showInfoPopup"/>
+               <h1 @click.stop="toggleEditTitle" v-if="!isEditingTitle">{{ playlistInfo.Nombre }}</h1>
+               <input v-if="isEditingTitle" ref="titleInputRef" v-model="editedTitle" @blur="saveTitle" @keyup.enter="saveTitle" type="text" :class="{'show': isEditingTitle}" />
+               <div class="info-popup-anchor">
+                  <img :src="infoIcon" alt="info" class="info-icon" @click.stop="togglePopup"/>
+                  
+                  <!-- Popup -->
+                  <div v-if="isPopupOpen" class="playlist-popup" :style="popupStyle">
+                     <h2>Detalles de la Playlist</h2>
+                     <p><strong>Género:</strong> {{ playlistDetails.Genero }}</p>
+                     <p><strong>Privacidad:</strong> {{ playlistDetails.TipoPrivacidad }}</p>
+                     <button @click="closePopup">Cerrar</button>
+                  </div>
+
+                  <!-- Fondo oscuro sutil cuando el popup está abierto -->
+                  <div v-if="isPopupOpen" class="popup-background-overlay" @click="closePopup">
+                  </div>
+               </div>
             </div>
             <p>{{ playlistInfo.NumCanciones }} canciones</p> 
-            <p>{{ playlistInfo.Descripcion }}</p>
+            <div class="playlist-description">
+               <p @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
+               <input v-if="isEditingDescription" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
+          </div>
             <p>{{ playlistInfo.NumLikes }} Likes</p>
          </div>
 
-         <!-- Popup para mostrar información adicional -->
-         <div v-if="isPopupOpen" class="popup-overlay" @click="closePopup">
-            <div class="popup-content">
-               <h2>Información de la Playlist</h2>
-               <p><strong>Género:</strong> {{ playlistDetails.Genero }}</p>
-               <p><strong>Privacidad:</strong> {{ playlistDetails.TipoPrivacidad }}</p>
-               <button @click="closePopup">Cerrar</button>
-            </div>
-         </div>
       </div>
       <div v-if="profileAction === 'select'" class="image-selection-modal">
          <h3>Selecciona una imagen</h3>
@@ -173,6 +184,12 @@ const profileAction = ref(null);
 const sortOption = ref('default');
 const songsData = ref('');
 const playlistDetails = ref([]);
+const editedTitle = ref('');
+const editedDescription = ref('');
+const isEditingTitle = ref(false);
+const isEditingDescription = ref(false);
+const titleInputRef = ref(null);
+const descriptionInputRef = ref(null);
 
 const results = ref({
    artistas: [],
@@ -180,19 +197,6 @@ const results = ref({
    albums: [],
    listas: []
 });
-
-// Popp-up detalles playlist
-const isPopupOpen = ref(false);
-
-// Función para abrir el popup
-const showInfoPopup = () => {
-  isPopupOpen.value = true;
-};
-
-// Función para cerrar el popup
-const closePopup = () => {
-  isPopupOpen.value = false;
-};
 
 const email = localStorage.getItem("email");
 const aleatorio = ref(false);
@@ -210,6 +214,19 @@ const showPopupMessage = (message, type) => {
    }, 3000); // Cierra el popup después de 3 segundos
 };
 
+// Pop-up detalles playlist
+const isPopupOpen = ref(false);
+const popupStyle = ref({});
+
+const togglePopup = async () => {
+  isPopupOpen.value = !isPopupOpen.value;
+};
+
+// Función para cerrar el popup
+const closePopup = () => {
+  isPopupOpen.value = false;
+};
+
 const filteredPlaylist = computed(() => {
    if (!searchTerm.value.trim()) {
       return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
@@ -220,10 +237,85 @@ const filteredPlaylist = computed(() => {
    );
 });
 
-
 const goBack = () => {
    router.back();
 };
+
+// Lógica para edición
+const toggleEditTitle = () => {
+   isEditingTitle.value = !isEditingTitle.value;
+   if (isEditingTitle.value) {
+      // Si se está editando, asegurarse de que el input tenga el valor del nombre actual
+      editedTitle.value = playlistInfo.value.Nombre;
+   }
+};
+
+const toggleEditDescription = () => {
+   isEditingDescription.value = !isEditingDescription.value;
+   if (isEditingDescription.value) {
+      // Si se está editando, asegurarse de que el input tenga el valor de la descripción actual
+      editedDescription.value = playlistInfo.value.Descripcion;
+   }
+};
+
+const saveTitle = async () => {
+   if (editedTitle.value != playlistInfo.value.Nombre) {
+      playlistInfo.value.Nombre = editedTitle.value;
+      isEditingTitle.value = false;
+      try {
+         const res = await fetch("https://echobeatapi.duckdns.org/playlists/update-nombre", { 
+            method: "POST",
+            headers: {
+               "Accept": "application/json",
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+               userEmail: email,
+               idPlaylist: Number(Id),
+               nuevoNombre: playlistInfo.value.Nombre
+            })
+         });
+         if (!res.ok) throw new Error("Error al actualizar nombre de playlist");
+         showPopupMessage('Título actualizado correctamente', 'popup-success');
+
+      } catch (error) {
+         console.error(error.message);
+      }
+   }
+   else {
+      isEditingTitle.value = false;
+   }
+};
+
+const saveDescription = async () => {
+   if (editedDescription.value != playlistInfo.value.Descripcion) {
+      playlistInfo.value.Descripcion = editedDescription.value;
+      isEditingDescription.value = false;
+      try {
+         const res = await fetch("https://echobeatapi.duckdns.org/playlists/update-descripcion", { 
+            method: "POST",
+            headers: {
+               "Accept": "application/json",
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+               userEmail: email,
+               idPlaylist: Number(Id),
+               nuevaDescripcion: playlistInfo.value.Descripcion
+            })
+         });
+         if (!res.ok) throw new Error("Error al actualizar descripción de playlist");
+         showPopupMessage('Descripción actualizada correctamente', 'popup-success');
+
+      } catch (error) {
+         console.error(error.message);
+      }
+   }
+   else {
+      isEditingDescription.value = false;
+   }
+};
+
 
 // Toggle para mostrar/ocultar el buscador
 const toggleSearch = () => {
@@ -414,12 +506,17 @@ const playNewSong = async (song,posicion) => {
 // Función que oculta el menú de búsqueda cuando se hace clic fuera de él
 const handleClickOutside = (event) => {
    // Si el clic es fuera del contenedor del menú y del botón de añadir, ocultamos el menú
-   if (
-      searchContainerRef.value && 
-      !searchContainerRef.value.contains(event.target) && 
-      !addButtonRef.value.contains(event.target)
-   ) {
+   if (searchContainerRef.value && !searchContainerRef.value.contains(event.target) && !addButtonRef.value.contains(event.target)) {
       searchVisible.value = false; // Oculta el desplegable
+   }
+   // Si el clic es fuera del título input, cerramos la edición del título
+   if (isEditingTitle.value && titleInputRef.value && !titleInputRef.value.contains(event.target)) {
+      saveTitle(); // Guarda el título y cierra la edición
+   }
+
+   // Si el clic es fuera del descripción input, cerramos la edición de la descripción
+   if (isEditingDescription.value && descriptionInputRef.value && !descriptionInputRef.value.contains(event.target)) {
+      saveDescription(); // Guarda la descripción y cierra la edición
    }
 };
 
@@ -472,10 +569,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-   console.log("Saliendo de la página...");
-   // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
    document.removeEventListener('click', handleClickOutside);
 });
+
 
 // Imagen de reemplazo
 const handleImageError = (event) => {
@@ -751,8 +847,42 @@ hr{
   gap: 20px; /* espacio entre el texto y el icono */
 }
 
-.playlist-title h1 {
-  margin: 0;
+.playlist-title input,
+.playlist-description input {
+  width: 100%;
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ffa500;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: #fff;
+  opacity: 0;
+  height: 0;
+  transition: opacity 0.3s, height 0.3s ease-in-out;
+}
+
+.playlist-title input:focus,
+.playlist-description input:focus {
+  outline: none;
+  border-color: #009688;
+}
+
+.playlist-title h1,
+.playlist-description p {
+  transition: opacity 0.3s, color 0.3s ease-in-out;
+}
+
+.playlist-title input.show,
+.playlist-description input.show {
+  opacity: 1;
+  height: auto;
+}
+
+.playlist-title h1:hover,
+.playlist-description p:hover {
+  color: #009688;
+  cursor: pointer;
+  transition: color 0.3s;
 }
 
 .playlist-info .info-icon {
@@ -766,7 +896,7 @@ hr{
 .playlist-info h1 {
    margin: 10px 0;
    font-family: 'Montserrat', sans-serif;
-   font-size: 2.8rem;
+   font-size: 2.2rem;
    font-weight: bold;
    color: #ffb347;  /* Naranja brillante */
    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); /* Sombra para mejor legibilidad */
@@ -805,7 +935,8 @@ hr{
 
 .playlist-actions input {
    width: 220px;
-   background-color: #8A3A1B;   
+   background-color: #8A3A1B;  
+   border: 1px solid #ccc; 
 }
 
 .playlist-actions input::placeholder {
@@ -1187,12 +1318,12 @@ h1 {
 }
 
 .filterSelect {
-  padding: 8px 12px;
+  padding: 10px 18px;
   border-radius: 8px;
   border: 1px solid #ccc;
   background-color: #8A3A1B;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
@@ -1223,87 +1354,94 @@ h1 {
   content: "▼";
   position: absolute;
   top: 50%;
-  right: 3px;
+  right: 5px;
   transform: translateY(-50%);
   pointer-events: none;
   color: #aaa;
 }
 
 /* Estilos para el popup */
-.popup-overlay {
+.info-popup-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Popup visual */
+.info-popup-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+/* Popup sobre contenido */
+.playlist-popup {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8); /* Fondo oscuro semitransparente */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-/* Estilo para el contenido del popup */
-.popup-content {
-  background-color: #463f3b;  
-  padding: 20px;
+  background-color: #7f5a47;
   border-radius: 12px;
-  width: 320px;
-  max-width: 90%;
-  color: #ffb347; 
-  text-align: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  padding: 18px 20px;
+  min-width: 240px;
+  color: #ffb347;
+  z-index: 9999;
   font-family: 'Inter', sans-serif;
+  animation: fadeSlideIn 0.25s ease-out;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7),
+            0 0 10px rgba(255, 180, 71, 0.3); 
 }
 
-/* Título del popup */
-.popup-content h2 {
-  font-size: 1.8rem;
-  margin-bottom: 20px;
+/* Título */
+.playlist-popup h2 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
   font-weight: bold;
   color: #ffb347;
-  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7); 
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
 }
 
-/* Estilo para las etiquetas del popup (Género, Privacidad) */
-.popup-content p {
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-  opacity: 0.9;
+/* Detalles */
+.playlist-popup p {
+  margin: 8px 0;
+  font-size: 1.05rem;
+  opacity: 0.85;
 }
 
-/* Estilo para el botón de cerrar */
-.popup-content button {
-  background-color: #c14a1b;
+/* Botón cerrar */
+.playlist-popup button {
+  background-color: #8a3a10;
   border: none;
-  padding: 10px 20px;
+  padding: 8px 14px;
   border-radius: 8px;
   color: white;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.3s ease;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
-.popup-content button:hover {
+.playlist-popup button:hover {
   background-color: #ffb347;
   color: #2d1405;
 }
 
-/* Animación para el popup */
-.popup-content {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
+/* Entrada animada */
+@keyframes fadeSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateX(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
+}
+
+.popup-background-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(1px);
+  background-color: rgba(0, 0, 0, 0.4); /* Oscurece un poco */
+  z-index: 9998; /* Justo por debajo del popup */
 }
 
 /* Mensaje emergente */
