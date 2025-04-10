@@ -65,7 +65,6 @@
 </template>
  
   
-
 <script setup>
 import { ref, onMounted, watch, inject, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -111,24 +110,28 @@ const goBack = () => {
    router.back();
 };
  
- console.log('ID del album:', Id);
- 
- const albumInfo = ref({}); // Inicializado como objeto vacío
- const album = ref([]); // Inicializado como array vacío
- const searchTerm = ref('');
+const route = useRoute();
+const Id = route.query.id;
 
- // Actualiza el número de reproducciones localmente
+console.log('ID del album:', Id);
+ 
+const albumInfo = ref({}); // Inicializado como objeto vacío
+const album = ref([]); // Inicializado como array vacío
+const searchTerm = ref('');
+
+// Actualiza el número de reproducciones localmente
 const updateSongReproductions = (song) => {
    song.numReproducciones++; // Incrementar localmente las reproducciones
 };
 
-const route = useRoute();
-const Id = route.query.id;
-
-
- 
- 
+//Actualizar el numero de reproducciones de album localmente
+const updateAlbumReproductions = (album) => {
+   album.numReproducciones++; // Incrementar localmente las reproducciones
+};
 const playNewSong = async (song,posicion) => {
+   // Primero actualizamos las reproducciones localmente
+   updateSongReproductions(song);
+   updateAlbumReproductions(albumInfo.value);
    console.log("cancionid:", song);
    console.log("posicion:", posicion);
 
@@ -141,7 +144,6 @@ const playNewSong = async (song,posicion) => {
  
    console.log(newSong);
     
-
    const bodyData = {
       userEmail: email,
       reproduccionAleatoria: aleatorio.value,
@@ -646,4 +648,3 @@ h1 {
 }
  
 </style>
-  
