@@ -169,7 +169,7 @@ import editIcon from '@/assets/edit.svg';
 
 const playSong = inject('playSong')
 const type = localStorage.getItem("type")
-localStorage.removeItem("type");
+
 // Variables para CSS y HTML
 const isGlowing = ref(false);
 const router = useRouter();
@@ -220,6 +220,7 @@ const aleatorio = ref(false);
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
+
 
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
@@ -527,7 +528,21 @@ const triggerFileInput = () => {
    fileInputRef.value?.click();
 };
 
+// Función para actualizar las reproducciones localmente
+const updateSongReproductions = (song) => {
+   song.numReproducciones++; // Incrementar localmente las reproducciones
+   // Esto ya se actualizaría en el backend automáticamente como mencionaste, por lo tanto no es necesario hacer más
+};
+
+// Watcher para escuchar cambios en la playlist
+watch(() => playlist.value, (newPlaylist) => {
+   console.log('Playlist actualizada:', newPlaylist);
+}, { immediate: true });
+
+
 const playNewSong = async (song,posicion) => {
+   // Primero actualizamos las reproducciones localmente
+   updateSongReproductions(song);
    console.log("cancionid:", song);
    console.log("posicion:", posicion);
 
@@ -566,6 +581,7 @@ const playNewSong = async (song,posicion) => {
 
    playSong(newSong);
 }
+
 
 // Función que oculta el menú de búsqueda cuando se hace clic fuera de él
 const handleClickOutside = (event) => {
@@ -639,10 +655,36 @@ onMounted(() => {
    document.addEventListener('click', handleClickOutside);
 });
 
-onUnmounted(() => {
-   document.removeEventListener('click', handleClickOutside);
+onUnmounted(async() => {
+   console.log("Actualizando lista...");
+   try {
+      const canciones = filteredPlaylist.value;
+      const cancionesJson = { canciones };
+
+      const responde = await fetch ("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({
+               idPlaylist: Number(Id),
+               cancionesJson: cancionesJson
+            })
+         })
+
+      if (!responde.ok) throw new Error('Error al actualizando lista');
+
+      
+   } catch (error) {
+      console.error(error);
+   }
+
 });
 
+onUnmounted(() => {
+   document.removeEventListener('click', handleClickOutside);
+   localStorage.removeItem("type");
+});
 
 // Imagen de reemplazo
 const handleImageError = (event) => {
