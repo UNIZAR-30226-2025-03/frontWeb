@@ -1,7 +1,7 @@
 <template>
    <!-- Muestra un spinner de carga mientras se verifica el token -->
    <div v-if="isLoading" class="loading-spinner">
-      Cargando...
+      <div >Cargando...</div>
    </div>
 
    <!-- Si isLoading es false, renderiza la pantalla de login -->
@@ -49,7 +49,6 @@ const popupType = ref("popup-error");
 
 // Estado de carga
 const isLoading = ref(true);
-
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -306,6 +305,24 @@ button:hover {
 .logo {
    width: 100px;
 }
+
+.loading-spinner{ 
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0;
+  left: 0;
+  backdrop-filter: blur(10px);
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 999999;
+
+  display: flex;
+  justify-content: center; /* centra horizontalmente */
+  align-items: center;     /* centra verticalmente */
+   font-size: larger;
+
+}
+
 
 /* Mensaje emergente */
 .popup {

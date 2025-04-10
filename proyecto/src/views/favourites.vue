@@ -27,7 +27,7 @@
                                 </p>
                               </div>
                                <!-- 🗑️ Botón de eliminar -->
-                              <button class="trash-btn" @click="unlikePlaylist(element.Id)">🗑️</button>
+                              <button class="trash-btn" @click.stop="unlikePlaylist(element.Id)">🗑️</button>
                             </div>
                           </li>
                         </template>
@@ -48,9 +48,10 @@
 </template>
 
 <script setup>
-import { onMounted,ref } from 'vue';
+import { onMounted,ref, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 import { useRouter } from 'vue-router';
+import { emitter } from '@/js/event-bus';
 
 const router = useRouter();
 //pop up 
@@ -75,20 +76,34 @@ const goBack = () => {
    router.back();
 };
 
+async function fetchFavourites() {
+  // OBTENER PLAYLISTS CON LIKE
+  try {
+      const replyPlaylist = await fetch (`https://echobeatapi.duckdns.org/playlists/liked/${email}`);
+      if (!replyPlaylist.ok) throw new Error('Errror al obtener las playlist');
+
+      const likedPlaylistsData = await replyPlaylist.json();
+      console.log("✅ likedPlaylistsData cargada: ",likedPlaylistsData);
+      likedPlaylists.value = Array.isArray(likedPlaylistsData) ? likedPlaylistsData : [likedPlaylistsData];
+      console.log("✅ likedPlaylists cargada: ", likedPlaylists.value);
+   } catch (error) {
+
+      console.error(error);
+   }
+}
+
 onMounted(async () => {
-    try {
-          // OBTENER PLAYLISTS CON LIKE
-        const replyPlaylist = await fetch (`https://echobeatapi.duckdns.org/playlists/liked/${email}`);
-        if (!replyPlaylist.ok) throw new Error('Errror al obetner las playlist');
+   
+      fetchFavourites();
 
-        const likedPlaylistsData = await replyPlaylist.json();
-        console.log("✅ likedPlaylistsData cargada: ",likedPlaylistsData);
-        likedPlaylists.value = Array.isArray(likedPlaylistsData) ? likedPlaylistsData : [likedPlaylistsData];
-        console.log("✅ likedPlaylists cargada: ", likedPlaylists.value);
+      emitter.on('likedLists-updated', () => {
+         fetchFavourites(); // vuelve a cargar los favoritos cuando haya un cambio
+      });
+         
+});
 
-    } catch (error) {
-      showPopupMessage(error.message, "popup-error");
-    }
+onBeforeUnmount(() => {
+  emitter.off('likedLists-updated'); // limpia el listener
 });
 
 const unlikePlaylist = async (playlistId) => {
