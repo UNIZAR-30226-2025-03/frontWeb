@@ -94,7 +94,7 @@
 
  
 <script setup>
-import { ref, onMounted, onUnmounted, inject, computed} from 'vue';
+import { ref, onMounted, onUnmounted, inject, computed, watch} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
@@ -170,7 +170,21 @@ const toggleSearch = () => {
   searchVisible.value = !searchVisible.value;
 };
 
+// Función para actualizar las reproducciones localmente
+const updateSongReproductions = (song) => {
+   song.numReproducciones++; // Incrementar localmente las reproducciones
+   // Esto ya se actualizaría en el backend automáticamente como mencionaste, por lo tanto no es necesario hacer más
+};
+
+// Watcher para escuchar cambios en la playlist
+watch(() => playlist.value, (newPlaylist) => {
+   console.log('Playlist actualizada:', newPlaylist);
+}, { immediate: true });
+
+
 const playNewSong = async (song,posicion) => {
+   // Primero actualizamos las reproducciones localmente
+   updateSongReproductions(song);
    console.log("cancionid:", song);
    console.log("posicion:", posicion);
 
@@ -209,6 +223,7 @@ const playNewSong = async (song,posicion) => {
 
    playSong(newSong);
 }
+
 
 // Función que oculta el menú de búsqueda cuando se hace clic fuera de él
 const handleClickOutside = (event) => {

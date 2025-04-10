@@ -66,7 +66,7 @@
  
   
  <script setup>
- import { ref, onMounted, onUnmounted, inject, computed} from 'vue';
+ import { ref, onMounted, onUnmounted, inject, computed, watch} from 'vue';
  import { useRoute, useRouter } from 'vue-router';
  import draggable from 'vuedraggable';
  import randomIcon from '@/assets/random-button.png';
@@ -118,11 +118,18 @@
  const albumInfo = ref({}); // Inicializado como objeto vacío
  const album = ref([]); // Inicializado como array vacío
  const searchTerm = ref('');
+
+ // Actualiza el número de reproducciones localmente
+const updateSongReproductions = (song) => {
+   song.numReproducciones++; // Incrementar localmente las reproducciones
+};
  
  const playNewSong = async (song,posicion) => {
     console.log("cancionid:", song);
     console.log("posicion:", posicion);
  
+   // Primero actualizamos las reproducciones localmente
+   updateSongReproductions(song);
     const newSong = {
      Id: song.id,
      Nombre: song.nombre,
@@ -158,7 +165,7 @@
  
     playSong(newSong);
  }
- 
+
  onMounted(async () => {
    try {
      // OBTENER INFO DEL ÁLBUM
@@ -281,6 +288,15 @@
         showPopupMessage(error.message, "popup-error");
     }
  };
+
+// Watcher para actualizar las reproducciones cuando cambien
+watch(() => album.value, (newAlbum) => {
+   newAlbum.forEach(song => {
+      song.numReproducciones = song.numReproducciones; // Esto hace que se actualicen las reproducciones cuando cambian
+   });
+});
+
+
  
  </script>
  
