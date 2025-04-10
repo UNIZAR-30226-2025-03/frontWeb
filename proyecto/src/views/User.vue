@@ -35,7 +35,7 @@
                      v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
                   />
                </div>
-               <button @click="closeImageSelection">Cerrar</button>
+               <button class="close-btn" @click="closeImageSelection">Cerrar</button>
             </div>
          </div>
 
@@ -211,13 +211,13 @@ const handleFileChange = (event) => {
 };
 
 
-// 🔹 Función para seleccionar una imagen predeterminada
+// Función para seleccionar una imagen predeterminada
 const selectDefaultImage = (imageUrl) => {
    user.value.perfil = imageUrl;
    profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
-// 🔹 Cerrar el modal de selección de imagen
+// Cerrar el modal de selección de imagen
 const closeImageSelection = () => {
    showImageSelection.value = false;
    profileAction.value = "";
@@ -427,7 +427,7 @@ const logout = () => {
    left: 0;
    width: 100%;
    height: 100vh;
-   background-color: #1a1a1a; 
+   background: linear-gradient(180deg, #141414 15%, #4a1e04 40%, #8a3a10 60%, #ffb347 100%);
    z-index: 9999; 
    display: flex;
    justify-content: center;
@@ -646,6 +646,22 @@ button:hover {
 .back-btn:hover {
    background-color: rgba(255, 165, 0, 0.2);
 }
+
+.close-btn {
+   width: 60%;
+   padding: 12px;
+   margin-top: 2rem;
+   border: none;
+   border-radius: 4px;
+   color: #fff;
+   font-weight: bold;
+   cursor: pointer;
+   background-color: #ff5722;
+}
+
+.close-btn:hover {
+   opacity: 0.8;
+}
   
 /* Mensaje emergente */
 .popup {
@@ -675,4 +691,5 @@ button:hover {
    90% { opacity: 1; }
    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
+
 </style>
