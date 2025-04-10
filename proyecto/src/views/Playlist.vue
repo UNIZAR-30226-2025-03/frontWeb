@@ -17,17 +17,29 @@
 
          <div class="playlist-info">
             <div class="playlist-title">
-               <h1 @click.stop="toggleEditTitle" v-if="!isEditingTitle">{{ playlistInfo.Nombre }}</h1>
-               <input v-if="isEditingTitle" ref="titleInputRef" v-model="editedTitle" @blur="saveTitle" @keyup.enter="saveTitle" type="text" :class="{'show': isEditingTitle}" />
+               <h1 :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditTitle" v-if="!isEditingTitle" >{{ playlistInfo.Nombre }}</h1>
+               <input v-if="isEditingTitle && type === 'ListaReproduccion'" ref="titleInputRef" v-model="editedTitle" @blur="saveTitle" @keyup.enter="saveTitle" type="text" :class="{'show': isEditingTitle}" />
                <div class="info-popup-anchor">
                   <img :src="infoIcon" alt="info" class="info-icon" @click.stop="togglePopup"/>
                   
                   <!-- Popup -->
-                  <div v-if="isPopupOpen" class="playlist-popup" :style="popupStyle">
+                  <div v-if="isPopupOpen" ref="popupRef" class="playlist-popup" :style="popupStyle">
                      <h2>Detalles de la Playlist</h2>
                      <p><strong>Género:</strong> {{ playlistDetails.Genero }}</p>
-                     <p><strong>Privacidad:</strong> {{ playlistDetails.TipoPrivacidad }}</p>
-                     <button @click="closePopup">Cerrar</button>
+                     <div class="playlist-privacy">
+                        <strong>Privacidad:</strong> 
+                        <span v-if="!isEditingPrivacy">{{ playlistDetails.TipoPrivacidad }}</span>
+                        <select v-if="isEditingPrivacy && type === 'ListaReproduccion'" ref="PrivacyInputRef" v-model="editedPrivacy">
+                           <option value="publico">Público</option>
+                           <option value="privado">Privado</option>
+                           <option value="protegido">Protegido</option>
+                        </select>
+                        <img v-if="!isEditingPrivacy && type === 'ListaReproduccion'" :src="editIcon" alt="edit" class="edit-icon" @click.stop="toggleEditPrivacy"/>
+                     </div>
+                     <div class="popup-buttons">
+                        <button @click="closePopup">Cerrar</button>
+                        <button @click="savePrivacy">Guardar</button>
+                     </div>
                   </div>
 
                   <!-- Fondo oscuro sutil cuando el popup está abierto -->
@@ -37,8 +49,8 @@
             </div>
             <p>{{ playlistInfo.NumCanciones }} canciones</p> 
             <div class="playlist-description">
-               <p @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
-               <input v-if="isEditingDescription" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
+               <p :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
+               <input v-if="isEditingDescription && type === 'ListaReproduccion'" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
           </div>
             <p>{{ playlistInfo.NumLikes }} Likes</p>
          </div>
@@ -153,6 +165,7 @@ import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
 import deleteIcon from '@/assets/delete.svg';
 import infoIcon from '@/assets/info.svg';
+import editIcon from '@/assets/edit.svg';
 
 const playSong = inject('playSong')
 const type = localStorage.getItem("type")
@@ -184,12 +197,16 @@ const profileAction = ref(null);
 const sortOption = ref('default');
 const songsData = ref('');
 const playlistDetails = ref([]);
+
 const editedTitle = ref('');
 const editedDescription = ref('');
 const isEditingTitle = ref(false);
 const isEditingDescription = ref(false);
 const titleInputRef = ref(null);
 const descriptionInputRef = ref(null);
+const editedPrivacy = ref('');
+const isEditingPrivacy = ref(false);
+const PrivacyInputRef = ref(null);
 
 const results = ref({
    artistas: [],
@@ -217,6 +234,7 @@ const showPopupMessage = (message, type) => {
 // Pop-up detalles playlist
 const isPopupOpen = ref(false);
 const popupStyle = ref({});
+const popupRef = ref(null);
 
 const togglePopup = async () => {
   isPopupOpen.value = !isPopupOpen.value;
@@ -225,6 +243,7 @@ const togglePopup = async () => {
 // Función para cerrar el popup
 const closePopup = () => {
   isPopupOpen.value = false;
+  isEditingPrivacy.value = false;
 };
 
 const filteredPlaylist = computed(() => {
@@ -241,6 +260,11 @@ const goBack = () => {
    router.back();
 };
 
+watch(editedPrivacy, (newValue) => {
+   console.log("Valor de editedPrivacy cambiado a:", newValue);
+});
+
+
 // Lógica para edición
 const toggleEditTitle = () => {
    isEditingTitle.value = !isEditingTitle.value;
@@ -255,6 +279,16 @@ const toggleEditDescription = () => {
    if (isEditingDescription.value) {
       // Si se está editando, asegurarse de que el input tenga el valor de la descripción actual
       editedDescription.value = playlistInfo.value.Descripcion;
+   }
+};
+
+const toggleEditPrivacy = () => {
+   isEditingPrivacy.value = !isEditingPrivacy.value;
+   console.log("isEditingPrivacy cambiado a:", isEditingPrivacy.value);
+   if (isEditingPrivacy.value) {
+      // Si se está editando, asegurarse de que el input tenga el valor de la descripción actual
+      editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
+      console.log("editedPrivacy al abrir: ", editedPrivacy.value);
    }
 };
 
@@ -313,6 +347,36 @@ const saveDescription = async () => {
    }
    else {
       isEditingDescription.value = false;
+   }
+};
+
+const savePrivacy = async () => {
+   if (editedPrivacy.value != playlistDetails.value.TipoPrivacidad) {
+      playlistDetails.value.TipoPrivacidad = editedPrivacy.value;
+      console.log('Playlist privacidad: ', playlistDetails.value.TipoPrivacidad);
+      isEditingPrivacy.value = false;
+      try {
+         const res = await fetch("https://echobeatapi.duckdns.org/playlists/update-privacidad", { 
+            method: "POST",
+            headers: {
+               "Accept": "application/json",
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+               userEmail: email,
+               idPlaylist: Number(Id),
+               nuevoTipoPrivacidad: playlistDetails.value.TipoPrivacidad
+            })
+         });
+         if (!res.ok) throw new Error("Error al actualizar privacidad de playlist");
+         showPopupMessage('Privacidad actualizada correctamente', 'popup-success');
+
+      } catch (error) {
+         console.error(error.message);
+      }
+   }
+   else {
+      isEditingPrivacy.value = false;
    }
 };
 
@@ -518,6 +582,12 @@ const handleClickOutside = (event) => {
    if (isEditingDescription.value && descriptionInputRef.value && !descriptionInputRef.value.contains(event.target)) {
       saveDescription(); // Guarda la descripción y cierra la edición
    }
+
+   // Si el clic es fuera del popup de edición de privacidad, cerramos la edición de la privacidad
+   if (isEditingPrivacy.value && popupRef.value && !popupRef.value.contains(event.target)) {
+      savePrivacy(); // Guarda la privacidad y cierra la edición
+      isEditingPrivacy.value = false; // Asegura que el select se oculte
+   }
 };
 
 onMounted(async () => {
@@ -535,6 +605,7 @@ onMounted(async () => {
       
       playlistDetails.value = await detailsResponse.json();
       console.log("✅ Playlist details: ", playlistDetails.value);
+      editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
 
       //  OBTENER CANCIONES DE LA PLAYLIST
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
@@ -1375,16 +1446,16 @@ h1 {
 /* Popup sobre contenido */
 .playlist-popup {
   position: fixed;
-  background-color: #7f5a47;
+  background-color: #4a1e04;
   border-radius: 12px;
-  padding: 18px 20px;
+  padding: 20px 20px;
   min-width: 240px;
   color: #ffb347;
   z-index: 9999;
   font-family: 'Inter', sans-serif;
   animation: fadeSlideIn 0.25s ease-out;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7),
-            0 0 10px rgba(255, 180, 71, 0.3); 
+              0 0 10px rgba(255, 180, 71, 0.3); 
 }
 
 /* Título */
@@ -1403,7 +1474,15 @@ h1 {
   opacity: 0.85;
 }
 
-/* Botón cerrar */
+/* Contenedor de botones */
+.popup-buttons {
+  display: flex;
+  justify-content: center; /* Centra los botones */
+  gap: 10px; /* Separación entre los botones */
+  margin-top: 15px; /* Separación entre los detalles y los botones */
+}
+
+/* Botón cerrar y guardar */
 .playlist-popup button {
   background-color: #8a3a10;
   border: none;
@@ -1414,12 +1493,14 @@ h1 {
   cursor: pointer;
   transition: background 0.3s ease;
   font-size: 0.95rem;
+  margin-top: 5px;
 }
 
 .playlist-popup button:hover {
   background-color: #ffb347;
   color: #2d1405;
 }
+
 
 /* Entrada animada */
 @keyframes fadeSlideIn {
@@ -1443,6 +1524,41 @@ h1 {
   background-color: rgba(0, 0, 0, 0.4); /* Oscurece un poco */
   z-index: 9998; /* Justo por debajo del popup */
 }
+
+.playlist-privacy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.playlist-header .edit-icon {
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+  filter: brightness(0) invert(1); /* Ajusta el color del icono si es necesario */
+  transition: filter 0.3s;
+}
+
+.edit-icon:hover {
+  filter: brightness(0.5) invert(1); /* Cambia el color cuando se hace hover */
+}
+
+.playlist-privacy select {
+   width: 100%;
+   padding: 8px;
+   font-size: 14px;
+   border: 1px solid #ffa500;
+   border-radius: 4px;
+   background-color: #2a2a2a;
+   color: #fff;
+   transition: opacity 0.3s, height 0.3s ease-in-out;
+   z-index: 1000;
+}
+
+.disabled {
+   pointer-events: none;  /* Desactiva la capacidad de hacer clic */
+}
+
 
 /* Mensaje emergente */
 .popup {
