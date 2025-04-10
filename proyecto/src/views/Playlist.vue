@@ -131,7 +131,7 @@ import deleteIcon from '@/assets/delete.svg';
 
 const playSong = inject('playSong')
 const type = localStorage.getItem("type")
-localStorage.removeItem("type");
+
 // Variables para CSS y HTML
 const isGlowing = ref(false);
 const router = useRouter();
@@ -440,6 +440,7 @@ onUnmounted(() => {
    console.log("Saliendo de la página...");
    // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
    document.removeEventListener('click', handleClickOutside);
+   localStorage.removeItem("type");
 });
 
 // Imagen de reemplazo
