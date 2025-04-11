@@ -62,300 +62,302 @@
    <div class="layout"  v-if="showProfile"></div>
  </template>
  
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import FriendItem from '@/components/FriendItem.vue';
-import Profile from '@/components/profile.vue'
-
-
-const email =  localStorage.getItem("email");
-const currentNick = ref('');
-const showAddFriendInput = ref(false);
-const friendNick = ref("");
-const searchTerm = ref('');
-
-const router = useRouter();
-const showPopup = ref(false);
-const popupMessage = ref("");
-const popupType = ref("popup-error");
-
-const showPopupMessage = (message, type) => {
+ <script setup>
+ import { ref, onMounted, onUnmounted, computed } from 'vue';
+ import { useRouter } from 'vue-router';
+ import FriendItem from '@/components/FriendItem.vue';
+ import Profile from '@/components/profile.vue';
+ 
+ const email = localStorage.getItem("email");
+ const currentNick = ref('');
+ const showAddFriendInput = ref(false);
+ const friendNick = ref("");
+ const searchTerm = ref('');
+ 
+ const router = useRouter();
+ const showPopup = ref(false);
+ const popupMessage = ref("");
+ const popupType = ref("popup-error");
+ 
+ const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
    showPopup.value = true;
-
-   setTimeout(() => {
-      showPopup.value = false;
-   }, 3000); // Cierra el popup después de 3 segundos
-};
  
-const activeTab = ref('chats');
-const chattedFriends = ref([]);
-
-const allFriends = ref([]);
-const friendRequests = ref([]);
-
-const toggleAddFriend = () => {
+   setTimeout(() => {
+     showPopup.value = false;
+   }, 3000); // Cierra el popup después de 3 segundos
+ };
+ 
+ const activeTab = ref('chats');
+ const chattedFriends = ref([]);
+ const allFriends = ref([]);
+ const friendRequests = ref([]);
+ 
+ const toggleAddFriend = () => {
    showAddFriendInput.value = !showAddFriendInput.value;
    friendNick.value = ""; // Resetear el campo al cerrar
-};
-
-const pendingRequestsCount = computed(() => friendRequests.value.length);
-
-const hasUnreadMessages = computed(() => {
-  return chattedFriends.value.some(chat => chat.hasNewMessages);
-});
-
-const filteredFriends = computed(() => {
-  if (!searchTerm.value.trim()) {
-    return allFriends.value; 
-  }
-
-  return allFriends.value.filter(friend =>
-    friend.Nick.toLowerCase().includes(searchTerm.value.toLowerCase())
-  );
-});
-
-
-const selectedUser = ref(null)       // Usuario seleccionado
-const showProfile = ref(false)       // Controla si el modal está visible
-
-function openProfile(user) {
-  selectedUser.value = user
-  showProfile.value = true
-}
-
-const goBack = () => {
+ };
+ 
+ const pendingRequestsCount = computed(() => friendRequests.value.length);
+ 
+ const hasUnreadMessages = computed(() => {
+   return chattedFriends.value.some(chat => chat.hasNewMessages);
+ });
+ 
+ const filteredFriends = computed(() => {
+   if (!searchTerm.value.trim()) {
+     return allFriends.value; 
+   }
+   return allFriends.value.filter(friend =>
+     friend.Nick.toLowerCase().includes(searchTerm.value.toLowerCase())
+   );
+ });
+ 
+ const selectedUser = ref(null);  // Usuario seleccionado
+ const showProfile = ref(false);  // Controla si el modal está visible
+ 
+ function openProfile(user) {
+   selectedUser.value = user;
+   showProfile.value = true;
+ }
+ 
+ const goBack = () => {
    router.back();
-};
-
-
-const goToChat = (friend) => {
-  router.push(`/chat/${friend.Email}`);
-};
-
-const goToChats = (friend) => {
-  router.push(`/chat/${friend.contact}`);
-};
-
-onMounted(async () => {
+ };
+ 
+ const goToChat = (friend) => {
+   router.push(`/chat/${friend.Email}`);
+ };
+ 
+ const goToChats = (friend) => {
+   router.push(`/chat/${friend.contact}`);
+ };
+ 
+ // --- Funciones de actualización con polling ---
+ 
+ // Función para obtener la lista de amigos
+ async function fetchFriends(nick) {
    try {
-      // Obtener nick del usuario
-      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
-
-      if (!userResponse.ok) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-
-      const userData = await userResponse.json();
-      currentNick.value = userData.Nick;
-      if (!userData || !userData.Nick) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-      // Obtener solicitudes de amistad recibidas
-      const requestResponse = await fetch(`https://echobeatapi.duckdns.org/amistades/verSolicitudes/${encodeURIComponent(userData.Nick)}`);
-      if (!requestResponse.ok) throw new Error('Error al obtener las solicitudes recibidas del usuario');
-      
-      const requestData = await requestResponse.json();
-      friendRequests.value = Array.isArray(requestData) ? requestData : [requestData];
-      
-      
-      console.log("requests data ", friendRequests.value); 
-
-      // Obtener todos los amigos registrados
-      const friendsResponse = await fetch(`https://echobeatapi.duckdns.org/amistades/verAmigos/${encodeURIComponent(userData.Nick)}`);
-      if (!friendsResponse.ok) throw new Error('Error al obtener los amigos del usuario');
-      
-      const friendsData = await friendsResponse.json();
-      allFriends.value = Array.isArray(friendsData) ? friendsData : [friendsData];
-      
-      
-      console.log("friends data ", allFriends.value); 
-
-      // Obtener todos los chats
-      const chatResponse = await fetch(`https://echobeatapi.duckdns.org/chat/chatsDelUsuario?userEmail=${encodeURIComponent(email)}`);
-      if (!chatResponse.ok) throw new Error('Error al obtener los chats del usuario');
-
-      const chatData = await chatResponse.json();
-      console.log('Chat de API: ', chatData);
-      // Crear array temporal
-      const enrichedChats = [];
-
-      for (const chat of chatData) {
-      console.log("Contact:", chat.contact);
-
-      const userChatResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(chat.contact)}`);
-
-      if (!userChatResponse.ok) {
+     const friendsResponse = await fetch(`https://echobeatapi.duckdns.org/amistades/verAmigos/${encodeURIComponent(nick)}`);
+     if (!friendsResponse.ok) throw new Error('Error al obtener los amigos del usuario');
+     const friendsData = await friendsResponse.json();
+     allFriends.value = Array.isArray(friendsData) ? friendsData : [friendsData];
+     console.log("Lista de amigos actualizada:", allFriends.value);
+   } catch (error) {
+     console.error(error.message);
+   }
+ }
+ 
+ // Función para obtener la lista de solicitudes
+ async function fetchFriendRequests(nick) {
+   try {
+     const requestResponse = await fetch(`https://echobeatapi.duckdns.org/amistades/verSolicitudes/${encodeURIComponent(nick)}`);
+     if (!requestResponse.ok) throw new Error('Error al obtener las solicitudes recibidas del usuario');
+     const requestData = await requestResponse.json();
+     friendRequests.value = Array.isArray(requestData) ? requestData : [requestData];
+     console.log("Lista de solicitudes actualizada:", friendRequests.value);
+   } catch (error) {
+     console.error(error.message);
+   }
+ }
+ 
+ // Función para obtener y enriquecer los chats
+ async function fetchChats(email) {
+   try {
+     const chatResponse = await fetch(`https://echobeatapi.duckdns.org/chat/chatsDelUsuario?userEmail=${encodeURIComponent(email)}`);
+     if (!chatResponse.ok) throw new Error('Error al obtener los chats del usuario');
+     const chatData = await chatResponse.json();
+     // Enriquecer chats: obtiene el nick del contacto
+     const enrichedChats = [];
+     for (const chat of chatData) {
+       const userChatResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(chat.contact)}`);
+       if (!userChatResponse.ok) {
          console.error(`No se pudo obtener el nick para: ${chat.contact}`);
-         continue; // Sigue con el siguiente chat en caso de error
-      }
-
-      const userChatData = await userChatResponse.json();
-
-      if (!userChatData || !userChatData.Nick) {
+         continue;
+       }
+       const userChatData = await userChatResponse.json();
+       if (!userChatData || !userChatData.Nick) {
          console.error(`Nick no encontrado para: ${chat.contact}`);
          continue;
-      }
-
-      // Agrega el chat enriquecido al array
-      enrichedChats.push({
+       }
+       enrichedChats.push({
          ...chat,
          Nick: userChatData.Nick,
          hasNewMessages: chat.unreadFecha && !isNaN(new Date(chat.unreadFecha).getTime())
-      });
-      }
-
-      // Asigna todos los chats enriquecidos a chattedFriends
-      chattedFriends.value = enrichedChats;
-      console.log("Chat data final con nick:", chattedFriends.value);
-
+       });
+     }
+     chattedFriends.value = enrichedChats;
+     console.log("Chats actualizados:", chattedFriends.value);
    } catch (error) {
-      console.error(error.message);
+     console.error(error.message);
    }
-});
-
-const removeFriend = async (Nick) => {
-  try {
-      console.log("Nick: ", Nick);
-      const response = await fetch(`https://echobeatapi.duckdns.org/amistades/eliminar/${currentNick.value}/${Nick}`, {
-         method: 'DELETE',
-         headers: {
-            'Accept': '*/*', 
-         },
-      });
-
-      if (!response.ok) {
-         throw new Error('Error en la eliminación del amigo');
-      }
-
-      // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
-      allFriends.value = allFriends.value.filter(friend => friend.Nick !== Nick);
-      showPopupMessage("Amigo eliminado con éxito", "popup-success");
-    
-  } catch (error) {
-      showPopupMessage(error.message, "popup-error");
-  }
-};
-
-const rejectRequest = async (Nick) => {
-   try {
-      const response = await fetch('https://echobeatapi.duckdns.org/amistades/rechazar', {
-         method: 'POST',
-         headers: {
-            'Accept': '*/*',
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({
-            nickSender: Nick,
-            nickReceiver: currentNick.value,
-         }),
-      });
-
-      if (!response.ok) throw new Error('Error al rechazar la solicitud de amistad');
-
-      friendRequests.value = friendRequests.value.filter(friend => friend.NickFriendSender !== Nick);
-
-      showPopupMessage(`Solicitud de ${Nick} rechazada con éxito!`, "popup-success");
-
-   } catch (error) {
-      showPopupMessage(error.message, "popup-error");
-   }
-
-};
+ }
  
-const profileRequest = async (friend) => {
-   console.log("aaaa",friend);
+ // Variables para guardar los intervalos de polling
+ let pollingFriendsInterval = null;
+ let pollingRequestsInterval = null;
+ let pollingChatsInterval = null;
+ 
+ onMounted(async () => {
+   try {
+     // Obtener nick del usuario
+     const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
+     if (!userResponse.ok) {
+       throw new Error("No existe una cuenta con este correo.");
+     }
+     const userData = await userResponse.json();
+     currentNick.value = userData.Nick;
+     if (!userData || !userData.Nick) {
+       throw new Error("No existe una cuenta con este correo.");
+     }
+     
+     // Consultas iniciales
+     await fetchFriendRequests(userData.Nick);
+     await fetchFriends(userData.Nick);
+     await fetchChats(email);
+ 
+     // Configurar polling cada 5 segundos
+     pollingRequestsInterval = setInterval(async () => {
+       await fetchFriendRequests(currentNick.value);
+     }, 5000);
+ 
+     pollingFriendsInterval = setInterval(async () => {
+       await fetchFriends(currentNick.value);
+     }, 5000);
+ 
+     pollingChatsInterval = setInterval(async () => {
+       await fetchChats(email);
+     }, 5000);
+ 
+   } catch (error) {
+     console.error(error.message);
+   }
+ });
+ 
+ onUnmounted(() => {
+   // Limpia los intervalos al destruir el componente
+   if (pollingRequestsInterval) clearInterval(pollingRequestsInterval);
+   if (pollingFriendsInterval) clearInterval(pollingFriendsInterval);
+   if (pollingChatsInterval) clearInterval(pollingChatsInterval);
+ });
+ 
+ // --- Funciones para acciones de amistad ---
+ 
+ const removeFriend = async (Nick) => {
+   try {
+     const response = await fetch(`https://echobeatapi.duckdns.org/amistades/eliminar/${currentNick.value}/${Nick}`, {
+       method: 'DELETE',
+       headers: { 'Accept': '*/*' }
+     });
+     if (!response.ok) throw new Error('Error en la eliminación del amigo');
+     // Actualizar la lista local (aunque el polling se encarga de refrescar)
+     allFriends.value = allFriends.value.filter(friend => friend.Nick !== Nick);
+     showPopupMessage("Amigo eliminado con éxito", "popup-success");
+   } catch (error) {
+     showPopupMessage(error.message, "popup-error");
+   }
+ };
+ 
+ const rejectRequest = async (Nick) => {
+   try {
+     const response = await fetch('https://echobeatapi.duckdns.org/amistades/rechazar', {
+       method: 'POST',
+       headers: {
+         'Accept': '*/*',
+         'Content-Type': 'application/json'
+       },
+       body: JSON.stringify({
+         nickSender: Nick,
+         nickReceiver: currentNick.value,
+       }),
+     });
+     if (!response.ok) throw new Error('Error al rechazar la solicitud de amistad');
+     friendRequests.value = friendRequests.value.filter(friend => friend.NickFriendSender !== Nick);
+     showPopupMessage(`Solicitud de ${Nick} rechazada con éxito!`, "popup-success");
+   } catch (error) {
+     showPopupMessage(error.message, "popup-error");
+   }
+ };
+ 
+ const profileRequest = async (friend) => {
    selectedUser.value = friend;
    showProfile.value = true;
-  
-};
-const acceptRequest = async (Nick) => {
+ };
+ 
+ const acceptRequest = async (Nick) => {
    try {
-      const response = await fetch('https://echobeatapi.duckdns.org/amistades/aceptar', {
-         method: 'POST',
-         headers: {
-            'Accept': '*/*',
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({
-            nickSender: Nick,
-            nickReceiver: currentNick.value,
-         }),
-      });
-
-      if (!response.ok) throw new Error('Error al aceptar la solicitud de amistad');
-
-      friendRequests.value = friendRequests.value.filter(friend => friend.NickFriendSender !== Nick);
-
-      showPopupMessage(`Solicitud de ${Nick} aceptada con éxito!`, "popup-success");
-
+     const response = await fetch('https://echobeatapi.duckdns.org/amistades/aceptar', {
+       method: 'POST',
+       headers: {
+         'Accept': '*/*',
+         'Content-Type': 'application/json'
+       },
+       body: JSON.stringify({
+         nickSender: Nick,
+         nickReceiver: currentNick.value,
+       }),
+     });
+     if (!response.ok) throw new Error('Error al aceptar la solicitud de amistad');
+     friendRequests.value = friendRequests.value.filter(friend => friend.NickFriendSender !== Nick);
+     // Después de aceptar, refrescar la lista de amigos y de chats
+     await fetchFriends(currentNick.value);
+     await fetchChats(email);
+     showPopupMessage(`Solicitud de ${Nick} aceptada con éxito!`, "popup-success");
    } catch (error) {
-      showPopupMessage(error.message, "popup-error");
+     showPopupMessage(error.message, "popup-error");
    }
-};
+ };
  
- 
-const addFriend = async () => {
+ const addFriend = async () => {
    if (!friendNick.value.trim()) {
-      showPopupMessage("Por favor, introduce un nick válido.", "popup-error");
-      return;
+     showPopupMessage("Por favor, introduce un nick válido.", "popup-error");
+     return;
    }
-
    if (currentNick.value === friendNick.value) {
-      showPopupMessage("No puedes enviarte una solicitud a ti mismo.", "popup-error");
-      return;
+     showPopupMessage("No puedes enviarte una solicitud a ti mismo.", "popup-error");
+     return;
    }
-
    // Verificar si ya son amigos
    const isAlreadyFriend = allFriends.value.some(friend => friend.Nick === friendNick.value);
    if (isAlreadyFriend) {
-      showPopupMessage(`¡${friendNick.value} ya es tu amigo!`, "popup-error");
-      return;
+     showPopupMessage(`¡${friendNick.value} ya es tu amigo!`, "popup-error");
+     return;
    }
-
    try {
-   
-      const response = await fetch('https://echobeatapi.duckdns.org/amistades/solicitar', {
-         method: 'POST',
-         headers: {
-            'Accept': '*/*',
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({
-            nickSender: currentNick.value,
-            nickReceiver: friendNick.value,
-         }),
-      });
-
-      const data = await response.json();
-      const message = data.message;
-
-      if (!response.ok) {
-         if (message === "Ya existe una solicitud de amistad pendiente.") {
-            throw new Error(`Ya existe una solicitud de amistad pendiente con ${friendNick.value}`)
-         }
-         else {
-            throw new Error(`Error al enviar la solicitud de amistad`)
-         }
-      }
-
-      if (message === "Solicitud mutua detectada. Amistad aceptada automáticamente.") {
-         showPopupMessage(`Solicitud mutua detectada. Amistad aceptada automáticamente`, "popup-success");
-         toggleAddFriend(); // Cierra el input después de enviar
-      }
-      else {
-         showPopupMessage(`Solicitud enviada a ${friendNick.value}!`, "popup-success");
-         toggleAddFriend(); 
-      }
-      
+     const response = await fetch('https://echobeatapi.duckdns.org/amistades/solicitar', {
+       method: 'POST',
+       headers: {
+         'Accept': '*/*',
+         'Content-Type': 'application/json'
+       },
+       body: JSON.stringify({
+         nickSender: currentNick.value,
+         nickReceiver: friendNick.value,
+       }),
+     });
+     const data = await response.json();
+     const message = data.message;
+     if (!response.ok) {
+       if (message === "Ya existe una solicitud de amistad pendiente.") {
+         throw new Error(`Ya existe una solicitud de amistad pendiente con ${friendNick.value}`);
+       } else {
+         throw new Error(`Error al enviar la solicitud de amistad`);
+       }
+     }
+     if (message === "Solicitud mutua detectada. Amistad aceptada automáticamente.") {
+       showPopupMessage(`Solicitud mutua detectada. Amistad aceptada automáticamente`, "popup-success");
+       toggleAddFriend();
+     } else {
+       showPopupMessage(`Solicitud enviada a ${friendNick.value}!`, "popup-success");
+       toggleAddFriend();
+     }
    } catch (error) {
-      showPopupMessage(error.message, "popup-error");
+     showPopupMessage(error.message, "popup-error");
    }
-};
-
-</script>
+ };
+ </script>
+ 
  
 <style scoped>
 .friends-container {
