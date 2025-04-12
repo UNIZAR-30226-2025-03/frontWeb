@@ -149,7 +149,7 @@ const handleSave = async () => {
    left: 0;
    width: 100%;
    height: 100vh;
-   background-color: #121212; 
+   background: linear-gradient(180deg, #141414 15%, #4a1e04 40%, #8a3a10 60%, #ffb347 100%); 
    z-index: 9999;
    display: flex;
    flex-direction: column; 

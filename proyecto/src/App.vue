@@ -138,9 +138,9 @@
                  <img :src="nextIcon" alt="Next" @click="nextSong"/>
               </button>
   
-              <button class="side-buttons" @click="playSong(currentSong)">
-                 <img :src="restart" alt="Restart" />
-              </button>
+              <button class="side-buttons" @click="toggleLoop">
+                 <img :src="restart" alt="Restart" :class="{'loop-active': isLooping}" />
+            </button>
           </div>
 
           <div class="progress">
@@ -255,6 +255,7 @@ const hoveredSong = ref(null);
 const currentSong = ref('');
 const currentStopTime = ref('');
 const progress = ref(0); // Valor de la barra (0 a 100)
+const isLooping = ref(false);
 
 const searchArea = ref(null);
 const resultsArea = ref(null);
@@ -336,6 +337,21 @@ const selectGender = (gender) => {
   fetchResults(); 
 };
 
+// Función que cambia el estado del bucle
+const toggleLoop = () => {
+   isLooping.value = !isLooping.value; // Cambia el estado del bucle
+
+   // Si está en bucle, activamos la reproducción en bucle
+   if (isLooping.value) {
+      if (player.value) {
+         player.value.loop = true; // Activamos el bucle
+      }
+   } else {
+      if (player.value) {
+         player.value.loop = false; // Desactivamos el bucle
+      }
+   }
+};
 
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
@@ -362,8 +378,46 @@ const nextSong = async() => {
   } catch (error) {
     console.error('Error next song:', error);
   }
- 
 }
+
+async function handleSongEnded() {
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+
+    if (!response.ok) {
+      console.log('[cola] No hay más canciones en la cola. Fin de reproducción.');
+      isPlaying.value = false;
+      return;
+    }
+
+    const nextSongData = await response.json();
+
+    if (!nextSongData?.siguienteCancionId) {
+      console.log('[cola] No hay más canciones. Deteniendo reproducción.');
+      isPlaying.value = false;
+      return;
+    }
+
+    // Si hay siguiente canción, cargar y reproducir
+    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${nextSongData.siguienteCancionId}`);
+    if (!song.ok) throw new Error('Error al obtener los datos de la siguiente canción');
+
+    const songData = await song.json();
+
+    const newSong = {
+      Id: nextSongData.siguienteCancionId,
+      Nombre: songData.Nombre,
+      Portada: songData.Portada,
+      Duracion: songData.Duracion,
+    };
+
+    playSong(newSong);
+  } catch (error) {
+    console.error('[cola] Error al intentar reproducir la siguiente canción:', error);
+    isPlaying.value = false;
+  }
+}
+
 
 const previousSong = async() =>{
   try {
@@ -449,6 +503,9 @@ const handleClickOutside = (event) => {
 // Registrar el evento al montar el componente
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+   if (player.value) {
+      player.value.addEventListener('ended', handleSongEnded);
+   }
   try {
       // Obtener nick del usuario
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
@@ -510,10 +567,11 @@ onMounted(async () => {
 });
 
 
-// Eliminar el evento cuando se desmonte el componente
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
-
+   if (player.value) {
+      player.value.removeEventListener('ended', handleSongEnded);
+   }
   const currentTime = player.value.currentTime;
 
   streamerRef.value.socket.emit('progressUpdate', {
@@ -521,7 +579,11 @@ onBeforeUnmount(() => {
       songId: currentSong.Id,
       currentTime,
   });
-  console.log (currentTime)
+  console.log('🚀 Emitiendo progressUpdate con:', {
+    userId: email,
+    songId: currentSong.Id,
+    currentTime,
+  });
 });
 
 
@@ -530,7 +592,6 @@ let progressInterval = null;
 let contador = 1;
 
 function updateCurrentTime(event) {
-   console.log("Tiempo actualizado:", event.target.currentTime); 
    console.log("Progress:", progress.value, "CurrentTime:", event.target.currentTime);
 
   const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
@@ -669,7 +730,6 @@ function muteVolumen(){
   mute.value = true;
 }
 
-// Función para pausar/reanudar
 // Función para pausar/reanudar
 function togglePlay() {
   if (!player.value){
@@ -1001,6 +1061,17 @@ select {
   flex: none; 
 }
 
+.loop-active {
+  border: 2px solid #ff474d;
+  border-radius: 50%; /* Hace que el borde sea redondeado */
+  background-color: rgba(255, 99, 71, 0.1); /* Fondo semitransparente */
+  transform: scale(1.1);
+}
+
+.loop-active:hover {
+  background-color: rgba(255, 99, 71, 0.2); /* Cambio de fondo al pasar el ratón */
+}
+
 .play-button {
   flex-grow: 0;
   transform: scale(1.2); /* Aumenta el tamaño del botón central */
@@ -1236,7 +1307,6 @@ select {
   background: #fff;
   cursor: pointer;
   border: none;
-  margin-top: -4px;
 }
 
 .volume-slider::-moz-range-thumb {
