@@ -130,7 +130,7 @@ const editingFields = ref({
 });
 
 const goBack = () => {
-   router.back();
+   router.push('/home');
 };
 
 // Función genérica para alternar el estado de edición
@@ -156,9 +156,16 @@ const handleChangeGender = () => {
 };
 
 const toggleProfileActionVisibility = () => {
-   // Alternar la visibilidad del select
+   // Alternar visibilidad del select
    profileActionVisible.value = !profileActionVisible.value;
+
+   // Ocultar el input de archivo o el modal si se estaban mostrando
+   if (!profileActionVisible.value) {
+      profileAction.value = "";               // Esto oculta tanto el input como el modal
+      showImageSelection.value = false;       // Asegura que el modal se cierre
+   }
 };
+
 
 const formatDate = (dateString) => {
    if (!dateString) return '';  // Evita errores si la fecha es nula
@@ -189,11 +196,6 @@ const updateNacimiento = (event) => {
    formattedNacimiento.value = event.target.value;
 };
 
-
-// Función para abrir el selector de archivos
-const triggerFileInput = () => {
-   fileInput.value.click();
-};
 
 // Función para manejar la selección de un archivo
 const handleFileChange = (event) => {
