@@ -35,7 +35,7 @@
                      v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
                   />
                </div>
-               <button @click="closeImageSelection">Cerrar</button>
+               <button class="close-btn" @click="closeImageSelection">Cerrar</button>
             </div>
          </div>
 
@@ -130,7 +130,7 @@ const editingFields = ref({
 });
 
 const goBack = () => {
-   router.back();
+   router.push('/home');
 };
 
 // Función genérica para alternar el estado de edición
@@ -156,9 +156,16 @@ const handleChangeGender = () => {
 };
 
 const toggleProfileActionVisibility = () => {
-   // Alternar la visibilidad del select
+   // Alternar visibilidad del select
    profileActionVisible.value = !profileActionVisible.value;
+
+   // Ocultar el input de archivo o el modal si se estaban mostrando
+   if (!profileActionVisible.value) {
+      profileAction.value = "";               // Esto oculta tanto el input como el modal
+      showImageSelection.value = false;       // Asegura que el modal se cierre
+   }
 };
+
 
 const formatDate = (dateString) => {
    if (!dateString) return '';  // Evita errores si la fecha es nula
@@ -190,11 +197,6 @@ const updateNacimiento = (event) => {
 };
 
 
-// Función para abrir el selector de archivos
-const triggerFileInput = () => {
-   fileInput.value.click();
-};
-
 // Función para manejar la selección de un archivo
 const handleFileChange = (event) => {
    const file = event.target.files[0];
@@ -211,13 +213,13 @@ const handleFileChange = (event) => {
 };
 
 
-// 🔹 Función para seleccionar una imagen predeterminada
+// Función para seleccionar una imagen predeterminada
 const selectDefaultImage = (imageUrl) => {
    user.value.perfil = imageUrl;
    profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
-// 🔹 Cerrar el modal de selección de imagen
+// Cerrar el modal de selección de imagen
 const closeImageSelection = () => {
    showImageSelection.value = false;
    profileAction.value = "";
@@ -646,6 +648,22 @@ button:hover {
 .back-btn:hover {
    background-color: rgba(255, 165, 0, 0.2);
 }
+
+.close-btn {
+   width: 60%;
+   padding: 12px;
+   margin-top: 2rem;
+   border: none;
+   border-radius: 4px;
+   color: #fff;
+   font-weight: bold;
+   cursor: pointer;
+   background-color: #ff5722;
+}
+
+.close-btn:hover {
+   opacity: 0.8;
+}
   
 /* Mensaje emergente */
 .popup {
@@ -675,4 +693,5 @@ button:hover {
    90% { opacity: 1; }
    100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
+
 </style>

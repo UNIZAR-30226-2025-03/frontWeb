@@ -5,30 +5,86 @@
          <button @click="goBack" class="back-btn">&#8592; VOLVER</button>
       </div>
       <div class="playlist-header">
-        <img :src="playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
-        <div class="playlist-info">
-          <h1>{{ playlistInfo.Nombre }}</h1>
-          <p>{{ playlistInfo.NumCanciones }} canciones</p>
-          <p>{{ playlistInfo.Descripcion }}</p>
-          <p>{{ playlistInfo.NumLikes }} Likes</p>
-        </div>
 
+         <div class="image-container" @mouseover="showEditOverlay = true && type === 'ListaReproduccion' " @mouseleave="showEditOverlay = false && type === 'ListaReproduccion'" >
+            <img :src="previewImageUrl || playlistInfo.Portada" alt="Playlist" @error="handleImageError($event)">
+            <div v-if="showEditOverlay" class="edit-overlay">
+               <button v-if="type === 'ListaReproduccion'" @click="triggerFileInput">Subir Imagen</button>
+               <button v-if="type === 'ListaReproduccion'" @click="profileAction = 'select'">Elegir predeterminada</button>
+            </div>
+            <input ref="fileInputRef" type="file" accept="image/*" @change="handleFileUpload" style="display: none;" />
+         </div>
+
+         <div class="playlist-info">
+            <div class="playlist-title">
+               <h1 :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditTitle" v-if="!isEditingTitle" >{{ playlistInfo.Nombre }}</h1>
+               <input v-if="isEditingTitle && type === 'ListaReproduccion'" ref="titleInputRef" v-model="editedTitle" @blur="saveTitle" @keyup.enter="saveTitle" type="text" :class="{'show': isEditingTitle}" />
+               <div class="info-popup-anchor">
+                  <img :src="infoIcon" alt="info" class="info-icon" @click.stop="togglePopup"/>
+                  
+                  <!-- Popup -->
+                  <div v-if="isPopupOpen" ref="popupRef" class="playlist-popup" :style="popupStyle">
+                     <h2>Detalles de la Playlist</h2>
+                     <p><strong>Género:</strong> {{ playlistDetails.Genero }}</p>
+                     <div class="playlist-privacy">
+                        <strong>Privacidad:</strong> 
+                        <span v-if="!isEditingPrivacy">{{ playlistDetails.TipoPrivacidad }}</span>
+                        <select v-if="isEditingPrivacy && type === 'ListaReproduccion'" ref="PrivacyInputRef" v-model="editedPrivacy">
+                           <option value="publico">Público</option>
+                           <option value="privado">Privado</option>
+                           <option value="protegido">Protegido</option>
+                        </select>
+                        <img v-if="!isEditingPrivacy && type === 'ListaReproduccion'" :src="editIcon" alt="edit" class="edit-icon" @click.stop="toggleEditPrivacy"/>
+                     </div>
+                     <div class="popup-buttons">
+                        <button @click="closePopup">Cerrar</button>
+                        <button @click="savePrivacy">Guardar</button>
+                     </div>
+                  </div>
+
+                  <!-- Fondo oscuro sutil cuando el popup está abierto -->
+                  <div v-if="isPopupOpen" class="popup-background-overlay" @click="closePopup">
+                  </div>
+               </div>
+            </div>
+            <p>{{ playlistInfo.NumCanciones }} canciones</p> 
+            <div class="playlist-description">
+               <p :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
+               <input v-if="isEditingDescription && type === 'ListaReproduccion'" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
+          </div>
+            <p>{{ playlistInfo.NumLikes }} Likes</p>
+         </div>
+
+      </div>
+      <div v-if="profileAction === 'select'" class="image-selection-modal">
+         <h3>Selecciona una imagen</h3>
+         <div class="image-grid">
+            <img 
+               v-for="image in defaultImages" :key="image" :src="image" @click="selectDefaultImage(image)" class="selectable-image"
+            />
+         </div>
+         <button class="close-btn" @click="closeImageSelection">Cerrar</button>
       </div>
 
       <div class="song-container">
         <div class="playlist-actions">
-
             <button class="button-action" @click="deletePlaylist" v-if="type === 'ListaReproduccion'" >
-
                <img :src="deleteIcon" alt="delete"/>
             </button>
             <button class="button-action" @click="randomClick">
                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
             </button>
             <input v-model="searchTerm" placeholder="Buscar canción" />
+            <div class="select-wrapper">
+               <select class="filterSelect" v-model="sortOption" @change="sortSongs">
+                  <option disabled value=""> Orden playlist </option>
+                  <option value="default">Predefinida</option>
+                  <option value="name">Nombre</option>
+                  <option value="plays">Reproducciones</option>
+               </select>
+            </div>
 
             <button ref="addButtonRef" class="button-action" @click="toggleSearch"  v-if="type === 'ListaReproduccion'" >
-            
                <img :src="add_button" alt="add"/>
             </button>
             <button @click="playPlaylist" class="button-action">  
@@ -99,7 +155,7 @@
 
  
 <script setup>
-import { ref, onMounted, onUnmounted, inject, computed} from 'vue';
+import { ref, onMounted, onUnmounted, inject, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
@@ -108,10 +164,12 @@ import add_button from '@/assets/add_circle.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
 import deleteIcon from '@/assets/delete.svg';
+import infoIcon from '@/assets/info.svg';
+import editIcon from '@/assets/edit.svg';
 
 const playSong = inject('playSong')
 const type = localStorage.getItem("type")
-localStorage.removeItem("type");
+
 // Variables para CSS y HTML
 const isGlowing = ref(false);
 const router = useRouter();
@@ -122,12 +180,47 @@ const currentSearch = ref('');
 const isLoading = ref(false);
 const hoveredSong = ref(null);
 
+const route = useRoute();
+const Id = route.query.id;
+
+console.log('ID de la playlist:', Id);
+console.log('Type de la playlist:', type);
+
+const playlistInfo = ref({}); // Inicializado como objeto vacío
+const playlist = ref([]); // Inicializado como array vacío
+const searchTerm = ref('');
+const showEditOverlay = ref(false);
+const fileInputRef = ref(null);
+const previewImageUrl = ref(null);
+const defaultImages = ref([]);
+const profileAction = ref(null);
+const sortOption = ref('default');
+const songsData = ref('');
+const playlistDetails = ref([]);
+
+const editedTitle = ref('');
+const editedDescription = ref('');
+const isEditingTitle = ref(false);
+const isEditingDescription = ref(false);
+const titleInputRef = ref(null);
+const descriptionInputRef = ref(null);
+const editedPrivacy = ref('');
+const isEditingPrivacy = ref(false);
+const PrivacyInputRef = ref(null);
+
+const results = ref({
+   artistas: [],
+   canciones: [],
+   albums: [],
+   listas: []
+});
+
 const email = localStorage.getItem("email");
 const aleatorio = ref(false);
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
-const songsData = ref('');
+
 
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
@@ -139,52 +232,326 @@ const showPopupMessage = (message, type) => {
    }, 3000); // Cierra el popup después de 3 segundos
 };
 
+// Pop-up detalles playlist
+const isPopupOpen = ref(false);
+const popupStyle = ref({});
+const popupRef = ref(null);
+
+const togglePopup = async () => {
+  isPopupOpen.value = !isPopupOpen.value;
+};
+
+// Función para cerrar el popup
+const closePopup = () => {
+  isPopupOpen.value = false;
+  isEditingPrivacy.value = false;
+};
+
 const filteredPlaylist = computed(() => {
-  if (!searchTerm.value.trim()) {
-    return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
-  }
+   if (!searchTerm.value.trim()) {
+      return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
+   }
 
-  return playlist.value.filter(song =>
-    song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
-  );
-});
-
-const route = useRoute();
-const Id = route.query.id;
-
-console.log('ID de la playlist:', Id);
-console.log('Type de la playlist:', type);
-
-const playlistInfo = ref({}); // Inicializado como objeto vacío
-const playlist = ref([]); // Inicializado como array vacío
-const searchTerm = ref('');
-
-const results = ref({
-  artistas: [],
-  canciones: [],
-  albums: [],
-  listas: []
+   return playlist.value.filter(song =>
+      song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+   );
 });
 
 const goBack = () => {
    router.back();
 };
 
-// Toggle para mostrar/ocultar el buscador
-const toggleSearch = () => {
-  searchVisible.value = !searchVisible.value;
+watch(editedPrivacy, (newValue) => {
+   console.log("Valor de editedPrivacy cambiado a:", newValue);
+});
+
+
+// Lógica para edición
+const toggleEditTitle = () => {
+   isEditingTitle.value = !isEditingTitle.value;
+   if (isEditingTitle.value) {
+      // Si se está editando, asegurarse de que el input tenga el valor del nombre actual
+      editedTitle.value = playlistInfo.value.Nombre;
+   }
 };
 
+const toggleEditDescription = () => {
+   isEditingDescription.value = !isEditingDescription.value;
+   if (isEditingDescription.value) {
+      // Si se está editando, asegurarse de que el input tenga el valor de la descripción actual
+      editedDescription.value = playlistInfo.value.Descripcion;
+   }
+};
+
+const toggleEditPrivacy = () => {
+   isEditingPrivacy.value = !isEditingPrivacy.value;
+   console.log("isEditingPrivacy cambiado a:", isEditingPrivacy.value);
+   if (isEditingPrivacy.value) {
+      // Si se está editando, asegurarse de que el input tenga el valor de la descripción actual
+      editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
+      console.log("editedPrivacy al abrir: ", editedPrivacy.value);
+   }
+};
+
+const saveTitle = async () => {
+   if (editedTitle.value != playlistInfo.value.Nombre) {
+      playlistInfo.value.Nombre = editedTitle.value;
+      isEditingTitle.value = false;
+      try {
+         const res = await fetch("https://echobeatapi.duckdns.org/playlists/update-nombre", { 
+            method: "POST",
+            headers: {
+               "Accept": "application/json",
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+               userEmail: email,
+               idPlaylist: Number(Id),
+               nuevoNombre: playlistInfo.value.Nombre
+            })
+         });
+         if (!res.ok) throw new Error("Error al actualizar nombre de playlist");
+         showPopupMessage('Título actualizado correctamente', 'popup-success');
+
+      } catch (error) {
+         console.error(error.message);
+      }
+   }
+   else {
+      isEditingTitle.value = false;
+   }
+};
+
+const saveDescription = async () => {
+   if (editedDescription.value != playlistInfo.value.Descripcion) {
+      playlistInfo.value.Descripcion = editedDescription.value;
+      isEditingDescription.value = false;
+      try {
+         const res = await fetch("https://echobeatapi.duckdns.org/playlists/update-descripcion", { 
+            method: "POST",
+            headers: {
+               "Accept": "application/json",
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+               userEmail: email,
+               idPlaylist: Number(Id),
+               nuevaDescripcion: playlistInfo.value.Descripcion
+            })
+         });
+         if (!res.ok) throw new Error("Error al actualizar descripción de playlist");
+         showPopupMessage('Descripción actualizada correctamente', 'popup-success');
+
+      } catch (error) {
+         console.error(error.message);
+      }
+   }
+   else {
+      isEditingDescription.value = false;
+   }
+};
+
+const savePrivacy = async () => {
+   if (editedPrivacy.value != playlistDetails.value.TipoPrivacidad) {
+      playlistDetails.value.TipoPrivacidad = editedPrivacy.value;
+      console.log('Playlist privacidad: ', playlistDetails.value.TipoPrivacidad);
+      isEditingPrivacy.value = false;
+      try {
+         const res = await fetch("https://echobeatapi.duckdns.org/playlists/update-privacidad", { 
+            method: "POST",
+            headers: {
+               "Accept": "application/json",
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+               userEmail: email,
+               idPlaylist: Number(Id),
+               nuevoTipoPrivacidad: playlistDetails.value.TipoPrivacidad
+            })
+         });
+         if (!res.ok) throw new Error("Error al actualizar privacidad de playlist");
+         showPopupMessage('Privacidad actualizada correctamente', 'popup-success');
+
+      } catch (error) {
+         console.error(error.message);
+      }
+   }
+   else {
+      isEditingPrivacy.value = false;
+   }
+};
+
+
+// Toggle para mostrar/ocultar el buscador
+const toggleSearch = () => {
+   searchVisible.value = !searchVisible.value;
+};
+
+async function sortSongs() {
+   const idLista = Number(Id);
+   try {
+      let filtro;
+
+      switch (sortOption.value) {
+         case 'default':
+         filtro = 0;
+         break;
+         case 'name': 
+         filtro = 1;
+         break;
+         case 'plays':
+         filtro = 2;
+         break;
+         default:
+         filtro = 0;
+      }
+
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
+      
+      if (!response.ok) throw new Error("Error al ordenar las canciones");
+
+      const data = await response.json();
+      playlist.value = data.canciones;
+
+      showPopupMessage('Playlist ordenada correctamente', 'popup-success');
+   } catch (error) {
+      console.error(error);
+      showPopupMessage(' Error al ordenar la playlist', 'popup-error');
+   }
+}
+
+
+watch(() => route.query.id, async (newId, oldId) => {
+   if (!newId || newId === oldId) return;
+
+   try {
+      // OBTENER INFO DE LA PLAYLIST
+      const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${newId}`);
+      if (!infoResponse.ok) throw new Error('Error al obtener la información de la playlist');
+
+      playlistInfo.value = await infoResponse.json();
+
+      // OBTENER CANCIONES DE LA PLAYLIST
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${newId}/songs`);
+      if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
+
+      songsData.value = await songsResponse.json();
+
+      if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
+         throw new Error('Las canciones no llegaron en formato de array');
+      }
+
+      playlist.value = songsData.value.canciones;
+      searchTerm.value = ''; // Resetea la búsqueda
+   } catch (error) {
+      console.error('Error al actualizar la playlist:', error);
+   }
+});
+
+// Función para seleccionar una imagen predeterminada
+const selectDefaultImage = (image) => {
+   updateImage(image);
+   previewImageUrl.value = image;
+   profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
+};
+
+// Cerrar el modal de selección de imagen
+const closeImageSelection = () => {
+   profileAction.value = "";
+};
+
+const updateImage = async (newUrl) => {
+   try {
+      console.log("Archivo a subir:", newUrl);
+      const response = await fetch("https://echobeatapi.duckdns.org/playlists/update-cover", {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+            userEmail: email,  
+            playlistId: Number(Id),
+            imageUrl: newUrl,
+         })
+      });
+
+      if (!response.ok) {
+         console.error("Error con la imagen predeterminada")
+         throw new Error("Error al actualizar la imagen ");
+      }
+      
+      showPopupMessage("Imagen actualizada con éxito", "popup-success");
+      console.log("Imagen predeterminada actualizada correctamente");
+   } catch (error) {
+      showPopupMessage("Error al actualizar la imagen", "popup-error");
+   }
+};
+
+const handleFileUpload = async (event) => {
+   const file = event.target.files[0];
+   if (!file) return;
+
+   const reader = new FileReader();
+   reader.onload = async (e) => {
+      previewImageUrl.value = e.target.result;
+      const formData = new FormData();
+      formData.append('userEmail', email);
+      console.log('Email Actualizar playlist: ', email);
+      formData.append('file', file);
+      const idLista = Number(Id);
+      console.log('IdLista: ', idLista);
+      console.log("Archivo a subir:", file);
+      try {
+         const response = await fetch(`https://echobeatapi.duckdns.org/playlists/update-photo/${idLista}`, { 
+            method: "POST",
+            headers: {},
+            body: 
+               formData,
+            })
+         
+         if (!response.ok) {
+            const errorData = await response.text(); // Ver el error en texto
+            throw new Error("Error al subir la imagen");
+         }
+         console.log("Imagen actualizada con éxito");
+         showPopupMessage("Imagen actualizada con éxito", "popup-success");
+      } catch (error) {
+         console.error(error.message, "popup-error");
+      }
+      };
+
+   reader.readAsDataURL(file); // Esto genera la vista previa
+};
+
+const triggerFileInput = () => {
+   fileInputRef.value?.click();
+};
+
+// Función para actualizar las reproducciones localmente
+const updateSongReproductions = (song) => {
+   song.numReproducciones++; // Incrementar localmente las reproducciones
+   // Esto ya se actualizaría en el backend automáticamente como mencionaste, por lo tanto no es necesario hacer más
+};
+
+// Watcher para escuchar cambios en la playlist
+watch(() => playlist.value, (newPlaylist) => {
+   console.log('Playlist actualizada:', newPlaylist);
+}, { immediate: true });
+
+
 const playNewSong = async (song,posicion) => {
+   // Primero actualizamos las reproducciones localmente
+   updateSongReproductions(song);
    console.log("cancionid:", song);
    console.log("posicion:", posicion);
 
    const newSong = {
-    Id: song.id,
-    Nombre: song.nombre,
-    Portada: song.portada,
-    Duracion: song.duracion,
-  };
+      Id: song.id,
+      Nombre: song.nombre,
+      Portada: song.portada,
+      Duracion: song.duracion,
+   };
 
    console.log(newSong);
    
@@ -215,74 +582,125 @@ const playNewSong = async (song,posicion) => {
    playSong(newSong);
 }
 
+
 // Función que oculta el menú de búsqueda cuando se hace clic fuera de él
 const handleClickOutside = (event) => {
-  // Si el clic es fuera del contenedor del menú y del botón de añadir, ocultamos el menú
-  if (
-    searchContainerRef.value && 
-    !searchContainerRef.value.contains(event.target) && 
-    !addButtonRef.value.contains(event.target)
-  ) {
-    searchVisible.value = false; // Oculta el desplegable
-  }
+   // Si el clic es fuera del contenedor del menú y del botón de añadir, ocultamos el menú
+   if (searchContainerRef.value && !searchContainerRef.value.contains(event.target) && !addButtonRef.value.contains(event.target)) {
+      searchVisible.value = false; // Oculta el desplegable
+   }
+   // Si el clic es fuera del título input, cerramos la edición del título
+   if (isEditingTitle.value && titleInputRef.value && !titleInputRef.value.contains(event.target)) {
+      saveTitle(); // Guarda el título y cierra la edición
+   }
+
+   // Si el clic es fuera del descripción input, cerramos la edición de la descripción
+   if (isEditingDescription.value && descriptionInputRef.value && !descriptionInputRef.value.contains(event.target)) {
+      saveDescription(); // Guarda la descripción y cierra la edición
+   }
+
+   // Si el clic es fuera del popup de edición de privacidad, cerramos la edición de la privacidad
+   if (isEditingPrivacy.value && popupRef.value && !popupRef.value.contains(event.target)) {
+      savePrivacy(); // Guarda la privacidad y cierra la edición
+      isEditingPrivacy.value = false; // Asegura que el select se oculte
+   }
 };
 
 onMounted(async () => {
-  try {
-    // OBTENER INFO DE LA PLAYLIST
-    const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${Id}`);
-    if (!infoResponse.ok) throw new Error('Error al obtener la información de la playlist');
-    
-    playlistInfo.value = await infoResponse.json();
-    console.log("✅ PlaylistInfo cargada: ", playlistInfo.value);
+   try {
+      // OBTENER INFO DE LA PLAYLIST
+      const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${Id}`);
+      if (!infoResponse.ok) throw new Error('Error al obtener la información de la playlist');
+      
+      playlistInfo.value = await infoResponse.json();
+      console.log("✅ PlaylistInfo cargada: ", playlistInfo.value);
 
-    //  OBTENER CANCIONES DE LA PLAYLIST
-    const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
-    if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
+      // OBTENER DETALLES DE LA PLAYLIST
+      const detailsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/playlist/${Id}`);
+      if (!detailsResponse.ok) throw new Error('Error al obtener los detalles de la playlist');
+      
+      playlistDetails.value = await detailsResponse.json();
+      console.log("✅ Playlist details: ", playlistDetails.value);
+      editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
 
-    songsData.value = await songsResponse.json();
-    console.log("✅ SongsData recibido: ", songsData.value);
+      //  OBTENER CANCIONES DE LA PLAYLIST
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
+      if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
 
-    // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
-    if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
-      throw new Error('Las canciones no llegaron en formato de array');
-    }
+      songsData.value = await songsResponse.json();
+      console.log("✅ SongsData recibido: ", songsData.value);
 
-    // ASIGNAR LAS CANCIONES A `playlist`
-    playlist.value = songsData.value.canciones;
-    console.log("✅ Playlist final cargada:", playlist.value);
+      // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
+      if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
+         throw new Error('Las canciones no llegaron en formato de array');
+      }
 
-  } catch (error) {
-    console.error('Error al cargar la playlist:', error);
-  }
+      // ASIGNAR LAS CANCIONES A `playlist`
+      playlist.value = songsData.value.canciones;
+      console.log("✅ Playlist final cargada:", playlist.value);
+
+      // Imágenes predeterminadas
+      const ImageResponse = await fetch("https://echobeatapi.duckdns.org/playlists/default-photos");
+      if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
+      defaultImages.value = await ImageResponse.json();
+      console.log('Canciones predeterminadas', defaultImages.value)
+
+   } catch (error) {
+      console.error('Error al cargar la playlist:', error);
+   }
 });
 
 onMounted(() => {
-  // Añadir el listener al documento para detectar clics fuera
-  document.addEventListener('click', handleClickOutside);
+   // Añadir el listener al documento para detectar clics fuera
+   document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(async() => {
+   console.log("Actualizando lista...");
+   try {
+      const canciones = filteredPlaylist.value;
+      const cancionesJson = { canciones };
+
+      const responde = await fetch ("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({
+               idPlaylist: Number(Id),
+               cancionesJson: cancionesJson
+            })
+         })
+
+      if (!responde.ok) throw new Error('Error al actualizando lista');
+
+      
+   } catch (error) {
+      console.error(error);
+   }
+
 });
 
 onUnmounted(() => {
-  console.log("Saliendo de la página...");
-  // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
-  document.removeEventListener('click', handleClickOutside);
+   document.removeEventListener('click', handleClickOutside);
+   localStorage.removeItem("type");
 });
 
 // Imagen de reemplazo
 const handleImageError = (event) => {
-  event.target.src = default_img; // Reemplaza la imagen con la default
+   event.target.src = default_img; // Reemplaza la imagen con la default
 };
 
 // Gestión al hacer clic en el botón aleatorio
 const randomClick = () => {
-  isGlowing.value = !isGlowing.value;
-  aleatorio.value = !aleatorio.value;
+   isGlowing.value = !isGlowing.value;
+   aleatorio.value = !aleatorio.value;
 };
 
 function formatTime(seconds) {
-    let minutes = Math.floor(seconds / 60);
-    let secs = seconds % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+   let minutes = Math.floor(seconds / 60);
+   let secs = seconds % 60;
+   return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
 const deletePlaylist = async () => {
@@ -362,91 +780,91 @@ const playPlaylist = async () => {
 }
 
 const addSong = async (song) => {
-  try {
-    console.log("Id playlist: ", Id);
-    console.log("Id canción: ", song.Id);
-    const playlistId = Number(Id);
-    const response = await fetch(`https://echobeatapi.duckdns.org/playlists/add-song/${playlistId}`, {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
-      },
-      body: JSON.stringify({
-        idLista: playlistId,  
-        songId: song.Id 
-      })
-    });
+   try {
+      console.log("Id playlist: ", Id);
+      console.log("Id canción: ", song.Id);
+      const playlistId = Number(Id);
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/add-song/${playlistId}`, {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+         idLista: playlistId,  
+         songId: song.Id 
+         })
+      });
 
-    if (!response.ok) {
-      throw new Error('Error al añadir la canción');
-    }
+      if (!response.ok) {
+         throw new Error('Error al añadir la canción');
+      }
 
-    showPopupMessage("Canción añadida con éxito", "popup-success");
-    const newSong = {
-      id: song.Id,
-      nombre: song.Nombre,
-      portada: song.Portada,
-      duracion: song.Duracion,
-      numReproducciones: song.NumReproducciones
-   };
-    playlist.value = [...playlist.value, newSong];
-    console.log('valor canciones playlist', playlist.value);
+      showPopupMessage("Canción añadida con éxito", "popup-success");
+      const newSong = {
+         id: song.Id,
+         nombre: song.Nombre,
+         portada: song.Portada,
+         duracion: song.Duracion,
+         numReproducciones: song.NumReproducciones
+      };
+      playlist.value = [...playlist.value, newSong];
+      console.log('valor canciones playlist', playlist.value);
     
-  } catch (error) {
-      showPopupMessage(error.message, "popup-error");
-  }
+   } catch (error) {
+         showPopupMessage(error.message, "popup-error");
+   }
 };
 
 const removeSong = async (songId) => {
-  try {
-    console.log("Id playlist: ", Id);
-    console.log("Id canción: ", songId);
-    const playlistId = Number(Id);
-    const response = await fetch(`https://echobeatapi.duckdns.org/playlists/delete-song/${playlistId}`, {
-      method: 'DELETE',
-      headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
-      },
-      body: JSON.stringify({
-        idLista: playlistId,  
-        songId: songId 
-      })
-    });
+   try {
+      console.log("Id playlist: ", Id);
+      console.log("Id canción: ", songId);
+      const playlistId = Number(Id);
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/delete-song/${playlistId}`, {
+         method: 'DELETE',
+         headers: {
+            'Accept': '*/*', 
+            'Content-Type': 'application/json',  
+         },
+         body: JSON.stringify({
+         idLista: playlistId,  
+         songId: songId 
+         })
+      });
 
-    if (!response.ok) {
-      throw new Error('Error en la eliminación de la canción');
-    }
+      if (!response.ok) {
+         throw new Error('Error en la eliminación de la canción');
+      }
 
-    // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
-    playlist.value = playlist.value.filter(song => song.id !== songId);
-    showPopupMessage("Canción eliminada con éxito", "popup-success");
-    
-  } catch (error) {
-      showPopupMessage(error.message, "popup-error");
-  }
+      // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
+      playlist.value = playlist.value.filter(song => song.id !== songId);
+      showPopupMessage("Canción eliminada con éxito", "popup-success");
+      
+   } catch (error) {
+         showPopupMessage(error.message, "popup-error");
+   }
 };
 
 const addSongToFavorites = async (song) => {
    try {
-     console.log("Email: ", email);
-     console.log("Id canción: ", song.id);
-     const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.id}`, {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-      },
-     });
+      console.log("Email: ", email);
+      console.log("Id canción: ", song.id);
+      const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.id}`, {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*', 
+         },
+      });
+   
+      if (!response.ok) {
+         throw new Error('Error al añadir canción a favoritos');
+      }
  
-     if (!response.ok) {
-       throw new Error('Error al añadir canción a favoritos');
-     }
- 
-     showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
+      showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
      
    } catch (error) {
-       showPopupMessage(error.message, "popup-error");
+      showPopupMessage(error.message, "popup-error");
    }
 };
 
@@ -486,6 +904,7 @@ hr{
    opacity: 0.8;
    width: 100vw;
 }
+
 .layout {
    display: flex;
    height: 100vh;
@@ -529,17 +948,68 @@ hr{
    border-radius: 8px; /* Mantiene el mismo borde redondeado */
 }
 
-
 .playlist-info {
    color: white;
    text-align: left;
    max-width: 500px;
 }
 
+.playlist-title {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* espacio entre el texto y el icono */
+}
+
+.playlist-title input,
+.playlist-description input {
+  width: 100%;
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ffa500;
+  border-radius: 4px;
+  background-color: #2a2a2a;
+  color: #fff;
+  opacity: 0;
+  height: 0;
+  transition: opacity 0.3s, height 0.3s ease-in-out;
+}
+
+.playlist-title input:focus,
+.playlist-description input:focus {
+  outline: none;
+  border-color: #009688;
+}
+
+.playlist-title h1,
+.playlist-description p {
+  transition: opacity 0.3s, color 0.3s ease-in-out;
+}
+
+.playlist-title input.show,
+.playlist-description input.show {
+  opacity: 1;
+  height: auto;
+}
+
+.playlist-title h1:hover,
+.playlist-description p:hover {
+  color: #009688;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.playlist-info .info-icon {
+  width: 40px;  /* Ajusta el tamaño */
+  height: 40px;
+  object-fit: contain;  /* Evita distorsión de la imagen */
+  cursor: pointer;
+  filter: brightness(0) invert(1);
+}
+
 .playlist-info h1 {
    margin: 10px 0;
    font-family: 'Montserrat', sans-serif;
-   font-size: 2.8rem;
+   font-size: 2.2rem;
    font-weight: bold;
    color: #ffb347;  /* Naranja brillante */
    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5); /* Sombra para mejor legibilidad */
@@ -566,7 +1036,6 @@ hr{
 }
 
 .playlist-actions input,
-.playlist-actions select,
 .playlist-actions button {
    background-color: #2d1405;
    border: none;
@@ -579,18 +1048,12 @@ hr{
 
 .playlist-actions input {
    width: 220px;
-   background-color: #8A3A1B;   
+   background-color: #8A3A1B;  
+   border: 1px solid #ccc; 
 }
 
 .playlist-actions input::placeholder {
    color: white; /* Color del placeholder dorado para mejor visibilidad */
-   opacity: 0.5;
-}
-
-.playlist-actions select {
-   width: 160px;
-   background-color: transparent;
-   color: white;
    opacity: 0.5;
 }
 
@@ -625,8 +1088,8 @@ hr{
    align-items: center;
    padding: 6px;
    margin: 0 auto;
-   
 }
+
 .song-cover {
    text-align: center;
    width: 60px;  /* Define un tamaño fijo para la portada */
@@ -636,7 +1099,6 @@ hr{
    justify-content: center;
    border-radius: 8px; /* Bordes redondeados opcionales */
 }
-
 
 .song-cover img {
    width: 100%;
@@ -665,13 +1127,13 @@ hr{
 }
 
 @keyframes glowPulse {
-    0% { filter: drop-shadow(0px 0px 8px rgba(20, 18, 166, 0.888)); }
-    50% { filter: drop-shadow(0px 0px 15px rgba(255, 215, 0, 1)); }
-    100% { filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.8)); }
+   0% { filter: drop-shadow(0px 0px 8px rgba(20, 18, 166, 0.888)); }
+   50% { filter: drop-shadow(0px 0px 15px rgba(255, 215, 0, 1)); }
+   100% { filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.8)); }
 }
 
 .glow-effect {
-    animation: glowPulse 1.5s infinite alternate ease-in-out;
+   animation: glowPulse 1.5s infinite alternate ease-in-out;
 }
 
 .song-titles {
@@ -694,8 +1156,7 @@ hr{
 .song-plays,
 .song-buttons {
    width: 22%;
-   text-align: center;
-   
+   text-align: center;  
 }
 
 h1 {
@@ -709,10 +1170,10 @@ h1 {
    width: 40px; height: 40px
    
 }
+
 .song-buttons button:hover {
    background-color: #2d1405; /* Naranja más oscuro en hover */
 }
-
 
 .controls-container {
    display: flex;
@@ -767,116 +1228,377 @@ h1 {
 
 /* Contenedor del buscador */
 .search-container {
-  opacity: 0;
-  transform: translateY(-20px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  z-index: 999;
+   opacity: 0;
+   transform: translateY(-20px);
+   transition: opacity 0.3s ease, transform 0.3s ease;
+   z-index: 999;
 }
 
 .search-container input {
-  padding: 8px;
-  font-size: 16px;
-  width: 415px; 
+   padding: 8px;
+   font-size: 16px;
+   width: 415px; 
 }
 
 /* Aparece cuando el buscador está visible */
 .search-container.active {
-  opacity: 1;
-  transform: translateY(0);
+   opacity: 1;
+   transform: translateY(0);
 }
 
 .search-results {
-  position: absolute;
-  width: 430px;
-  background-color: #333;
-  color: white;
-  border-radius: 8px;
-  border-width: 10px;
-  border-color: white;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
-  margin-top: 5px;
-  margin-left: 5px;
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 10000;
-  scrollbar-width: none;
+   position: absolute;
+   width: 430px;
+   background-color: #333;
+   color: white;
+   border-radius: 8px;
+   border-width: 10px;
+   border-color: white;
+   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+   margin-top: 5px;
+   margin-left: 5px;
+   max-height: 300px;
+   overflow-y: auto;
+   z-index: 10000;
+   scrollbar-width: none;
 }
 
 .result-item {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #444;
-  cursor: pointer;
-  position: relative;
+   display: flex;
+   align-items: center;
+   padding: 10px;
+   border-bottom: 1px solid #444;
+   cursor: pointer;
+   position: relative;
 }
 
 .result-item img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  margin-right: 10px;
+   width: 40px;
+   height: 40px;
+   border-radius: 50%;
+   margin-right: 10px;
 }
 
 .result-item:hover {
-  background-color: #555;
+   background-color: #555;
 }
 
 .result-item button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  margin-left: auto;
+   background: none;
+   border: none;
+   cursor: pointer;
+   margin-left: auto;
 }
 
 .result-item button img {
-  width: 25px;
-  height: 25px;
-  filter: brightness(0) invert(1);
-  transition: transform 0.2s ease-in-out;
+   width: 25px;
+   height: 25px;
+   filter: brightness(0) invert(1);
+   transition: transform 0.2s ease-in-out;
 }
 
 .result-item button:hover img {
-  transform: scale(1.2);
+   transform: scale(1.2);
 }
 
 .song-quest-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-grow: 1; 
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   flex-grow: 1; 
 }
 
 .no-results {
-  padding: 15px;
-  text-align: center;
-  color: #bbb;
-  font-size: 16px;
+   padding: 15px;
+   text-align: center;
+   color: #bbb;
+   font-size: 16px;
 }
 
 .addButton {
-  background-color: #ffb347; /* Naranja brillante */
-  color: white;
-  padding: 10px 10px;
-  border-radius: 8px;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+   background-color: #ffb347; /* Naranja brillante */
+   color: white;
+   padding: 10px 10px;
+   border-radius: 8px;
+   font-weight: bold;
+   border: none;
+   cursor: pointer;
+   transition: all 0.3s ease;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .addButton:hover {
-  background-color: #e68a00; /* Naranja más oscuro */
-  transform: scale(1.05);
+   background-color: #e68a00; /* Naranja más oscuro */
+   transform: scale(1.05);
 }
 
 .addButton:focus {
+   outline: none;
+   box-shadow: 0 0 8px rgba(255, 165, 0, 0.7);
+}
+
+.image-container {
+  position: relative;
+  width: fit-content;
+}
+
+.edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+.edit-overlay button {
+  background-color: #ffffffdd;
+  color: #1e1e1e;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.edit-overlay button:hover {
+  background-color: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.image-selection-modal {
+   position: fixed;
+   top: 45%;
+   left: 50%;
+   transform: translate(-50%, -50%);
+   background: #1a1a1a;
+   padding: 20px;
+   border-radius: 10px;
+   box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+   text-align: center;
+   z-index: 1000;
+}
+
+.image-grid {
+   display: flex;
+   gap: 15px;
+   flex-wrap: wrap;
+   justify-content: center;
+   margin: 10px 0;
+}
+
+.selectable-image {
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   cursor: pointer;
+   transition: 0.3s;
+   object-fit: cover;
+   border: 2px solid #ffa500;
+}
+
+.selectable-image:hover {
+   transform: scale(1.1);
+}
+
+.close-btn {
+   width: 60%;
+   padding: 12px;
+   margin-top: 2rem;
+   border: none;
+   border-radius: 4px;
+   color: #fff;
+   font-weight: bold;
+   cursor: pointer;
+   background-color: #ff5722;
+}
+
+.close-btn:hover {
+   opacity: 0.8;
+}
+
+.filterSelect {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #8A3A1B;
+  color: #ffffff;
+  font-size: 13px;
   outline: none;
-  box-shadow: 0 0 8px rgba(255, 165, 0, 0.7);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.3s ease;
+}
+
+.filterSelect:hover {
+  border-color: #888;
+}
+
+.filterSelect:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+}
+
+.filterSelect option {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #aaa;
+}
+
+/* Estilos para el popup */
+.info-popup-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Popup visual */
+.info-popup-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+/* Popup sobre contenido */
+.playlist-popup {
+  position: fixed;
+  background-color: #4a1e04;
+  border-radius: 12px;
+  padding: 20px 20px;
+  min-width: 240px;
+  color: #ffb347;
+  z-index: 9999;
+  font-family: 'Inter', sans-serif;
+  animation: fadeSlideIn 0.25s ease-out;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7),
+              0 0 10px rgba(255, 180, 71, 0.3); 
+}
+
+/* Título */
+.playlist-popup h2 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: #ffb347;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Detalles */
+.playlist-popup p {
+  margin: 8px 0;
+  font-size: 1.05rem;
+  opacity: 0.85;
+}
+
+/* Contenedor de botones */
+.popup-buttons {
+  display: flex;
+  justify-content: center; /* Centra los botones */
+  gap: 10px; /* Separación entre los botones */
+  margin-top: 15px; /* Separación entre los detalles y los botones */
+}
+
+/* Botón cerrar y guardar */
+.playlist-popup button {
+  background-color: #8a3a10;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  font-size: 0.95rem;
+  margin-top: 5px;
+}
+
+.playlist-popup button:hover {
+  background-color: #ffb347;
+  color: #2d1405;
+}
+
+
+/* Entrada animada */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.popup-background-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(1px);
+  background-color: rgba(0, 0, 0, 0.4); /* Oscurece un poco */
+  z-index: 9998; /* Justo por debajo del popup */
+}
+
+.playlist-privacy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.playlist-header .edit-icon {
+  width: 25px;
+  height: 25px;
+  cursor: pointer;
+  filter: brightness(0) invert(1); /* Ajusta el color del icono si es necesario */
+  transition: filter 0.3s;
+}
+
+.edit-icon:hover {
+  filter: brightness(0.5) invert(1); /* Cambia el color cuando se hace hover */
+}
+
+.playlist-privacy select {
+   width: 100%;
+   padding: 8px;
+   font-size: 14px;
+   border: 1px solid #ffa500;
+   border-radius: 4px;
+   background-color: #2a2a2a;
+   color: #fff;
+   transition: opacity 0.3s, height 0.3s ease-in-out;
+   z-index: 1000;
+}
+
+.disabled {
+   pointer-events: none;  /* Desactiva la capacidad de hacer clic */
 }
 
 
