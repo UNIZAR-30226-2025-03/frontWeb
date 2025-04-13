@@ -12,19 +12,12 @@ import Playlist from '../views/Playlist.vue';
 import autenticacion from '../views/autenticacion.vue';
 import Generos from '../views/Generos.vue';
 import Favs from '../views/Favs.vue';
-import Artist from '../views/Artist.vue';
-import Friends from '../views/Friends.vue';
-
-import Favourites from '../views/favourites.vue';
-
-import Album from '../views/Album.vue';
-import Chat from '../views/Chat.vue';
-
-
+import Admin from '../views/Admin.vue';
 
 const routes = [
   { path: '/', component: Login }, // Ruta principal
   { path: '/home', component: Home,  meta: { requiresAuth: true }},
+  { path: '/admin', component: Admin},
   { path: '/signin', component: Signin},
   { path: '/pwd', component: Pwd},
   { path: '/test', component: Prueba},
@@ -34,12 +27,7 @@ const routes = [
   { path: '/playlist', component: Playlist, props: true },
   { path: '/auth/callback', component: autenticacion},
   { path: '/genres', component: Generos},
-  { path: '/favs', component: Favs},
-  { path: '/artist/:artistName', component: Artist, props: true },
-  { path: '/friends', component: Friends},
-  { path: '/album', component: Album, props: true },
-  { path: '/fav-playlists', component: Favourites}
-  { path: '/chat/:email', component: Chat}
+  { path: '/favs', component: Favs}
 
 ];
 
