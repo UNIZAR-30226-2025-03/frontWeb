@@ -1,7 +1,7 @@
 <template>
   <AudioStreamer ref="streamerRef" />
   <div id="app">
-  
+
    <div class="container">
       <div class="header">
 
@@ -90,7 +90,7 @@
       <main class="main-content">
         <router-view />
       </main>
-      <audio id="app-player"  ref="player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
+      <audio id="app-player"  ref="player" hidden @error="onPlayerError"  @timeupdate="updateCurrentTime" ></audio>
       <!-- Barra de canción -->
 
       <div class="bottom-bar">
@@ -101,8 +101,9 @@
               <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
               <span class="song-name">{{ lastSong.name }}</span>
             </div>
+            
         </div>
-
+       
         <!-- Center -->
         <div class="controls">
           <div class="buttons">
@@ -188,7 +189,7 @@
 
 //falta poner icono de mute
 
-import { computed, ref, provide, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, provide, onMounted, onBeforeUnmount,watch, nextTick } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
@@ -214,6 +215,8 @@ import { emitter } from '@/js/event-bus';
 const streamerRef = ref(null)
 provide('playSong', playSong);
 provide('playFromQuest', playFromQuest);
+
+emitter.emit("audio-buffer-ready");
 // Variables reactivas
 const lastSong = ref({
   id: '',
@@ -240,6 +243,7 @@ const searchArea = ref(null);
 const resultsArea = ref(null);
 const hoverLike = ref({});
 const playlistHoverLike = ref({});
+const audioIsReadyToSeek = ref(false);
 
 //pop up 
 const showPopup = ref(false);
@@ -388,9 +392,14 @@ const handleClickOutside = (event) => {
   }
 };
 
+const currentTimeNoFormat = ref(0);
+
+
+
 // Registrar el evento al montar el componente
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  document.addEventListener('audio-buffer-ready',bufferReady);
   try {
       // Obtener nick del usuario
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
@@ -416,46 +425,65 @@ onMounted(async () => {
       const songData = await songResponse.json();
 
       
+      const durationResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${songData.PrimeraCancionId}`);
+      if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción');
+      const durationData = await durationResponse.json();
+     
+
       // Extraer los datos de la respuesta
-      const songId = songData.PrimeraCancionId;
+      const songId = songData.PrimeraCancionId; 
       const songName = songData.Nombre;
       const songCover = songData.Portada;
-      const songMinute = songData.MinutoEscucha;
-
+      currentSongTime.value =  formatTime(songData.MinutoEscucha);
+      currentTimeNoFormat.value = songData.MinutoEscucha;
+      console.log("aaaaaaaaaaa", songData.MinutoEscucha)
       // Asignar los datos a las variables reactivas
       lastSong.value = {
          id: songId,
          name: songName,
          cover: songCover,
-         minute: songMinute,
+         minute: formatTime(durationData),
       };
-      currentSong.value = lastSong.value
-      // Establecer la barra de progreso de acuerdo con el minuto de escucha
-      if (player.value && player.value.duration) {
-         progress.value = (lastSong.value.minute / player.value.duration) * 100;
-         player.value.currentTime = lastSong.value.minute; // Saltar al minuto guardado
-      }
+  
+      currentSong.value = {
+         Id: songId,
+         Nombre: songName,
+   
+      };
 
-      console.log('Última canción:', lastSong.value);
+     streamerRef.value.startStreamSong(songId, songName, email);
+
+    console.log('Última canción:', lastSong.value);
+
    } catch (error) {
       console.error('Error:', error);
    }
 
 });
 
+const bufferReady = () => {
+  if ( currentTimeNoFormat.value != null && player.value) {
+    
+    player.value.currentTime =  currentTimeNoFormat.value;
+    console.log(`✅ [Seek buffer-ready] Jump a ${ currentTimeNoFormat.value}s`);
+    currentTimeNoFormat.value = null;
+    progress.value = (player.value.currentTime / player.value.duration) * 100;
+   
+  }
+};
+
+
 
 // Eliminar el evento cuando se desmonte el componente
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
-
   const currentTime = player.value.currentTime;
-
   streamerRef.value.socket.emit('progressUpdate', {
-      userId: email,
-      songId: currentSong.Id,
-      currentTime,
+              userId: email,
+              songId: currentSong.value.Id,
+              currentTime: currentTime,
   });
-  console.log (currentTime)
+
 });
 
 
@@ -476,12 +504,37 @@ function updateCurrentTime(event) {
       progress.value = (event.target.currentTime / event.target.duration) * 100;
       
     }
+        // Si ya existía un intervalo, lo limpiamos para no duplicarlo
+   
+    if (progressInterval) {
+        
+        clearInterval(progressInterval);
+    }
+    if(contador  ===  0 ){
+      contador = 1;
+      // Enviamos solo si el audio se está reproduciendo
+        if (isPlaying.value) {
+          const currentTime = player.value.currentTime;
+          //const currentTime = parseInt(event.target.currentTime.toFixed(0));
+          console.log(`userId: ${email}, songId: ${currentSong.value.Id}, currentTime: ${currentTime}`) 
+          streamerRef.value.socket.emit('progressUpdate', {
+              userId: email,
+              songId: currentSong.value.Id,
+              currentTime: currentTime,
+          });
+
+
+          console.log(`[Progress]Progreso enviado: ${currentTime} segundos`);
+        }
+
+    }else{
+      contador--;
+    }
     
 
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
-//Hacer otra funcion que para pner una cancion desde el reproductor await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list
 
 const clearQueue = async () => {
    try {
@@ -618,6 +671,7 @@ function togglePlay() {
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
       } else{
+        console.log("play current:", player.value.currentTime)
         player.value.play().catch((err) => {
           console.warn('[player] Error al reproducir:', err)
         })
