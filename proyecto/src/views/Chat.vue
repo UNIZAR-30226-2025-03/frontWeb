@@ -23,148 +23,183 @@
    </div>
  </template>
  
-<script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import ChatMessage from '@/components/ChatMessage.vue';
-import ChatInput from '@/components/ChatInput.vue';
-
-const route = useRoute();
-const friendMail = route.params.email;
-const email = localStorage.getItem("email");
-
-const router = useRouter();
+ <script setup>
+ import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+ import { useRoute, useRouter } from 'vue-router';
+ import ChatMessage from '@/components/ChatMessage.vue';
+ import ChatInput from '@/components/ChatInput.vue';
  
-const messages = ref([]);
-const messageContainer = ref(null);
-
-const user = ref({
-   nick: '',
-   perfil: '',
-});
-
-const goBack = () => {
-   router.back();
-};
+ const route = useRoute();
+ const friendMail = route.params.email;
+ const email = localStorage.getItem("email");
  
-let pollingInterval;
+ const router = useRouter();
  
-onMounted(() => {
-   startPolling();
-});
+ const messages = ref([]);
+ const messageContainer = ref(null);
  
-const startPolling = () => {
-   pollingInterval = setInterval(async () => {
-      try {
-         const res = await fetch(`https://echobeatapi.duckdns.org/chat/historialDelChat?userPrincipal=${encodeURIComponent(email)}&userAmigo=${encodeURIComponent(friendMail)}`);
-         if (!res.ok) throw new Error("Error al obtener los mensajes");
-         const data = await res.json();
-   
-         const formattedMessages = data.map(msg => ({
-            ...msg,
-            posicion: msg.EmailSender === email ? 'right' : 'left',
-         }));
-   
-         // Solo actualiza si hay mensajes nuevos
-         if (JSON.stringify(formattedMessages) !== JSON.stringify(messages.value)) {
-            messages.value = formattedMessages;
-            scrollToBottom();
-         }
-      } catch (error) {
-         console.error("Polling error:", error.message);
-      }
-   }, 3000); // cada 3 segundos
-};
+ const user = ref({
+    nick: '',
+    perfil: '',
+ });
  
-// Limpia el intervalo al desmontar el componente
-onUnmounted(() => {
-   clearInterval(pollingInterval);
-});
+ const goBack = () => {
+    router.back();
+ };
  
-onMounted(async () => {
-   try {
-      const res = await fetch(`https://echobeatapi.duckdns.org/chat/historialDelChat?userPrincipal=${encodeURIComponent(email)}&userAmigo=${encodeURIComponent(friendMail)}`);
-      if (!res.ok) {
-         throw new Error("Error al obtener los mensajes");
-      }
-      const data = await res.json();
-      messages.value = data.map(msg => ({
-      ...msg,
-      posicion: msg.EmailSender === email ? 'right' : 'left',
-      }));
-      scrollToBottom();
-
-      // Obtener foto de perfil y nick del usuario
-      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(friendMail)}`);
-      if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
-
-      const userData = await userResponse.json();
-
-      // Extraer los datos de la respuesta
-      const UserNick = userData.Nick;
-      const UserPerfil = userData.LinkFoto;
-
-      // Asignar los datos a las variables reactivas
-      user.value = {
-         nick: UserNick,
-         perfil: UserPerfil,
-      }
-
-      // Marcar los mensajes como leídos
-      const result = await fetch(`https://echobeatapi.duckdns.org/chat/marcarComoLeidos?senderId=${encodeURIComponent(friendMail)}&receiverId=${encodeURIComponent(email)}`, {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*',
-      },
-      });
-      if (!result.ok) {
-         throw new Error("Error al leer los mensajes");
-      }
-
-   } catch (error) {
-      console.error(error.message);
-   }
-});
+ let pollingInterval;
  
-const sendMessage = async (text) => {
-   if (!text.trim()) return;
-   try {
-      const res = await fetch(`https://echobeatapi.duckdns.org/chat/guardarMensaje?senderId=${encodeURIComponent(email)}&receiverId=${encodeURIComponent(friendMail)}&content=${encodeURIComponent(text)}`, {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*',
-      },
-      });
-
-      if (!res.ok) {
-      throw new Error("Error al enviar el mensaje");
-      }
-      const data = await res.json();
-   
-      messages.value.push({
-      EmailReceiver: data.EmailReceiver,
-      EmailSender: data.EmailSender,
-      Id: data.Id,
-      Leido: data.Leido,
-      Fecha: data.Fecha,
-      Mensaje: data.Mensaje,
-      posicion: 'right',
-      });
+ const markMessagesAsRead = async () => {
+    try {
+       const result = await fetch(
+          `https://echobeatapi.duckdns.org/chat/marcarComoLeidos?senderId=${encodeURIComponent(friendMail)}&receiverId=${encodeURIComponent(email)}`,
+          {
+             method: 'POST',
+             headers: {
+                'Accept': '*/*',
+             },
+          }
+       );
+       if (!result.ok) {
+          throw new Error("Error al marcar mensajes como leídos");
+       }
+       // Si la llamada es exitosa, se actualiza el estado local
+       messages.value = messages.value.map(msg =>
+          msg.EmailSender === friendMail ? { ...msg, Leido: true } : msg
+       );
+    } catch (error) {
+       console.error(error.message);
+    }
+ };
+ 
+ const startPolling = () => {
+    pollingInterval = setInterval(async () => {
+       try {
+          const res = await fetch(
+             `https://echobeatapi.duckdns.org/chat/historialDelChat?userPrincipal=${encodeURIComponent(email)}&userAmigo=${encodeURIComponent(friendMail)}`
+          );
+          if (!res.ok) throw new Error("Error al obtener los mensajes");
+          const data = await res.json();
+ 
+          const formattedMessages = data.map(msg => ({
+             ...msg,
+             posicion: msg.EmailSender === email ? 'right' : 'left',
+          }));
+ 
+          // Solo actualiza si hay mensajes nuevos
+          if (JSON.stringify(formattedMessages) !== JSON.stringify(messages.value)) {
+             messages.value = formattedMessages;
+             scrollToBottom();
+ 
+             // Detecta si hay mensajes sin marcar como leídos (enviados por el amigo)
+             const unreadMessages = formattedMessages.filter(
+                msg => msg.EmailSender === friendMail && !msg.Leido
+             );
+             if (unreadMessages.length > 0) {
+                // Llama a la función para marcarlos como leídos en la API
+                await markMessagesAsRead();
+             }
+          }
+       } catch (error) {
+          console.error("Polling error:", error.message);
+       }
+    }, 1000); // cada 1 segundo
+ };
+ 
+ // Limpia el intervalo al desmontar el componente
+ onUnmounted(() => {
+    clearInterval(pollingInterval);
+ });
+ 
+ onMounted(async () => {
+    try {
+       const res = await fetch(
+          `https://echobeatapi.duckdns.org/chat/historialDelChat?userPrincipal=${encodeURIComponent(email)}&userAmigo=${encodeURIComponent(friendMail)}`
+       );
+       if (!res.ok) {
+          throw new Error("Error al obtener los mensajes");
+       }
+       const data = await res.json();
+       messages.value = data.map(msg => ({
+          ...msg,
+          posicion: msg.EmailSender === email ? 'right' : 'left',
+       }));
+       scrollToBottom();
+ 
+       // Obtener foto de perfil y nick del usuario
+       const userResponse = await fetch(
+          `https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(friendMail)}`
+       );
+       if (!userResponse.ok) throw new Error('Error al obtener los datos del usuario');
+       const userData = await userResponse.json();
+       user.value = {
+          nick: userData.Nick,
+          perfil: userData.LinkFoto,
+       };
+ 
+       // Marcar los mensajes como leídos al cargar (los que ya existen)
+       const result = await fetch(
+          `https://echobeatapi.duckdns.org/chat/marcarComoLeidos?senderId=${encodeURIComponent(friendMail)}&receiverId=${encodeURIComponent(email)}`,
+          {
+             method: 'POST',
+             headers: {
+                'Accept': '*/*',
+             },
+          }
+       );
+       if (!result.ok) {
+          throw new Error("Error al leer los mensajes");
+       }
+       // Actualiza localmente todos los mensajes del amigo como leídos
+       messages.value = messages.value.map(msg =>
+          msg.EmailSender === friendMail ? { ...msg, Leido: true } : msg
+       );
+    } catch (error) {
+       console.error(error.message);
+    }
     
-      scrollToBottom();
-   } catch (error) {
-      console.error(error.message);
-   }
-}
+    startPolling();
+ });
  
-const scrollToBottom = async () => {
-   await nextTick();
-   if (messageContainer.value) {
-   messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
-   }
-}
-
-</script>
+ const sendMessage = async (text) => {
+    if (!text.trim()) return;
+    try {
+       const res = await fetch(
+          `https://echobeatapi.duckdns.org/chat/guardarMensaje?senderId=${encodeURIComponent(email)}&receiverId=${encodeURIComponent(friendMail)}&content=${encodeURIComponent(text)}`,
+          {
+             method: 'POST',
+             headers: {
+                'Accept': '*/*',
+             },
+          }
+       );
+       if (!res.ok) {
+          throw new Error("Error al enviar el mensaje");
+       }
+       const data = await res.json();
+       messages.value.push({
+          EmailReceiver: data.EmailReceiver,
+          EmailSender: data.EmailSender,
+          Id: data.Id,
+          Leido: data.Leido,
+          Fecha: data.Fecha,
+          Mensaje: data.Mensaje,
+          posicion: 'right',
+       });
+       scrollToBottom();
+    } catch (error) {
+       console.error(error.message);
+    }
+ };
+ 
+ const scrollToBottom = async () => {
+    await nextTick();
+    if (messageContainer.value) {
+       messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+    }
+ };
+ </script>
+ 
  
  <style scoped>
 .chat-view {
