@@ -52,6 +52,11 @@
     blobs.forEach(blob => console.log(`[info] - ${blob}`))
   })
 
+  socket.on('progressUpdate', (data) => {
+   console.log('📥 Recibido progressUpdate del cliente:', data);
+  })
+
+
   socket.on('audioChunk', (data) => {
     if (!streamingActive || player.value?.error) return
 

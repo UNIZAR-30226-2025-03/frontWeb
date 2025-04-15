@@ -62,28 +62,45 @@
                       >
                         <span>{{ playlistHoverLike[lista.id] ? '❤️' : '🤍' }}</span>
                      </button>
-
                   </div>
 
                   <div v-for="listaAmigos in results.playlistsProtegidasDeAmigos" :key="listaAmigos.id" class="result-item">
                      <img :src="listaAmigos.portada" alt="Preview" />
                      <span> {{ listaAmigos.nombre }}</span>
- 
                   </div>
+
+                  <div v-for="listaGeneros in results.playlistsPorGenero" :key="listaGeneros.id" class="result-item">
+                     <img :src="listaGeneros.portada" alt="Preview" />
+                     <span> {{ listaGeneros.nombre }}</span>
+                  </div>
+
                </template>
                <div v-else class="no-results">
                   ❌ Sin resultados
                </div>
             </div>
-            
-            <select v-model="searchOption" @change="fetchResults" >
-               <option>Todo</option>
-               <option value="artistas">Artista</option>
-               <option value="canciones">Canción</option>
-               <option value="albums">Álbum</option>
-               <option value="playlists">Playlist</option>
-            </select>
+            <div class="select-wrapper">
+               <select v-model="searchOption" @change="handleSearchOptionChange" >
+                  <option>Todo</option>
+                  <option value="artistas">Artista</option>
+                  <option value="canciones">Canción</option>
+                  <option value="albums">Álbum</option>
+                  <option value="playlists">Playlist</option>
+                  <option value="genero">Genero</option>
+               </select>
+               <!-- Flyout de géneros en forma de botones -->
+               <div v-if="showGenderDropdown" class="gender-flyout" ref="genderFlyout">
+                  <span class="gender-title">Selecciona un género:</span>
+                  <div class="gender-list">
+                     <button v-for="gender in genders" :key="gender.NombreGenero" class="gender-btn" @click="selectGender(gender)" :class="{ active: selectedGender === gender }"
+                     >
+                     {{ gender.NombreGenero }}
+                     </button>
+                  </div>
+               </div>
+            </div>
          </div>
+
         <img class="image-right" :src="userIcon" alt="User" @click="openUser"/>
       </div>
 
@@ -122,9 +139,9 @@
                  <img :src="nextIcon" alt="Next" @click="nextSong"/>
               </button>
   
-              <button class="side-buttons" @click="playSong(currentSong)">
-                 <img :src="restart" alt="Restart" />
-              </button>
+              <button class="side-buttons" @click="toggleLoop">
+                 <img :src="restart" alt="Restart" :class="{'loop-active': isLooping}" />
+            </button>
           </div>
 
           <div class="progress">
@@ -213,10 +230,12 @@ import CorazonVacio from '@/assets/me-gusta.png';
 import { emitter } from '@/js/event-bus';
 
 const streamerRef = ref(null)
+
 provide('playSong', playSong);
 provide('playFromQuest', playFromQuest);
 
 emitter.emit("audio-buffer-ready");
+
 // Variables reactivas
 const lastSong = ref({
   id: '',
@@ -224,6 +243,7 @@ const lastSong = ref({
   cover: '',
   minute: 0
 });
+
 const player = ref(null);
 const mute = ref(false);
 const email =  localStorage.getItem("email");
@@ -238,14 +258,21 @@ const hoveredSong = ref(null);
 const currentSong = ref('');
 const currentStopTime = ref('');
 const progress = ref(0); // Valor de la barra (0 a 100)
+const isLooping = ref(false);
 
 const searchArea = ref(null);
 const resultsArea = ref(null);
 const hoverLike = ref({});
 const playlistHoverLike = ref({});
+
 const audioIsReadyToSeek = ref(false);
 
-//pop up 
+const genders = ref([]);
+const showGenderDropdown = ref(false);
+const selectedGender = ref('');
+const genderFlyout = ref(null);
+
+// pop-up 
 const showPopup = ref(false);
 const popupMessage = ref("");
 const popupType = ref("popup-error");
@@ -265,7 +292,8 @@ const results = ref({
   canciones: [],
   albums: [],
   playlists: [],
-  playlistsProtegidasDeAmigos: []
+  playlistsProtegidasDeAmigos: [],
+  playlistsPorGenero: []
 });
 
 const menuIcons = ref([
@@ -277,9 +305,8 @@ const menuIcons = ref([
 ]);
 
 const actionIcon = (pagina) => {
- 
- router.push(pagina);
- closeMenu();
+   router.push(pagina);
+   closeMenu();
 }
 
 const hasResults = computed(() => 
@@ -287,9 +314,50 @@ const hasResults = computed(() =>
   results.value.canciones.length || 
   results.value.albums.length || 
   results.value.playlists.length || 
-  results.value.playlistsProtegidasDeAmigos
+  results.value.playlistsProtegidasDeAmigos.length || 
+  results.value.playlistsPorGenero.length
 );
 
+// Opción de búsqueda
+const handleSearchOptionChange = () => {
+   if (searchOption.value === 'genero') {
+      showGenderDropdown.value = true;
+      currentSearch.value = '';
+      results.value = {
+         artistas: [],
+         canciones: [],
+         albums: [],
+         playlists: [],
+         playlistsProtegidasDeAmigos: [],
+         playlistsPorGenero: []
+      };
+   } else {
+      showGenderDropdown.value = false;
+      fetchResults(); // actualizar búsqueda al cambiar de tipo
+   }
+};
+
+const selectGender = (gender) => {
+  selectedGender.value = gender;
+  currentSearch.value = gender.NombreGenero;
+  fetchResults(); 
+};
+
+// Función que cambia el estado del bucle
+const toggleLoop = () => {
+   isLooping.value = !isLooping.value; // Cambia el estado del bucle
+
+   // Si está en bucle, activamos la reproducción en bucle
+   if (isLooping.value) {
+      if (player.value) {
+         player.value.loop = true; // Activamos el bucle
+      }
+   } else {
+      if (player.value) {
+         player.value.loop = false; // Desactivamos el bucle
+      }
+   }
+};
 
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
@@ -316,8 +384,46 @@ const nextSong = async() => {
   } catch (error) {
     console.error('Error next song:', error);
   }
- 
 }
+
+async function handleSongEnded() {
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+
+    if (!response.ok) {
+      console.log('[cola] No hay más canciones en la cola. Fin de reproducción.');
+      isPlaying.value = false;
+      return;
+    }
+
+    const nextSongData = await response.json();
+
+    if (!nextSongData?.siguienteCancionId) {
+      console.log('[cola] No hay más canciones. Deteniendo reproducción.');
+      isPlaying.value = false;
+      return;
+    }
+
+    // Si hay siguiente canción, cargar y reproducir
+    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${nextSongData.siguienteCancionId}`);
+    if (!song.ok) throw new Error('Error al obtener los datos de la siguiente canción');
+
+    const songData = await song.json();
+
+    const newSong = {
+      Id: nextSongData.siguienteCancionId,
+      Nombre: songData.Nombre,
+      Portada: songData.Portada,
+      Duracion: songData.Duracion,
+    };
+
+    playSong(newSong);
+  } catch (error) {
+    console.error('[cola] Error al intentar reproducir la siguiente canción:', error);
+    isPlaying.value = false;
+  }
+}
+
 
 const previousSong = async() =>{
   try {
@@ -383,23 +489,32 @@ const closeSearchResults = () => {
 
 // Agregar evento de clic global
 const handleClickOutside = (event) => {
-  // Si el clic fue fuera de la barra de búsqueda y los resultados
-  if (
+  const clickedOutsideSearch =
     searchArea.value && !searchArea.value.contains(event.target) &&
-    resultsArea.value && !resultsArea.value.contains(event.target)
-  ) {
-    closeSearchResults(); // Cerrar resultados si el clic fue fuera
+    resultsArea.value && !resultsArea.value.contains(event.target);
+
+  const clickedOutsideGender =
+    genderFlyout.value && !genderFlyout.value.contains(event.target);
+
+  if (clickedOutsideSearch) {
+    closeSearchResults();
+  }
+
+  if (showGenderDropdown.value && clickedOutsideGender) {
+    showGenderDropdown.value = false;
+    searchOption.value = 'Todo';
   }
 };
 
 const currentTimeNoFormat = ref(0);
 
-
-
 // Registrar el evento al montar el componente
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('audio-buffer-ready',bufferReady);
+   if (player.value) {
+      player.value.addEventListener('ended', handleSongEnded);
+   }
   try {
       // Obtener nick del usuario
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
@@ -437,6 +552,7 @@ onMounted(async () => {
       currentSongTime.value =  formatTime(songData.MinutoEscucha);
       currentTimeNoFormat.value = songData.MinutoEscucha;
       console.log("aaaaaaaaaaa", songData.MinutoEscucha)
+      
       // Asignar los datos a las variables reactivas
       lastSong.value = {
          id: songId,
@@ -455,10 +571,19 @@ onMounted(async () => {
 
     console.log('Última canción:', lastSong.value);
 
+      console.log('Última canción:', lastSong.value);
+
+      // Obtener generos
+      const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
+      if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
+
+      const data = await genderResponse.json();
+      genders.value = data;
+      console.log("Géneros cargados:", genders.value);
+
    } catch (error) {
       console.error('Error:', error);
    }
-
 });
 
 const bufferReady = () => {
@@ -473,17 +598,18 @@ const bufferReady = () => {
 };
 
 
-
-// Eliminar el evento cuando se desmonte el componente
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
+
+   if (player.value) {
+      player.value.removeEventListener('ended', handleSongEnded);
+   }
   const currentTime = player.value.currentTime;
   streamerRef.value.socket.emit('progressUpdate', {
               userId: email,
               songId: currentSong.value.Id,
               currentTime: currentTime,
   });
-
 });
 
 
@@ -492,7 +618,6 @@ let progressInterval = null;
 let contador = 1;
 
 function updateCurrentTime(event) {
-   console.log("Tiempo actualizado:", event.target.currentTime); 
    console.log("Progress:", progress.value, "CurrentTime:", event.target.currentTime);
 
   const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
@@ -657,7 +782,6 @@ function muteVolumen(){
 }
 
 // Función para pausar/reanudar
-// Función para pausar/reanudar
 function togglePlay() {
   if (!player.value){
     console.warn("[player] Error con el player audio")
@@ -715,11 +839,11 @@ function getIconPosition(index, total) {
   return { transform: `translate(${x}px, ${y}px)` };
 }
 
-
+// Búsqueda
 const fetchResults = async () => {
    
    if (!currentSearch.value.trim()) {
-      results.value = { artistas: [], canciones: [], albums: [], playlists: [], playlistsProtegidasDeAmigos: [] };
+      results.value = { artistas: [], canciones: [], albums: [], playlists: [], playlistsProtegidasDeAmigos: [], playlistsPorGenero: [] };
       return;
    }
 
@@ -989,6 +1113,17 @@ select {
   flex: none; 
 }
 
+.loop-active {
+  border: 2px solid #ff474d;
+  border-radius: 50%; /* Hace que el borde sea redondeado */
+  background-color: rgba(255, 99, 71, 0.1); /* Fondo semitransparente */
+  transform: scale(1.1);
+}
+
+.loop-active:hover {
+  background-color: rgba(255, 99, 71, 0.2); /* Cambio de fondo al pasar el ratón */
+}
+
 .play-button {
   flex-grow: 0;
   transform: scale(1.2); /* Aumenta el tamaño del botón central */
@@ -1224,32 +1359,102 @@ select {
   background: #fff;
   cursor: pointer;
   border: none;
-  margin-top: -4px;
 }
 
 .volume-slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: pointer;
-  border: none;
+   width: 12px;
+   height: 12px;
+   border-radius: 50%;
+   background: #fff;
+   cursor: pointer;
+   border: none;
 }
 
 /* Transiciones fade volumen */
 .fade-enter-active, .fade-leave-active {
-  transition: opacity 0.2s ease;
+   transition: opacity 0.2s ease;
 }
 .fade-enter-from, .fade-leave-to {
-  opacity: 0;
+   opacity: 0;
 }
 /* like album*/
 
 .like-hover {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
+   background: none;
+   border: none;
+   font-size: 24px;
+   cursor: pointer;
+}
+
+.select-wrapper {
+   position: relative;
+   display: inline-block;
+}
+
+.gender-flyout {
+   position: absolute;
+   top: 0;
+   left: 110%;
+   background-color: #222; /* Fondo oscuro */
+   border: 1px solid #444; /* Borde tenue */
+   padding: 12px;
+   border-radius: 10px;
+   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+   z-index: 10;
+   min-width: 180px;
+   color: #fff;
+   white-space: nowrap;
+}
+
+.gender-title {
+   font-weight: bold;
+   font-size: 14px;
+   color: #ffb347; /* Naranja para destacar */
+   margin-bottom: 10px;
+}
+
+.gender-list {
+   display: flex;
+   flex-direction: column;
+   gap: 8px;
+   margin-top: 5px;
+}
+
+.gender-btn {
+   padding: 6px 12px;
+   background-color: #333;
+   border: 1px solid #555;
+   border-radius: 20px;
+   color: white;
+   font-size: 13px;
+   cursor: pointer;
+   transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.gender-btn:hover {
+   background-color: #555;
+   transform: scale(1.05);
+}
+
+/* Responsivo */
+@media (max-width: 600px) {
+   .gender-flyout {
+      position: static;
+      margin-top: 10px;
+      left: 0;
+   }
+
+   .gender-list {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 10px;
+   }
+}
+
+.gender-btn.active {
+   background-color: #ffb347;
+   color: #000;
+   font-weight: bold;
 }
 
 /*Pop up */

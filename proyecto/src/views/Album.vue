@@ -118,8 +118,20 @@ console.log('ID del album:', Id);
 const albumInfo = ref({}); // Inicializado como objeto vacío
 const album = ref([]); // Inicializado como array vacío
 const searchTerm = ref('');
- 
+
+// Actualiza el número de reproducciones localmente
+const updateSongReproductions = (song) => {
+   song.numReproducciones++; // Incrementar localmente las reproducciones
+};
+
+//Actualizar el numero de reproducciones de album localmente
+const updateAlbumReproductions = (album) => {
+   album.numReproducciones++; // Incrementar localmente las reproducciones
+};
 const playNewSong = async (song,posicion) => {
+   // Primero actualizamos las reproducciones localmente
+   updateSongReproductions(song);
+   updateAlbumReproductions(albumInfo.value);
    console.log("cancionid:", song);
    console.log("posicion:", posicion);
 
@@ -636,4 +648,3 @@ h1 {
 }
  
 </style>
-  
