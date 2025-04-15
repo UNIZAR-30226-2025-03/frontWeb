@@ -1,5 +1,8 @@
 <template>
   <div v-if="authorized" class="admin-container">
+    <!-- Agregar el componente ChatBox en la parte superior -->
+    <ChatBox />
+
     <h1>Panel de Administración</h1>
 
     <!-- Sección de Listas -->
@@ -73,14 +76,16 @@
     </div>
   </div>
   <div v-else class="loading">
-    <!-- Opcional: mensaje o spinner mientras se verifica la autenticación -->
     <p>Cargando ...</p>
   </div>
 </template>
 
 <script>
+import ChatBox from '@/components/ChatBox.vue';
+
 export default {
   name: 'AdminView',
+  components: { ChatBox },
   data() {
     return {
       email: null,
@@ -89,12 +94,11 @@ export default {
       searchTerm: '',
       modalVisible: false,
       userToDelete: {},
-      authorized: false // Variable para controlar si se puede mostrar la página
+      authorized: false // Controla si se muestra la página
     };
   },
   created() {
     this.email = localStorage.getItem('email') || '';
-    // Primero se verifica que la API devuelva status 200
     this.verificarAcceso();
   },
   computed: {
@@ -116,25 +120,20 @@ export default {
         if (!token) {
           throw new Error('No se encontró el token de autenticación.');
         }
-        // Hacemos la petición a la API para listas de administración
         const response = await fetch('https://echobeatapi.duckdns.org/admin/playlists', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
-        // Si la respuesta es OK (200), se autoriza y se cargan los datos
         if (response.ok) {
           this.adminListas = await response.json();
-          // Se puede llamar a cargarUsuarios u otras funciones
           await this.cargarUsuarios();
           this.authorized = true;
         } else {
-          // Si el status no es 200, redirigir o mostrar un error
           throw new Error('Error al cargar las listas de administración');
         }
       } catch (error) {
         console.error('Error en la verificación de acceso:', error);
-        // Redirigir a otra ruta (por ejemplo, login o página de error)
         this.$router.push('/');
       }
     },
@@ -186,7 +185,6 @@ export default {
         if (!response.ok) {
           throw new Error('Error al eliminar el usuario');
         }
-        // Actualiza la lista tras la eliminación
         await this.cargarUsuarios();
         console.log(`Usuario ${this.userToDelete.email} eliminado correctamente`);
       } catch (error) {
@@ -199,18 +197,18 @@ export default {
 </script>
 
 <style scoped>
-/* Contenedor principal */
+/* Actualización para habilitar scroll en la página de administración */
 .admin-container {
-  background-color: #000;
-  color: #fff;
-  padding: 1rem;
+  min-height: 100vh;
+  overflow-y: scroll; /* en lugar de auto */
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Secciones generales */
+
+/* Resto de estilos de AdminView */
 .admin-section {
   margin-bottom: 1.5rem;
 }
-
 .admin-actions button {
   background-color: #ffa500;
   border: none;
@@ -219,12 +217,9 @@ export default {
   padding: 0.5rem 1rem;
   cursor: pointer;
 }
-
 .admin-actions button:hover {
   opacity: 0.8;
 }
-
-/* Sección de playlists */
 .playlists-scroll {
   display: flex;
   overflow-x: auto;
@@ -232,7 +227,6 @@ export default {
   padding: 1rem 0;
   scrollbar-width: thin;
 }
-
 .playlist-card {
   min-width: 160px;
   background-color: #333;
@@ -244,12 +238,10 @@ export default {
   transition: transform 0.2s;
   text-align: center;
 }
-
 .playlist-card:hover {
   transform: scale(1.05);
   background-color: #444;
 }
-
 .playlist-cover {
   width: 100%;
   height: 100px;
@@ -257,31 +249,24 @@ export default {
   border-radius: 6px;
   margin-bottom: 0.5rem;
 }
-
 .playlist-title {
   font-size: 1rem;
   color: #ffb347;
   margin-bottom: 0.3rem;
 }
-
 .playlist-info {
   font-size: 0.85rem;
   color: #ccc;
   margin: 0;
 }
-
-/* Sección de usuarios */
 .user-search {
   margin: 0.5rem 0;
 }
-
 .user-search input {
   padding: 0.5rem;
   width: 100%;
   max-width: 300px;
 }
-
-/* Grid para usuarios: cuadraditos pequeños y scroll vertical */
 .users-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -290,7 +275,6 @@ export default {
   overflow-y: auto;
   padding: 0.5rem;
 }
-
 .user-card {
   background-color: #333;
   padding: 0.5rem;
@@ -299,12 +283,9 @@ export default {
   transition: background-color 0.2s;
   text-align: center;
 }
-
 .user-card:hover {
   background-color: #444;
 }
-
-/* Modal de confirmación */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -317,7 +298,6 @@ export default {
   justify-content: center;
   z-index: 1000;
 }
-
 .modal {
   background-color: #fff;
   color: #000;
@@ -327,17 +307,14 @@ export default {
   width: 90%;
   text-align: center;
 }
-
 .modal h3 {
   margin-top: 0;
 }
-
 .modal-actions {
   margin-top: 1rem;
   display: flex;
   justify-content: space-around;
 }
-
 .confirm-btn {
   background-color: #d9534f;
   color: #fff;
@@ -346,7 +323,6 @@ export default {
   cursor: pointer;
   border-radius: 4px;
 }
-
 .cancel-btn {
   background-color: #5bc0de;
   color: #fff;
@@ -355,12 +331,10 @@ export default {
   cursor: pointer;
   border-radius: 4px;
 }
-
 .confirm-btn:hover,
 .cancel-btn:hover {
   opacity: 0.9;
 }
-
 .loading {
   display: flex;
   align-items: center;
