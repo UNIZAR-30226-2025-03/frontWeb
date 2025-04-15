@@ -13,6 +13,12 @@ import autenticacion from '../views/autenticacion.vue';
 import Generos from '../views/Generos.vue';
 import Favs from '../views/Favs.vue';
 import Admin from '../views/Admin.vue';
+import Artist from '../views/Artist.vue';
+import Friends from '../views/Friends.vue';
+import Album from '../views/Album.vue';
+import Favourites from '../views/favourites.vue';
+import Chat from '../views/Chat.vue';
+
 
 const routes = [
   { path: '/', component: Login }, // Ruta principal

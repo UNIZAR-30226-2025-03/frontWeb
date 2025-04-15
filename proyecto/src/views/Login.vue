@@ -135,13 +135,16 @@ const handleLogin = async () => {
       console.log(Data.Email);
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, "popup-success");
 
-      // Redirigir al usuario al home
       setTimeout(() => {
-         router.push("/home");
+      if (Data.esAdmin) {
+        router.push("/admin");
+      } else {
+        router.push("/home");
+      }
       }, 2000);
    } catch (error) {
-      showPopupMessage(error.message, "popup-error");
-   }
+   showPopupMessage(error.message, "popup-error");
+  }
 };
 
 const loginWithGoogle = () => {
