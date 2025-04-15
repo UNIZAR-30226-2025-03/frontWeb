@@ -184,8 +184,10 @@
        enrichedChats.push({
          ...chat,
          Nick: userChatData.Nick,
-         hasNewMessages: chat.unreadFecha && !isNaN(new Date(chat.unreadFecha).getTime())
+         hasNewMessages: chat.Leido === false && chat.lastMensaje != email
        });
+       console.log(chat); // Mira el valor de unreadFecha
+
      }
      chattedFriends.value = enrichedChats;
      console.log("Chats actualizados:", chattedFriends.value);
