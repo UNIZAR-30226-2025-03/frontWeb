@@ -2,6 +2,7 @@
   <script setup>
   import { ref, onMounted } from 'vue'
   import { io } from 'socket.io-client'
+  import { emitter } from '@/js/event-bus'
 
   const socket = io('https://echobeatapi.duckdns.org', { transports: ['websocket'] })
 
@@ -51,6 +52,11 @@
     blobs.forEach(blob => console.log(`[info] - ${blob}`))
   })
 
+  socket.on('progressUpdate', (data) => {
+   console.log('📥 Recibido progressUpdate del cliente:', data);
+  })
+
+
   socket.on('audioChunk', (data) => {
     if (!streamingActive || player.value?.error) return
 
@@ -83,6 +89,11 @@
         try {
           mediaSource.endOfStream()
           console.log('[info] MediaSource marcado como ended')
+          // ✅ Emitir evento para notificar que todo está cargado
+          socket.emit('audio-buffer-ready')
+          document.dispatchEvent(new CustomEvent('audio-buffer-ready'))
+          console.log('✅ [evento] audio-buffer-ready emitido')
+
         } catch (err) {
           console.log('[error] Error al hacer endOfStream: ' + err)
         }
@@ -163,6 +174,7 @@
             hasStartedPlaying = true
             player.value.play().catch(err => console.log('[error] El navegador bloqueó la reproducción automática: ' + err))
             console.log(`[info] Reproducción iniciada con ${bufferedSeconds.toFixed(2)} segundos buffer`)
+
             if (bufferCheckInterval) clearInterval(bufferCheckInterval)
           } else {
             console.log(`[info] Esperando a acumular ${MIN_BUFFERED_SECONDS}s. Actualmente: ${bufferedSeconds.toFixed(2)}s`)

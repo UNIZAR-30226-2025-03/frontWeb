@@ -1,7 +1,7 @@
 <template>
   <AudioStreamer ref="streamerRef" />
   <div id="app">
-  
+
    <div class="container">
       <div class="header">
 
@@ -107,7 +107,7 @@
       <main class="main-content">
         <router-view />
       </main>
-      <audio id="app-player"  ref="player" hidden @error="onPlayerError" @timeupdate="updateCurrentTime"  ></audio>
+      <audio id="app-player"  ref="player" hidden @error="onPlayerError"  @timeupdate="updateCurrentTime" ></audio>
       <!-- Barra de canción -->
 
       <div class="bottom-bar">
@@ -118,8 +118,9 @@
               <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
               <span class="song-name">{{ lastSong.name }}</span>
             </div>
+            
         </div>
-
+       
         <!-- Center -->
         <div class="controls">
           <div class="buttons">
@@ -138,9 +139,9 @@
                  <img :src="nextIcon" alt="Next" @click="nextSong"/>
               </button>
   
-              <button class="side-buttons" @click="playSong(currentSong)">
-                 <img :src="restart" alt="Restart" />
-              </button>
+              <button class="side-buttons" @click="toggleLoop">
+                 <img :src="restart" alt="Restart" :class="{'loop-active': isLooping}" />
+            </button>
           </div>
 
           <div class="progress">
@@ -205,7 +206,7 @@
 
 //falta poner icono de mute
 
-import { computed, ref, provide, onMounted, onBeforeUnmount } from 'vue';
+import { computed, ref, provide, onMounted, onBeforeUnmount,watch, nextTick } from 'vue';
 
 // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
@@ -233,6 +234,8 @@ const streamerRef = ref(null)
 provide('playSong', playSong);
 provide('playFromQuest', playFromQuest);
 
+emitter.emit("audio-buffer-ready");
+
 // Variables reactivas
 const lastSong = ref({
   id: '',
@@ -255,11 +258,15 @@ const hoveredSong = ref(null);
 const currentSong = ref('');
 const currentStopTime = ref('');
 const progress = ref(0); // Valor de la barra (0 a 100)
+const isLooping = ref(false);
 
 const searchArea = ref(null);
 const resultsArea = ref(null);
 const hoverLike = ref({});
 const playlistHoverLike = ref({});
+
+const audioIsReadyToSeek = ref(false);
+
 const genders = ref([]);
 const showGenderDropdown = ref(false);
 const selectedGender = ref('');
@@ -336,6 +343,21 @@ const selectGender = (gender) => {
   fetchResults(); 
 };
 
+// Función que cambia el estado del bucle
+const toggleLoop = () => {
+   isLooping.value = !isLooping.value; // Cambia el estado del bucle
+
+   // Si está en bucle, activamos la reproducción en bucle
+   if (isLooping.value) {
+      if (player.value) {
+         player.value.loop = true; // Activamos el bucle
+      }
+   } else {
+      if (player.value) {
+         player.value.loop = false; // Desactivamos el bucle
+      }
+   }
+};
 
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
@@ -362,8 +384,46 @@ const nextSong = async() => {
   } catch (error) {
     console.error('Error next song:', error);
   }
- 
 }
+
+async function handleSongEnded() {
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+
+    if (!response.ok) {
+      console.log('[cola] No hay más canciones en la cola. Fin de reproducción.');
+      isPlaying.value = false;
+      return;
+    }
+
+    const nextSongData = await response.json();
+
+    if (!nextSongData?.siguienteCancionId) {
+      console.log('[cola] No hay más canciones. Deteniendo reproducción.');
+      isPlaying.value = false;
+      return;
+    }
+
+    // Si hay siguiente canción, cargar y reproducir
+    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${nextSongData.siguienteCancionId}`);
+    if (!song.ok) throw new Error('Error al obtener los datos de la siguiente canción');
+
+    const songData = await song.json();
+
+    const newSong = {
+      Id: nextSongData.siguienteCancionId,
+      Nombre: songData.Nombre,
+      Portada: songData.Portada,
+      Duracion: songData.Duracion,
+    };
+
+    playSong(newSong);
+  } catch (error) {
+    console.error('[cola] Error al intentar reproducir la siguiente canción:', error);
+    isPlaying.value = false;
+  }
+}
+
 
 const previousSong = async() =>{
   try {
@@ -446,9 +506,15 @@ const handleClickOutside = (event) => {
   }
 };
 
+const currentTimeNoFormat = ref(0);
+
 // Registrar el evento al montar el componente
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside);
+  document.addEventListener('audio-buffer-ready',bufferReady);
+   if (player.value) {
+      player.value.addEventListener('ended', handleSongEnded);
+   }
   try {
       // Obtener nick del usuario
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
@@ -474,25 +540,36 @@ onMounted(async () => {
       const songData = await songResponse.json();
 
       
+      const durationResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${songData.PrimeraCancionId}`);
+      if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción');
+      const durationData = await durationResponse.json();
+     
+
       // Extraer los datos de la respuesta
-      const songId = songData.PrimeraCancionId;
+      const songId = songData.PrimeraCancionId; 
       const songName = songData.Nombre;
       const songCover = songData.Portada;
-      const songMinute = songData.MinutoEscucha;
-
+      currentSongTime.value =  formatTime(songData.MinutoEscucha);
+      currentTimeNoFormat.value = songData.MinutoEscucha;
+      console.log("aaaaaaaaaaa", songData.MinutoEscucha)
+      
       // Asignar los datos a las variables reactivas
       lastSong.value = {
          id: songId,
          name: songName,
          cover: songCover,
-         minute: songMinute,
+         minute: formatTime(durationData),
       };
-      currentSong.value = lastSong.value
-      // Establecer la barra de progreso de acuerdo con el minuto de escucha
-      if (player.value && player.value.duration) {
-         progress.value = (lastSong.value.minute / player.value.duration) * 100;
-         player.value.currentTime = lastSong.value.minute; // Saltar al minuto guardado
-      }
+  
+      currentSong.value = {
+         Id: songId,
+         Nombre: songName,
+   
+      };
+
+     streamerRef.value.startStreamSong(songId, songName, email);
+
+    console.log('Última canción:', lastSong.value);
 
       console.log('Última canción:', lastSong.value);
 
@@ -509,19 +586,30 @@ onMounted(async () => {
    }
 });
 
+const bufferReady = () => {
+  if ( currentTimeNoFormat.value != null && player.value) {
+    
+    player.value.currentTime =  currentTimeNoFormat.value;
+    console.log(`✅ [Seek buffer-ready] Jump a ${ currentTimeNoFormat.value}s`);
+    currentTimeNoFormat.value = null;
+    progress.value = (player.value.currentTime / player.value.duration) * 100;
+   
+  }
+};
 
-// Eliminar el evento cuando se desmonte el componente
+
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
 
+   if (player.value) {
+      player.value.removeEventListener('ended', handleSongEnded);
+   }
   const currentTime = player.value.currentTime;
-
   streamerRef.value.socket.emit('progressUpdate', {
-      userId: email,
-      songId: currentSong.Id,
-      currentTime,
+              userId: email,
+              songId: currentSong.value.Id,
+              currentTime: currentTime,
   });
-  console.log (currentTime)
 });
 
 
@@ -530,7 +618,6 @@ let progressInterval = null;
 let contador = 1;
 
 function updateCurrentTime(event) {
-   console.log("Tiempo actualizado:", event.target.currentTime); 
    console.log("Progress:", progress.value, "CurrentTime:", event.target.currentTime);
 
   const newTime = Math.floor(event.target.currentTime); // Solo segundos enteros
@@ -542,12 +629,37 @@ function updateCurrentTime(event) {
       progress.value = (event.target.currentTime / event.target.duration) * 100;
       
     }
+        // Si ya existía un intervalo, lo limpiamos para no duplicarlo
+   
+    if (progressInterval) {
+        
+        clearInterval(progressInterval);
+    }
+    if(contador  ===  0 ){
+      contador = 1;
+      // Enviamos solo si el audio se está reproduciendo
+        if (isPlaying.value) {
+          const currentTime = player.value.currentTime;
+          //const currentTime = parseInt(event.target.currentTime.toFixed(0));
+          console.log(`userId: ${email}, songId: ${currentSong.value.Id}, currentTime: ${currentTime}`) 
+          streamerRef.value.socket.emit('progressUpdate', {
+              userId: email,
+              songId: currentSong.value.Id,
+              currentTime: currentTime,
+          });
+
+
+          console.log(`[Progress]Progreso enviado: ${currentTime} segundos`);
+        }
+
+    }else{
+      contador--;
+    }
     
 
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
-//Hacer otra funcion que para pner una cancion desde el reproductor await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list
 
 const clearQueue = async () => {
    try {
@@ -670,7 +782,6 @@ function muteVolumen(){
 }
 
 // Función para pausar/reanudar
-// Función para pausar/reanudar
 function togglePlay() {
   if (!player.value){
     console.warn("[player] Error con el player audio")
@@ -684,6 +795,7 @@ function togglePlay() {
         isPlaying.value = false;
         console.log("stop: ", currentStopTime.value);
       } else{
+        console.log("play current:", player.value.currentTime)
         player.value.play().catch((err) => {
           console.warn('[player] Error al reproducir:', err)
         })
@@ -1001,6 +1113,17 @@ select {
   flex: none; 
 }
 
+.loop-active {
+  border: 2px solid #ff474d;
+  border-radius: 50%; /* Hace que el borde sea redondeado */
+  background-color: rgba(255, 99, 71, 0.1); /* Fondo semitransparente */
+  transform: scale(1.1);
+}
+
+.loop-active:hover {
+  background-color: rgba(255, 99, 71, 0.2); /* Cambio de fondo al pasar el ratón */
+}
+
 .play-button {
   flex-grow: 0;
   transform: scale(1.2); /* Aumenta el tamaño del botón central */
@@ -1236,7 +1359,6 @@ select {
   background: #fff;
   cursor: pointer;
   border: none;
-  margin-top: -4px;
 }
 
 .volume-slider::-moz-range-thumb {
