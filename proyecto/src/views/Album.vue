@@ -73,19 +73,129 @@ import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
 import playIcon from '@/assets/play-circle.svg';
 
-const playSong = inject('playSong')
- 
-// Variables para CSS y HTML
-const isGlowing = ref(false);
+/**
+ * Función inyectada para reproducir canciones.
+ * Se espera que el componente padre provea esta función mediante la API de inyección de Vue.
+ *
+ * @type {Function}
+ */
+const playSong = inject('playSong');
+
+/**
+ * Objeto router para la navegación de la aplicación.
+ * Permite la navegación programática entre rutas.
+ *
+ * @type {object}
+ */
 const router = useRouter();
 
+/**
+ * Objeto de la ruta actual, que contiene los parámetros y otros datos de la URL.
+ *
+ * @type {object}
+ */
+const route = useRoute();
+
+/**
+ * Identificador del álbum obtenido de los query parameters de la URL.
+ *
+ * @type {string}
+ */
+const Id = route.query.id;
+console.log('ID del album:', Id);
+
+/**
+ * Email del usuario extraído del localStorage.
+ *
+ * @type {string|null}
+ */
 const email = localStorage.getItem("email");
+
+/**
+ * Estado reactivo que controla el efecto visual (glowing) en el botón aleatorio.
+ *
+ * @type {Ref<boolean>}
+ */
+const isGlowing = ref(false);
+
+/**
+ * Estado reactivo que determina si la reproducción será aleatoria.
+ *
+ * @type {Ref<boolean>}
+ */
 const aleatorio = ref(false);
+
+/**
+ * Estado reactivo para controlar la visibilidad de un popup de mensajes.
+ *
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo que almacena el mensaje a mostrar en el popup.
+ *
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo de popup ('popup-error' o 'popup-success').
+ *
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
+
+/**
+ * Variable reactiva que almacenará la respuesta con los datos completos de las canciones del álbum.
+ *
+ * @type {Ref<*>}
+ */
 const songsData = ref('');
- 
+
+/**
+ * Objeto reactivo que contiene la información del álbum.
+ *
+ * @type {Ref<object>}
+ */
+const albumInfo = ref({});
+
+/**
+ * Array reactivo que contiene la lista de canciones del álbum.
+ *
+ * @type {Ref<Array>}
+ */
+const album = ref([]);
+
+/**
+ * Variable reactiva para el término de búsqueda que filtra las canciones.
+ *
+ * @type {Ref<string>}
+ */
+const searchTerm = ref('');
+
+/**
+ * Computed que filtra las canciones del álbum basado en el término de búsqueda ingresado por el usuario.
+ *
+ * Si no hay término de búsqueda (cadena vacía), retorna todas las canciones.
+ *
+ * @returns {Array} Lista filtrada de canciones.
+ */
+const filteredAlbum = computed(() => {
+   if (!searchTerm.value.trim()) {
+      return album.value; // Sin término de búsqueda se muestra todo el álbum.
+   }
+   return album.value.filter(song =>
+      song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
+   );
+});
+
+/**
+ * Muestra un popup temporalmente con un mensaje y tipo específico.
+ *
+ * @param {string} message - Mensaje a mostrar en el popup.
+ * @param {string} type - Tipo de popup ('popup-error' o 'popup-success').
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -93,140 +203,138 @@ const showPopupMessage = (message, type) => {
 
    setTimeout(() => {
       showPopup.value = false;
-   }, 3000); // Cierra el popup después de 3 segundos
+   }, 3000); // Se cierra el popup después de 3 segundos.
 };
- 
-const filteredAlbum = computed(() => {
-   if (!searchTerm.value.trim()) {
-      return album.value; // Si no hay búsqueda, mostrar todo el álbum
-   }
 
-   return album.value.filter(song =>
-      song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
-   );
-});
- 
+/**
+ * Función auxiliar que actualiza el número de reproducciones de una canción a nivel local.
+ *
+ * @param {object} song - Objeto que representa la canción.
+ */
+const updateSongReproductions = (song) => {
+   song.numReproducciones++; // Incrementa el contador de reproducciones.
+};
+
+/**
+ * Función auxiliar que actualiza el número de reproducciones del álbum a nivel local.
+ *
+ * @param {object} album - Objeto que representa el álbum.
+ */
+const updateAlbumReproductions = (album) => {
+   album.numReproducciones++; // Incrementa el contador de reproducciones del álbum.
+};
+
+/**
+ * Función para manejar el error de carga en imágenes.
+ * Si ocurre un error al cargar la imagen, se asigna una imagen predeterminada.
+ *
+ * @param {Event} event - Evento de error de imagen.
+ */
+const handleImageError = (event) => {
+   event.target.src = default_img; // Asigna la imagen por defecto.
+};
+
+/**
+ * Función para alternar la reproducción aleatoria y el efecto visual del botón.
+ */
+const randomClick = () => {
+   isGlowing.value = !isGlowing.value;
+   aleatorio.value = !aleatorio.value;
+};
+
+/**
+ * Función que navega hacia atrás en el historial del navegador.
+ */
 const goBack = () => {
    router.back();
 };
- 
-const route = useRoute();
-const Id = route.query.id;
 
-console.log('ID del album:', Id);
- 
-const albumInfo = ref({}); // Inicializado como objeto vacío
-const album = ref([]); // Inicializado como array vacío
-const searchTerm = ref('');
-
-// Actualiza el número de reproducciones localmente
-const updateSongReproductions = (song) => {
-   song.numReproducciones++; // Incrementar localmente las reproducciones
-};
-
-//Actualizar el numero de reproducciones de album localmente
-const updateAlbumReproductions = (album) => {
-   album.numReproducciones++; // Incrementar localmente las reproducciones
-};
-const playNewSong = async (song,posicion) => {
-   // Primero actualizamos las reproducciones localmente
-   updateSongReproductions(song);
-   updateAlbumReproductions(albumInfo.value);
-   console.log("cancionid:", song);
-   console.log("posicion:", posicion);
-
-   const newSong = {
-      Id: song.id,
-      Nombre: song.nombre,
-      Portada: song.portada,
-      Duracion: song.duracion,
-   };
- 
-   console.log(newSong);
-    
-   const bodyData = {
-      userEmail: email,
-      reproduccionAleatoria: aleatorio.value,
-      posicionCola: posicion,
-      colaReproduccion: songsData.value
-   };
- 
-   console.log("JSON enviado:", bodyData);   
-   
-   const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
-      },
-      body:  JSON.stringify(bodyData)
-   });
- 
-   if (!response.ok) {
-      throw new Error('Error al reproducir álbum');
-   }
-   const albumResponse = await response.json();
-   console.log("album response: ", albumResponse );
-
-   playSong(newSong);
-}
- 
-onMounted(async () => {
-   try {
-      // OBTENER INFO DEL ÁLBUM
-      const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/album/${Id}`);
-      if (!infoResponse.ok) throw new Error('Error al obtener la información del álbum');
-      
-      albumInfo.value = await infoResponse.json();
-      console.log("✅ AlbumInfo cargada: ", albumInfo.value);
-   
-      //  OBTENER CANCIONES DEL ÁLBUM
-      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
-      if (!songsResponse.ok) throw new Error('Error al obtener las canciones del álbum');
-   
-      songsData.value = await songsResponse.json();
-      console.log("✅ SongsData recibido: ", songsData.value);
-   
-      // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
-      if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
-         throw new Error('Las canciones no llegaron en formato de array');
-      }
- 
-      // ASIGNAR LAS CANCIONES A `álbum`
-      album.value = songsData.value.canciones;
-      console.log("✅ Álbum final cargado:", album.value);
- 
-   } catch (error) {
-      console.error('Error al cargar el álbum:', error);
-   }
-});
- 
-// Imagen de reemplazo
-const handleImageError = (event) => {
-event.target.src = default_img; // Reemplaza la imagen con la default
-};
- 
-// Gestión al hacer clic en el botón aleatorio
-const randomClick = () => {
-isGlowing.value = !isGlowing.value;
-aleatorio.value = !aleatorio.value;
-};
- 
+/**
+ * Función auxiliar para formatear el tiempo.
+ * Convierte segundos en una cadena con formato MM:SS.
+ *
+ * @param {number} seconds - Duración en segundos.
+ * @returns {string} Tiempo formateado en minutos y segundos.
+ */
 function formatTime(seconds) {
    let minutes = Math.floor(seconds / 60);
    let secs = seconds % 60;
    return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Función auxiliar para formatear una fecha ISO.
+ * Convierte la fecha en formato ISO a una cadena con formato DD-MM-YYYY.
+ *
+ * @param {string} isoString - Fecha en formato ISO.
+ * @returns {string} Fecha formateada.
+ */
 function formatDate(isoString) {
    const date = new Date(isoString);
    const day = date.getUTCDate().toString().padStart(2, '0');
    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
    const year = date.getUTCFullYear();
-   
    return `${day}-${month}-${year}`;
 }
- 
+
+/**
+ * Reproduce una canción específica y actualiza la cola de reproducción.
+ * Además, incrementa de forma local el número de reproducciones de la canción y del álbum.
+ *
+ * @async
+ * @param {object} song - Objeto que representa la canción a reproducir.
+ * @param {number} posicion - Posición de la canción en la cola de reproducción.
+ * @throws {Error} Si falla la petición para reproducir el álbum.
+ */
+const playNewSong = async (song, posicion) => {
+   // Actualiza localmente las reproducciones de la canción y del álbum
+   updateSongReproductions(song);
+   updateAlbumReproductions(albumInfo.value);
+
+   // Construye el objeto de nueva canción
+   const newSong = {
+      Id: song.id,
+      Nombre: song.nombre,
+      Portada: song.portada,
+      Duracion: song.duracion,
+   };
+
+   // Construye el objeto de datos para la petición
+   const bodyData = {
+      userEmail: email,
+      reproduccionAleatoria: aleatorio.value,
+      posicionCola: posicion,
+      colaReproduccion: songsData.value
+   };
+
+   // Realiza la petición para reproducir la canción en la posición especificada
+   const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
+      method: 'POST',
+      headers: {
+         'Accept': '*/*', 
+         'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(bodyData)
+   });
+
+   if (!response.ok) {
+      throw new Error('Error al reproducir álbum');
+   }
+   const albumResponse = await response.json();
+   console.log("album response: ", albumResponse);
+
+   // Reproduce la canción usando la función inyectada
+   playSong(newSong);
+};
+
+/**
+ * Función que reproduce el álbum completo basado en la configuración actual (reproducción aleatoria o secuencial).
+ *
+ * Realiza una petición al API para reproducir el álbum y luego reproduce la primera canción de la lista.
+ *
+ * @async
+ * @throws {Error} Si falla la petición para reproducir el álbum o la canción.
+ */
 const playAlbum = async () => {
    try {
       const bodyData = {
@@ -234,79 +342,129 @@ const playAlbum = async () => {
          reproduccionAleatoria: aleatorio.value,
          colaReproduccion: songsData.value
       };
- 
-      console.log("JSON enviado:", bodyData);   
-      
+
+      // Realiza la petición para reproducir el álbum
       const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list`, {
          method: 'POST',
          headers: {
             'Accept': '*/*', 
-            'Content-Type': 'application/json',  
+            'Content-Type': 'application/json',
          },
-         body:  JSON.stringify(bodyData)
+         body: JSON.stringify(bodyData)
       });
- 
+
       if (!response.ok) {
          throw new Error('Error al reproducir álbum');
       }
       const albumResponse = await response.json();
-      console.log("album response: ", albumResponse );
 
-      const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${albumResponse.primeraCancionId}`)
-      
+      // Solicita la información detallada de la primera canción a reproducir
+      const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${albumResponse.primeraCancionId}`);
       if (!song.ok) {
          throw new Error('Error al reproducir la canción ');
       }
       const songData = await song.json();
+
       const newSong = {
          Id: albumResponse.primeraCancionId,
          Nombre: songData.Nombre,
          Portada: songData.Portada,
          Duracion: songData.Duracion,
       };
+
+      // Reproduce la canción
       playSong(newSong);
- 
-   } catch (error) {
-      showPopupMessage(error.message, "popup-error");
-   }
-}
- 
-const addSongToFavorites = async (song) => {
-   try {
-   console.log("Email: ", email);
-   console.log("Id canción: ", song.id);
-   const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.id}`, {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-      },
-   });
 
-   if (!response.ok) {
-      throw new Error('Error al añadir canción a favoritos');
-   }
-
-   showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
-   
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
 };
 
+/**
+ * Añade una canción a la lista de favoritos del usuario.
+ *
+ * Envía una petición POST para registrar la canción como favorita.
+ *
+ * @async
+ * @param {object} song - Objeto de la canción a añadir a favoritos.
+ * @throws {Error} Si falla la petición para añadir la canción a favoritos.
+ */
+const addSongToFavorites = async (song) => {
+   try {
+      const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.id}`, {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*'
+         },
+      });
+
+      if (!response.ok) {
+         throw new Error('Error al añadir canción a favoritos');
+      }
+      showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
+
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+};
+
+/**
+ * Hook de ciclo de vida: onMounted
+ * Se ejecuta cuando el componente se ha montado, para cargar la información inicial del álbum y sus canciones.
+ *
+ * Realiza dos peticiones:
+ *  - Obtener la información del álbum.
+ *  - Obtener las canciones del álbum.
+ *
+ * Además, valida que los datos recibidos estén correctamente formateados.
+ */
+onMounted(async () => {
+   try {
+      // Petición para obtener la información del álbum
+      const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/album/${Id}`);
+      if (!infoResponse.ok) throw new Error('Error al obtener la información del álbum');
+
+      albumInfo.value = await infoResponse.json();
+      console.log("✅ AlbumInfo cargada: ", albumInfo.value);
+
+      // Petición para obtener las canciones del álbum
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
+      if (!songsResponse.ok) throw new Error('Error al obtener las canciones del álbum');
+
+      songsData.value = await songsResponse.json();
+      console.log("✅ SongsData recibido: ", songsData.value);
+
+      // Verifica que los datos de canciones sean un array válido
+      if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
+         throw new Error('Las canciones no llegaron en formato de array');
+      }
+
+      // Asigna las canciones del álbum a la variable reactiva
+      album.value = songsData.value.canciones;
+      console.log("✅ Álbum final cargado:", album.value);
+
+   } catch (error) {
+      console.error('Error al cargar el álbum:', error);
+   }
+});
+
+/**
+ * Observador (watch) que detecta cambios en el parámetro 'id' de la ruta.
+ *
+ * Si se detecta un nuevo 'id', se ejecuta para actualizar la información y las canciones del álbum.
+ */
 watch(() => route.query.id, async (newId, oldId) => {
    if (!newId || newId === oldId) return;
 
    try {
-      // OBTENER INFO DEL ÁLBUM
+      // Petición para obtener la nueva información del álbum
       const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/album/${newId}`);
       if (!infoResponse.ok) throw new Error('Error al obtener la información del álbum');
-
       albumInfo.value = await infoResponse.json();
 
-      // OBTENER CANCIONES DEL ÁLBUM
+      // Petición para obtener las nuevas canciones del álbum
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${newId}/songs`);
       if (!songsResponse.ok) throw new Error('Error al obtener las canciones del álbum');
-
       songsData.value = await songsResponse.json();
 
       if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
@@ -314,13 +472,14 @@ watch(() => route.query.id, async (newId, oldId) => {
       }
 
       album.value = songsData.value.canciones;
-      searchTerm.value = ''; // Resetea la búsqueda
+      // Reinicia el término de búsqueda al actualizar el álbum
+      searchTerm.value = '';
    } catch (error) {
       console.error('Error al actualizar el álbum:', error);
    }
 });
- 
 </script>
+
  
   
 <style scoped>

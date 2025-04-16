@@ -34,41 +34,118 @@
 </template>
   
 <script setup>
-import {ref} from "vue";
+import { ref } from "vue";
 import { useRouter } from 'vue-router';
+
+/**
+ * Estado reactivo para el correo electrónico ingresado por el usuario.
+ * @type {Ref<string>}
+ */
 const email = ref("");
+
+/**
+ * Estado reactivo para la contraseña ingresada por el usuario.
+ * @type {Ref<string>}
+ */
 const password = ref("");
+
+/**
+ * Estado reactivo para la confirmación de la contraseña.
+ * @type {Ref<string>}
+ */
 const confirmPassword = ref("");
+
+/**
+ * Estado reactivo para el nombre completo del usuario.
+ * @type {Ref<string>}
+ */
 const name = ref("");
+
+/**
+ * Estado reactivo para el apodo (nickname) que el usuario desea registrar.
+ * @type {Ref<string>}
+ */
 const user = ref("");
+
+/**
+ * Estado reactivo para la fecha de nacimiento del usuario.
+ * @type {Ref<string>}
+ */
 const fecha = ref("");
 
+/**
+ * Instancia del router para la navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
 
+/**
+ * Estado reactivo que controla la visualización del popup de mensajes.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo que almacena el mensaje que se mostrará en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo del popup ("popup-error" o "popup-success").
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
+/**
+ * Función para mostrar un popup con un mensaje y tipo específico.
+ * El popup se cierra automáticamente después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo del popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
    showPopup.value = true;
 
    setTimeout(() => {
-   showPopup.value = false;
+      showPopup.value = false;
    }, 3000); // Cierra el popup después de 3 segundos
 };
 
+/**
+ * Función para regresar a la página anterior utilizando el router.
+ */
 const goBack = () => {
    router.back();
 };
-  
+
+/**
+ * Función asíncrona para manejar el registro del usuario.
+ * Realiza las siguientes acciones:
+ * 1. Valida que todos los campos obligatorios estén completos.
+ * 2. Verifica que las contraseñas coincidan.
+ * 3. Comprueba si el correo ya está registrado.
+ * 4. Si el correo no existe, envía una petición POST a la API para registrar el usuario.
+ * 5. En caso de éxito, almacena el correo en el localStorage y redirige al usuario a la página de preferencias de géneros.
+ *
+ * @async
+ */
 const handleRegister = async () => {
-   if (!email.value.trim() || !password.value.trim() || !confirmPassword.value.trim() || !user.value.trim() || !fecha.value.trim() || !name.value.trim()){
+   // Validación de campos vacíos
+   if (
+      !email.value.trim() || 
+      !password.value.trim() || 
+      !confirmPassword.value.trim() || 
+      !user.value.trim() || 
+      !fecha.value.trim() || 
+      !name.value.trim()
+   ) {
       showPopupMessage("Todos los campos son obligatorios", "popup-error");
       return;
    }
-
+   // Verifica que las contraseñas coincidan
    else if (password.value !== confirmPassword.value) {
       showPopupMessage("Las contraseñas no coinciden", "popup-error");
       return;
@@ -105,11 +182,12 @@ const handleRegister = async () => {
       if (!response.ok) {
          throw new Error("Error en el registro");
       }
+      // Guarda el correo del usuario en el localStorage después de un registro exitoso
       localStorage.setItem("email", email.value);
 
       showPopupMessage("Registro exitoso", "popup-success");
 
-      // Redirigir al usuario al inicio de sesión
+      // Redirige al usuario a la página de selección de géneros después de 2 segundos
       setTimeout(() => {
          router.push({ path: "/genres", query: { from: "register" } });
       }, 2000);
@@ -118,6 +196,7 @@ const handleRegister = async () => {
    }
 };
 </script>
+
   
 
 <style scoped>

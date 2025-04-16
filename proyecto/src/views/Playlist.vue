@@ -153,7 +153,6 @@
   </div>
 </template>
 
- 
 <script setup>
 import { ref, onMounted, onUnmounted, inject, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -167,47 +166,210 @@ import deleteIcon from '@/assets/delete.svg';
 import infoIcon from '@/assets/info.svg';
 import editIcon from '@/assets/edit.svg';
 
-const playSong = inject('playSong')
-const type = localStorage.getItem("type")
+/**
+ * Función inyectada para reproducir una canción.
+ * Se espera que el componente padre provea esta función a través de la inyección de dependencias.
+ * @type {Function}
+ */
+const playSong = inject('playSong');
+
+/**
+ * Tipo de playlist, obtenido del localStorage.
+ * @type {string|null}
+ */
+const type = localStorage.getItem("type");
 
 // Variables para CSS y HTML
+
+/**
+ * Estado reactivo que controla el efecto visual del botón aleatorio.
+ * @type {Ref<boolean>}
+ */
 const isGlowing = ref(false);
+
+/**
+ * Instancia del router para navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
+
+/**
+ * Estado reactivo que controla la visibilidad del menú de búsqueda.
+ * @type {Ref<boolean>}
+ */
 const searchVisible = ref(false);
-const searchContainerRef = ref(null); // Referencia al contenedor del menú de búsqueda
-const addButtonRef = ref(null); 
+
+/**
+ * Referencia al contenedor del menú de búsqueda.
+ * @type {Ref<HTMLElement|null>}
+ */
+const searchContainerRef = ref(null);
+
+/**
+ * Referencia al botón de "añadir", utilizada para detectar clics fuera del menú.
+ * @type {Ref<HTMLElement|null>}
+ */
+const addButtonRef = ref(null);
+
+/**
+ * Estado reactivo que almacena el texto actual ingresado en la búsqueda.
+ * @type {Ref<string>}
+ */
 const currentSearch = ref('');
+
+/**
+ * Estado reactivo para indicar si hay carga en proceso.
+ * @type {Ref<boolean>}
+ */
 const isLoading = ref(false);
+
+/**
+ * Estado reactivo que almacena la canción sobre la que se pasa el cursor.
+ * @type {Ref<any>}
+ */
 const hoveredSong = ref(null);
 
+/**
+ * Objeto de la ruta actual, utilizado para extraer parámetros de la URL.
+ * @type {object}
+ */
 const route = useRoute();
+
+/**
+ * Identificador de la playlist, obtenido desde la query de la URL.
+ * @type {string}
+ */
 const Id = route.query.id;
 
 console.log('ID de la playlist:', Id);
 console.log('Type de la playlist:', type);
 
-const playlistInfo = ref({}); // Inicializado como objeto vacío
-const playlist = ref([]); // Inicializado como array vacío
+/**
+ * Estado reactivo que contiene la información general de la playlist.
+ * Inicializado como objeto vacío.
+ * @type {Ref<object>}
+ */
+const playlistInfo = ref({});
+
+/**
+ * Array reactivo que almacena las canciones de la playlist.
+ * Inicializado como array vacío.
+ * @type {Ref<Array>}
+ */
+const playlist = ref([]);
+
+/**
+ * Estado reactivo para el término de búsqueda específico de la playlist.
+ * @type {Ref<string>}
+ */
 const searchTerm = ref('');
+
+/**
+ * Estado reactivo para controlar si se muestra la superposición de edición.
+ * @type {Ref<boolean>}
+ */
 const showEditOverlay = ref(false);
+
+/**
+ * Referencia al input de archivo para la imagen (para actualizar portada).
+ * @type {Ref<HTMLElement|null>}
+ */
 const fileInputRef = ref(null);
+
+/**
+ * Estado reactivo para almacenar la URL de la imagen de vista previa.
+ * @type {Ref<string|null>}
+ */
 const previewImageUrl = ref(null);
+
+/**
+ * Array reactivo que contendrá las imágenes predeterminadas.
+ * @type {Ref<Array>}
+ */
 const defaultImages = ref([]);
+
+/**
+ * Estado reactivo para definir la acción de perfil (por ejemplo, cambiar imagen).
+ * @type {Ref<any>}
+ */
 const profileAction = ref(null);
+
+/**
+ * Estado reactivo para almacenar la opción de ordenamiento de canciones.
+ * @type {Ref<string>}
+ */
 const sortOption = ref('default');
+
+/**
+ * Estado reactivo para almacenar los datos de las canciones, inicalmente como string vacío.
+ * @type {Ref<any>}
+ */
 const songsData = ref('');
+
+/**
+ * Array reactivo que almacena los detalles de la playlist.
+ * @type {Ref<Array>}
+ */
 const playlistDetails = ref([]);
 
+/**
+ * Estado reactivo para almacenar el título editado.
+ * @type {Ref<string>}
+ */
 const editedTitle = ref('');
+
+/**
+ * Estado reactivo para almacenar la descripción editada.
+ * @type {Ref<string>}
+ */
 const editedDescription = ref('');
+
+/**
+ * Estado reactivo que indica si el título está siendo editado.
+ * @type {Ref<boolean>}
+ */
 const isEditingTitle = ref(false);
+
+/**
+ * Estado reactivo que indica si la descripción está siendo editada.
+ * @type {Ref<boolean>}
+ */
 const isEditingDescription = ref(false);
+
+/**
+ * Referencia al input del título, usado durante la edición.
+ * @type {Ref<HTMLElement|null>}
+ */
 const titleInputRef = ref(null);
+
+/**
+ * Referencia al input de la descripción, usado durante la edición.
+ * @type {Ref<HTMLElement|null>}
+ */
 const descriptionInputRef = ref(null);
+
+/**
+ * Estado reactivo para almacenar el nivel de privacidad editado.
+ * @type {Ref<string>}
+ */
 const editedPrivacy = ref('');
+
+ /**
+  * Estado reactivo que indica si la privacidad está siendo editada.
+  * @type {Ref<boolean>}
+  */
 const isEditingPrivacy = ref(false);
+
+/**
+ * Referencia al input o elemento del selector de privacidad, usado durante la edición.
+ * @type {Ref<HTMLElement|null>}
+ */
 const PrivacyInputRef = ref(null);
 
+/**
+ * Objeto reactivo que almacena los resultados de búsqueda agrupados por categorías.
+ * @type {Ref<{ artistas: Array, canciones: Array, albums: Array, listas: Array }>}
+ */
 const results = ref({
    artistas: [],
    canciones: [],
@@ -215,13 +377,47 @@ const results = ref({
    listas: []
 });
 
+/**
+ * Email del usuario obtenido desde el localStorage.
+ * @type {string|null}
+ */
 const email = localStorage.getItem("email");
+
+/**
+ * Estado reactivo que indica si la reproducción debe ser aleatoria.
+ * @type {Ref<boolean>}
+ */
 const aleatorio = ref(false);
+
+/**
+ * Estado reactivo que controla la visibilidad del popup.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo que almacena el mensaje del popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo de popup ("popup-error" o "popup-success").
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
+/* ============================
+   Funciones Popup y generales
+   ============================ */
 
+/**
+ * Función para mostrar un popup con un mensaje y tipo específicos.
+ * El popup se cierra automáticamente después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo del popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -232,67 +428,120 @@ const showPopupMessage = (message, type) => {
    }, 3000); // Cierra el popup después de 3 segundos
 };
 
-// Pop-up detalles playlist
+/* ============================
+   Popup detalles playlist
+   ============================ */
+
+/**
+ * Estado reactivo que controla si el popup de detalles de la playlist está abierto.
+ * @type {Ref<boolean>}
+ */
 const isPopupOpen = ref(false);
+
+/**
+ * Estado reactivo que almacena el estilo personalizado del popup.
+ * @type {Ref<object>}
+ */
 const popupStyle = ref({});
+
+/**
+ * Referencia al elemento del popup de detalles.
+ * @type {Ref<HTMLElement|null>}
+ */
 const popupRef = ref(null);
 
+/**
+ * Función para alternar la visibilidad del popup de detalles.
+ * @async
+ */
 const togglePopup = async () => {
   isPopupOpen.value = !isPopupOpen.value;
 };
 
-// Función para cerrar el popup
+/**
+ * Función para cerrar el popup de detalles y la edición de privacidad.
+ */
 const closePopup = () => {
   isPopupOpen.value = false;
   isEditingPrivacy.value = false;
 };
 
+/* ============================
+   Computed y Navegación
+   ============================ */
+
+/**
+ * Computed que filtra la playlist según el término de búsqueda.
+ * Si no se ingresa búsqueda, retorna toda la playlist.
+ *
+ * @returns {Array} Lista filtrada de canciones.
+ */
 const filteredPlaylist = computed(() => {
    if (!searchTerm.value.trim()) {
-      return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
+      return playlist.value; // Mostrar toda la playlist si no hay búsqueda
    }
-
    return playlist.value.filter(song =>
       song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
    );
 });
 
+/**
+ * Función para regresar a la página anterior.
+ */
 const goBack = () => {
    router.back();
 };
 
+// Watcher para monitorear cambios en editedPrivacy y loguearlos.
 watch(editedPrivacy, (newValue) => {
    console.log("Valor de editedPrivacy cambiado a:", newValue);
 });
 
+/* ============================
+   Funciones de Edición
+   ============================ */
 
-// Lógica para edición
+/**
+ * Alterna la edición del título de la playlist.
+ * Si se activa, rellena el input con el nombre actual.
+ */
 const toggleEditTitle = () => {
    isEditingTitle.value = !isEditingTitle.value;
    if (isEditingTitle.value) {
-      // Si se está editando, asegurarse de que el input tenga el valor del nombre actual
       editedTitle.value = playlistInfo.value.Nombre;
    }
 };
 
+/**
+ * Alterna la edición de la descripción de la playlist.
+ * Si se activa, rellena el input con la descripción actual.
+ */
 const toggleEditDescription = () => {
    isEditingDescription.value = !isEditingDescription.value;
    if (isEditingDescription.value) {
-      // Si se está editando, asegurarse de que el input tenga el valor de la descripción actual
       editedDescription.value = playlistInfo.value.Descripcion;
    }
 };
 
+/**
+ * Alterna la edición de la privacidad de la playlist.
+ * Si se activa, asigna el valor actual de privacidad al input.
+ */
 const toggleEditPrivacy = () => {
    isEditingPrivacy.value = !isEditingPrivacy.value;
    console.log("isEditingPrivacy cambiado a:", isEditingPrivacy.value);
    if (isEditingPrivacy.value) {
-      // Si se está editando, asegurarse de que el input tenga el valor de la descripción actual
       editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
       console.log("editedPrivacy al abrir: ", editedPrivacy.value);
    }
 };
 
+/**
+ * Función asíncrona para guardar el título editado.
+ * Si el título ha cambiado, actualiza playlistInfo y realiza una petición a la API para guardar el cambio.
+ *
+ * @async
+ */
 const saveTitle = async () => {
    if (editedTitle.value != playlistInfo.value.Nombre) {
       playlistInfo.value.Nombre = editedTitle.value;
@@ -312,16 +561,20 @@ const saveTitle = async () => {
          });
          if (!res.ok) throw new Error("Error al actualizar nombre de playlist");
          showPopupMessage('Título actualizado correctamente', 'popup-success');
-
       } catch (error) {
          console.error(error.message);
       }
-   }
-   else {
+   } else {
       isEditingTitle.value = false;
    }
 };
 
+/**
+ * Función asíncrona para guardar la descripción editada.
+ * Si la descripción ha cambiado, actualiza playlistInfo y realiza una petición a la API para guardar el cambio.
+ *
+ * @async
+ */
 const saveDescription = async () => {
    if (editedDescription.value != playlistInfo.value.Descripcion) {
       playlistInfo.value.Descripcion = editedDescription.value;
@@ -341,16 +594,20 @@ const saveDescription = async () => {
          });
          if (!res.ok) throw new Error("Error al actualizar descripción de playlist");
          showPopupMessage('Descripción actualizada correctamente', 'popup-success');
-
       } catch (error) {
          console.error(error.message);
       }
-   }
-   else {
+   } else {
       isEditingDescription.value = false;
    }
 };
 
+/**
+ * Función asíncrona para guardar la privacidad editada.
+ * Si ha cambiado, actualiza playlistDetails y guarda el cambio en la API.
+ *
+ * @async
+ */
 const savePrivacy = async () => {
    if (editedPrivacy.value != playlistDetails.value.TipoPrivacidad) {
       playlistDetails.value.TipoPrivacidad = editedPrivacy.value;
@@ -371,43 +628,49 @@ const savePrivacy = async () => {
          });
          if (!res.ok) throw new Error("Error al actualizar privacidad de playlist");
          showPopupMessage('Privacidad actualizada correctamente', 'popup-success');
-
       } catch (error) {
          console.error(error.message);
       }
-   }
-   else {
+   } else {
       isEditingPrivacy.value = false;
    }
 };
 
+/* ============================
+   Funciones de Búsqueda y Ordenamiento
+   ============================ */
 
-// Toggle para mostrar/ocultar el buscador
+/**
+ * Función para alternar la visibilidad del buscador.
+ */
 const toggleSearch = () => {
    searchVisible.value = !searchVisible.value;
 };
 
+/**
+ * Función asíncrona para ordenar las canciones de la playlist.
+ * La opción de ordenamiento se determina por sortOption, que se traduce a un filtro numérico.
+ *
+ * @async
+ */
 async function sortSongs() {
    const idLista = Number(Id);
    try {
       let filtro;
-
       switch (sortOption.value) {
          case 'default':
-         filtro = 0;
-         break;
+            filtro = 0;
+            break;
          case 'name': 
-         filtro = 1;
-         break;
+            filtro = 1;
+            break;
          case 'plays':
-         filtro = 2;
-         break;
+            filtro = 2;
+            break;
          default:
-         filtro = 0;
+            filtro = 0;
       }
-
       const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
-      
       if (!response.ok) throw new Error("Error al ordenar las canciones");
 
       const data = await response.json();
@@ -420,27 +683,29 @@ async function sortSongs() {
    }
 }
 
+/* ============================
+   Watchers
+   ============================ */
 
+/**
+ * Watcher para actualizar la playlist cuando el id en la query de la ruta cambia.
+ * Se actualiza la información de la playlist, canciones, y se resetea el término de búsqueda.
+ */
 watch(() => route.query.id, async (newId, oldId) => {
    if (!newId || newId === oldId) return;
-
    try {
       // OBTENER INFO DE LA PLAYLIST
       const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${newId}`);
       if (!infoResponse.ok) throw new Error('Error al obtener la información de la playlist');
-
       playlistInfo.value = await infoResponse.json();
 
       // OBTENER CANCIONES DE LA PLAYLIST
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${newId}/songs`);
       if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
-
       songsData.value = await songsResponse.json();
-
       if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
          throw new Error('Las canciones no llegaron en formato de array');
       }
-
       playlist.value = songsData.value.canciones;
       searchTerm.value = ''; // Resetea la búsqueda
    } catch (error) {
@@ -448,39 +713,55 @@ watch(() => route.query.id, async (newId, oldId) => {
    }
 });
 
-// Función para seleccionar una imagen predeterminada
+/* ============================
+   Funciones para Imágenes y Archivos
+   ============================ */
+
+/**
+ * Función para seleccionar una imagen predeterminada.
+ * Actualiza la imagen de vista previa y cambia la acción del perfil a 'Subir nueva imagen'.
+ *
+ * @param {string} image - URL de la imagen predeterminada.
+ */
 const selectDefaultImage = (image) => {
    updateImage(image);
    previewImageUrl.value = image;
    profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
-// Cerrar el modal de selección de imagen
+/**
+ * Función para cerrar el modal de selección de imagen.
+ */
 const closeImageSelection = () => {
    profileAction.value = "";
 };
 
+/**
+ * Función asíncrona para actualizar la imagen de portada de la playlist.
+ *
+ * @async
+ * @param {string} newUrl - Nueva URL de la imagen.
+ * @throws {Error} Si ocurre un error al actualizar la imagen.
+ */
 const updateImage = async (newUrl) => {
    try {
       console.log("Archivo a subir:", newUrl);
       const response = await fetch("https://echobeatapi.duckdns.org/playlists/update-cover", {
          method: 'POST',
          headers: {
-            'Accept': '*/*', 
-            'Content-Type': 'application/json',  
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
          },
          body: JSON.stringify({
-            userEmail: email,  
+            userEmail: email,
             playlistId: Number(Id),
             imageUrl: newUrl,
          })
       });
-
       if (!response.ok) {
-         console.error("Error con la imagen predeterminada")
+         console.error("Error con la imagen predeterminada");
          throw new Error("Error al actualizar la imagen ");
       }
-      
       showPopupMessage("Imagen actualizada con éxito", "popup-success");
       console.log("Imagen predeterminada actualizada correctamente");
    } catch (error) {
@@ -488,10 +769,16 @@ const updateImage = async (newUrl) => {
    }
 };
 
+/**
+ * Función asíncrona para manejar la subida de un archivo de imagen.
+ * Utiliza FileReader para generar una vista previa de la imagen y luego la sube al servidor.
+ *
+ * @async
+ * @param {Event} event - Evento del input file.
+ */
 const handleFileUpload = async (event) => {
    const file = event.target.files[0];
    if (!file) return;
-
    const reader = new FileReader();
    reader.onload = async (e) => {
       previewImageUrl.value = e.target.result;
@@ -506,12 +793,10 @@ const handleFileUpload = async (event) => {
          const response = await fetch(`https://echobeatapi.duckdns.org/playlists/update-photo/${idLista}`, { 
             method: "POST",
             headers: {},
-            body: 
-               formData,
-            })
-         
+            body: formData,
+         });
          if (!response.ok) {
-            const errorData = await response.text(); // Ver el error en texto
+            const errorData = await response.text(); // Captura el error en texto
             throw new Error("Error al subir la imagen");
          }
          console.log("Imagen actualizada con éxito");
@@ -519,29 +804,49 @@ const handleFileUpload = async (event) => {
       } catch (error) {
          console.error(error.message, "popup-error");
       }
-      };
-
-   reader.readAsDataURL(file); // Esto genera la vista previa
+   };
+   reader.readAsDataURL(file); // Genera la vista previa
 };
 
+/**
+ * Función para activar el input file a través de su referencia.
+ */
 const triggerFileInput = () => {
    fileInputRef.value?.click();
 };
 
-// Función para actualizar las reproducciones localmente
+/* ============================
+   Funciones de Reproducción
+   ============================ */
+
+/**
+ * Función para actualizar localmente el número de reproducciones de una canción.
+ *
+ * @param {object} song - Objeto de la canción.
+ */
 const updateSongReproductions = (song) => {
-   song.numReproducciones++; // Incrementar localmente las reproducciones
-   // Esto ya se actualizaría en el backend automáticamente como mencionaste, por lo tanto no es necesario hacer más
+   song.numReproducciones++; // Incrementa localmente las reproducciones
 };
 
-// Watcher para escuchar cambios en la playlist
+/**
+ * Watcher para escuchar cambios en la playlist.
+ * Imprime la playlist actualizada en la consola.
+ */
 watch(() => playlist.value, (newPlaylist) => {
    console.log('Playlist actualizada:', newPlaylist);
 }, { immediate: true });
 
-
-const playNewSong = async (song,posicion) => {
-   // Primero actualizamos las reproducciones localmente
+/**
+ * Función asíncrona para reproducir una nueva canción dentro de la playlist.
+ * Actualiza las reproducciones localmente y realiza una petición para reproducir la canción a partir de una posición específica.
+ *
+ * @async
+ * @param {object} song - Objeto de la canción a reproducir.
+ * @param {number} posicion - Posición de la canción en la cola de reproducción.
+ * @throws {Error} Si falla la petición a la API.
+ */
+const playNewSong = async (song, posicion) => {
+   // Actualiza el contador de reproducciones localmente
    updateSongReproductions(song);
    console.log("cancionid:", song);
    console.log("posicion:", posicion);
@@ -554,7 +859,7 @@ const playNewSong = async (song,posicion) => {
    };
 
    console.log(newSong);
-   
+
    const bodyData = {
       userEmail: email,
       reproduccionAleatoria: aleatorio.value,
@@ -562,71 +867,90 @@ const playNewSong = async (song,posicion) => {
       colaReproduccion: songsData.value
    };
 
-   console.log("JSON enviado:", bodyData);   
-   
+   console.log("JSON enviado:", bodyData);
+
    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
       method: 'POST',
       headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
+         'Accept': '*/*',
+         'Content-Type': 'application/json',
       },
-      body:  JSON.stringify(bodyData)
+      body: JSON.stringify(bodyData)
    });
 
    if (!response.ok) {
       throw new Error('Error al reproducir playlist');
    }
    const playlistResponse = await response.json();
-   console.log("playlist response: ",playlistResponse );
+   console.log("playlist response: ", playlistResponse);
 
    playSong(newSong);
-}
+};
 
+/* ============================
+   Función para Manejar Clics Fuera
+   ============================ */
 
-// Función que oculta el menú de búsqueda cuando se hace clic fuera de él
+/**
+ * Función que oculta el menú de búsqueda o termina la edición de campos si se hace clic fuera de ellos.
+ *
+ * @param {Event} event - Evento de clic.
+ */
 const handleClickOutside = (event) => {
-   // Si el clic es fuera del contenedor del menú y del botón de añadir, ocultamos el menú
-   if (searchContainerRef.value && !searchContainerRef.value.contains(event.target) && !addButtonRef.value.contains(event.target)) {
+   // Si el clic es fuera del contenedor del menú de búsqueda y del botón "añadir", se oculta el menú.
+   if (
+      searchContainerRef.value && 
+      !searchContainerRef.value.contains(event.target) && 
+      !addButtonRef.value.contains(event.target)
+   ) {
       searchVisible.value = false; // Oculta el desplegable
    }
-   // Si el clic es fuera del título input, cerramos la edición del título
+   // Si se está editando el título y el clic es fuera, guarda el título y cierra la edición.
    if (isEditingTitle.value && titleInputRef.value && !titleInputRef.value.contains(event.target)) {
-      saveTitle(); // Guarda el título y cierra la edición
+      saveTitle();
    }
-
-   // Si el clic es fuera del descripción input, cerramos la edición de la descripción
+   // Si se está editando la descripción y el clic es fuera, guarda la descripción y cierra la edición.
    if (isEditingDescription.value && descriptionInputRef.value && !descriptionInputRef.value.contains(event.target)) {
-      saveDescription(); // Guarda la descripción y cierra la edición
+      saveDescription();
    }
-
-   // Si el clic es fuera del popup de edición de privacidad, cerramos la edición de la privacidad
+   // Si se está editando la privacidad y el clic es fuera del popup, guarda la privacidad y cierra la edición.
    if (isEditingPrivacy.value && popupRef.value && !popupRef.value.contains(event.target)) {
-      savePrivacy(); // Guarda la privacidad y cierra la edición
-      isEditingPrivacy.value = false; // Asegura que el select se oculte
+      savePrivacy();
+      isEditingPrivacy.value = false;
    }
 };
 
+/* ============================
+   onMounted y onUnmounted Hooks
+   ============================ */
+
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Realiza las siguientes acciones al montar el componente:
+ * - Obtiene la información general de la playlist.
+ * - Obtiene los detalles de la playlist.
+ * - Obtiene las canciones de la playlist.
+ * - Verifica el formato de las canciones y actualiza la playlist.
+ * - Obtiene las imágenes predeterminadas.
+ */
 onMounted(async () => {
    try {
       // OBTENER INFO DE LA PLAYLIST
       const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${Id}`);
       if (!infoResponse.ok) throw new Error('Error al obtener la información de la playlist');
-      
       playlistInfo.value = await infoResponse.json();
       console.log("✅ PlaylistInfo cargada: ", playlistInfo.value);
 
       // OBTENER DETALLES DE LA PLAYLIST
       const detailsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/playlist/${Id}`);
       if (!detailsResponse.ok) throw new Error('Error al obtener los detalles de la playlist');
-      
       playlistDetails.value = await detailsResponse.json();
       console.log("✅ Playlist details: ", playlistDetails.value);
       editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
 
-      //  OBTENER CANCIONES DE LA PLAYLIST
+      // OBTENER CANCIONES DE LA PLAYLIST
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
       if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
-
       songsData.value = await songsResponse.json();
       console.log("✅ SongsData recibido: ", songsData.value);
 
@@ -639,101 +963,135 @@ onMounted(async () => {
       playlist.value = songsData.value.canciones;
       console.log("✅ Playlist final cargada:", playlist.value);
 
-      // Imágenes predeterminadas
+      // Obtener imágenes predeterminadas
       const ImageResponse = await fetch("https://echobeatapi.duckdns.org/playlists/default-photos");
       if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
       defaultImages.value = await ImageResponse.json();
-      console.log('Canciones predeterminadas', defaultImages.value)
-
+      console.log('Canciones predeterminadas', defaultImages.value);
    } catch (error) {
       console.error('Error al cargar la playlist:', error);
    }
 });
 
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Añade un listener al documento para detectar clics fuera de ciertos elementos.
+ */
 onMounted(() => {
-   // Añadir el listener al documento para detectar clics fuera
    document.addEventListener('click', handleClickOutside);
 });
 
-onUnmounted(async() => {
+/**
+ * Hook de ciclo de vida: onUnmounted.
+ * Realiza la actualización de la lista de canciones en el servidor y limpia el listener.
+ */
+onUnmounted(async () => {
    console.log("Actualizando lista...");
    try {
       const canciones = filteredPlaylist.value;
       const cancionesJson = { canciones };
-
-      const responde = await fetch ("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
+      const responde = await fetch("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
          method: 'POST',
          headers: {
             'Content-Type': 'application/json'
          },
          body: JSON.stringify({
-               idPlaylist: Number(Id),
-               cancionesJson: cancionesJson
-            })
+            idPlaylist: Number(Id),
+            cancionesJson: cancionesJson
          })
-
+      });
       if (!responde.ok) throw new Error('Error al actualizando lista');
-
-      
    } catch (error) {
       console.error(error);
    }
-
 });
 
+/**
+ * Hook de ciclo de vida: onUnmounted.
+ * Remueve el listener de clic y elimina el item "type" del localStorage.
+ */
 onUnmounted(() => {
    document.removeEventListener('click', handleClickOutside);
    localStorage.removeItem("type");
 });
 
-// Imagen de reemplazo
+/* ============================
+   Funciones para Imágenes y Errores
+   ============================ */
+
+/**
+ * Función para manejar errores de carga de imagen.
+ * Si ocurre un error, reemplaza la imagen por una imagen predeterminada.
+ *
+ * @param {Event} event - Evento de error en la carga de la imagen.
+ */
 const handleImageError = (event) => {
    event.target.src = default_img; // Reemplaza la imagen con la default
 };
 
-// Gestión al hacer clic en el botón aleatorio
+/**
+ * Función para gestionar el clic en el botón aleatorio.
+ * Alterna el efecto visual del botón y la bandera de reproducción aleatoria.
+ */
 const randomClick = () => {
    isGlowing.value = !isGlowing.value;
    aleatorio.value = !aleatorio.value;
 };
 
+/**
+ * Función para formatear un tiempo dado en segundos al formato MM:SS.
+ *
+ * @param {number} seconds - Tiempo en segundos.
+ * @returns {string} Tiempo formateado.
+ */
 function formatTime(seconds) {
    let minutes = Math.floor(seconds / 60);
    let secs = seconds % 60;
    return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+/* ============================
+   Funciones para Gestión de Playlist
+   ============================ */
+
+/**
+ * Función asíncrona para eliminar la playlist.
+ * Envía una petición DELETE a la API y, si es exitosa, redirige al usuario al home.
+ *
+ * @async
+ */
 const deletePlaylist = async () => {
    try {  
-      
       const response = await fetch('https://echobeatapi.duckdns.org/playlists/delete', {
          method: 'DELETE',
          headers: {
-            'Accept': '*/*', 
-            'Content-Type': 'application/json',  
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
          },
          body: JSON.stringify({
             userEmail: email,
             idLista: Number(Id)
          })
       });
-
       if (!response.ok) {
          throw new Error('Error al eliminar la playlist');
       }
-
-      showPopupMessage ("Playlist eliminada correctamente", "popup-success")
-
-      // Redirigir al usuario al home
+      showPopupMessage("Playlist eliminada correctamente", "popup-success");
+      // Redirige al usuario al home después de 2 segundos
       setTimeout(() => {
          router.push("/home");
       }, 2000);
-
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
-}
+};
 
+/**
+ * Función asíncrona para reproducir la playlist completa.
+ * Envía los detalles de la cola de reproducción a la API y reproduce la primera canción de la lista.
+ *
+ * @async
+ */
 const playPlaylist = async () => {
    try {
       const bodyData = {
@@ -747,19 +1105,19 @@ const playPlaylist = async () => {
       const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list`, {
          method: 'POST',
          headers: {
-            'Accept': '*/*', 
-            'Content-Type': 'application/json',  
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
          },
-         body:  JSON.stringify(bodyData)
+         body: JSON.stringify(bodyData)
       });
 
       if (!response.ok) {
          throw new Error('Error al reproducir playlist');
       }
       const playlistResponse = await response.json();
-      console.log("playlist response: ",playlistResponse );
+      console.log("playlist response: ", playlistResponse);
 
-      const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${playlistResponse.primeraCancionId}`)
+      const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${playlistResponse.primeraCancionId}`);
       
       if (!song.ok) {
          throw new Error('Error al reproducir la canción ');
@@ -772,13 +1130,18 @@ const playPlaylist = async () => {
          Duracion: songData.Duracion,
       };
       playSong(newSong);
-
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
- 
-}
+};
 
+/**
+ * Función asíncrona para añadir una canción a la playlist.
+ * Envía una petición POST a la API para agregar la canción y actualiza la playlist localmente.
+ *
+ * @async
+ * @param {object} song - Objeto de la canción a añadir.
+ */
 const addSong = async (song) => {
    try {
       console.log("Id playlist: ", Id);
@@ -787,19 +1150,17 @@ const addSong = async (song) => {
       const response = await fetch(`https://echobeatapi.duckdns.org/playlists/add-song/${playlistId}`, {
          method: 'POST',
          headers: {
-            'Accept': '*/*', 
-            'Content-Type': 'application/json',  
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
          },
          body: JSON.stringify({
-         idLista: playlistId,  
-         songId: song.Id 
+            idLista: playlistId,  
+            songId: song.Id 
          })
       });
-
       if (!response.ok) {
          throw new Error('Error al añadir la canción');
       }
-
       showPopupMessage("Canción añadida con éxito", "popup-success");
       const newSong = {
          id: song.Id,
@@ -810,12 +1171,18 @@ const addSong = async (song) => {
       };
       playlist.value = [...playlist.value, newSong];
       console.log('valor canciones playlist', playlist.value);
-    
    } catch (error) {
-         showPopupMessage(error.message, "popup-error");
+      showPopupMessage(error.message, "popup-error");
    }
 };
 
+/**
+ * Función asíncrona para eliminar una canción de la playlist.
+ * Envía una petición DELETE a la API y, si es exitosa, elimina la canción del array local.
+ *
+ * @async
+ * @param {number} songId - ID de la canción a eliminar.
+ */
 const removeSong = async (songId) => {
    try {
       console.log("Id playlist: ", Id);
@@ -824,28 +1191,32 @@ const removeSong = async (songId) => {
       const response = await fetch(`https://echobeatapi.duckdns.org/playlists/delete-song/${playlistId}`, {
          method: 'DELETE',
          headers: {
-            'Accept': '*/*', 
-            'Content-Type': 'application/json',  
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
          },
          body: JSON.stringify({
-         idLista: playlistId,  
-         songId: songId 
+            idLista: playlistId,  
+            songId: songId 
          })
       });
-
       if (!response.ok) {
          throw new Error('Error en la eliminación de la canción');
       }
-
-      // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
+      // Elimina la canción localmente si la eliminación es exitosa.
       playlist.value = playlist.value.filter(song => song.id !== songId);
       showPopupMessage("Canción eliminada con éxito", "popup-success");
-      
    } catch (error) {
-         showPopupMessage(error.message, "popup-error");
+      showPopupMessage(error.message, "popup-error");
    }
 };
 
+/**
+ * Función asíncrona para añadir una canción a favoritos.
+ * Envía una petición POST a la API para marcar la canción como favorita.
+ *
+ * @async
+ * @param {object} song - Objeto de la canción a marcar como favorita.
+ */
 const addSongToFavorites = async (song) => {
    try {
       console.log("Email: ", email);
@@ -853,47 +1224,43 @@ const addSongToFavorites = async (song) => {
       const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.id}`, {
          method: 'POST',
          headers: {
-            'Accept': '*/*', 
+            'Accept': '*/*',
          },
       });
-   
       if (!response.ok) {
          throw new Error('Error al añadir canción a favoritos');
       }
- 
       showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
-     
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
 };
 
-
+/**
+ * Función asíncrona para buscar canciones.
+ * Si el término de búsqueda está vacío, resetea los resultados.
+ * De lo contrario, realiza una petición a la API y actualiza el objeto "results".
+ *
+ * @async
+ */
 const fetchResults = async () => {
-   
    if (!currentSearch.value.trim()) {
       results.value.canciones = [];
       return;
    }
-
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
-
-   try { 
+   try {
       const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
-
       results.value = await response.json();
       console.log("Respuesta de la API:", results.value);
-
    } catch (error) {
       console.error('Error:', error);
-
    } finally {
-      isLoading.value = false; 
+      isLoading.value = false;
    }
 };
-
 </script>
 
  

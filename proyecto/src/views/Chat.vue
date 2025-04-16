@@ -28,27 +28,72 @@
  import { useRoute, useRouter } from 'vue-router';
  import ChatMessage from '@/components/ChatMessage.vue';
  import ChatInput from '@/components/ChatInput.vue';
- 
+
+ /**
+  * Objeto reactivo para acceder a la ruta actual.
+  * @type {object}
+  */
  const route = useRoute();
+
+ /**
+  * Email del amigo obtenido de los parámetros de la ruta.
+  * @type {string}
+  */
  const friendMail = route.params.email;
+
+ /**
+  * Email del usuario obtenido desde el localStorage.
+  * @type {string|null}
+  */
  const email = localStorage.getItem("email");
- 
+
+ /**
+  * Instancia del router para navegación programática.
+  * @type {object}
+  */
  const router = useRouter();
- 
+
+ /**
+  * Array reactivo que almacena los mensajes del chat.
+  * @type {Ref<Array>}
+  */
  const messages = ref([]);
+
+ /**
+  * Referencia al contenedor de mensajes, para controlar el scroll.
+  * @type {Ref<HTMLElement|null>}
+  */
  const messageContainer = ref(null);
- 
+
+ /**
+  * Objeto reactivo que almacena la información del usuario (amigo).
+  * @type {Ref<{nick: string, perfil: string}>}
+  */
  const user = ref({
     nick: '',
     perfil: '',
  });
- 
+
+ /**
+  * Función que navega hacia atrás en el historial del navegador.
+  */
  const goBack = () => {
     router.back();
  };
- 
+
+ /**
+  * Intervalo para el polling de mensajes.
+  * @type {number}
+  */
  let pollingInterval;
- 
+
+ /**
+  * Función que marca los mensajes como leídos en la API.
+  * Actualiza localmente el estado de los mensajes marcando aquellos enviados por el amigo como leídos.
+  *
+  * @async
+  * @throws {Error} Si falla la petición a la API.
+  */
  const markMessagesAsRead = async () => {
     try {
        const result = await fetch(
@@ -63,7 +108,7 @@
        if (!result.ok) {
           throw new Error("Error al marcar mensajes como leídos");
        }
-       // Si la llamada es exitosa, se actualiza el estado local
+       // Actualiza localmente todos los mensajes del amigo como leídos.
        messages.value = messages.value.map(msg =>
           msg.EmailSender === friendMail ? { ...msg, Leido: true } : msg
        );
@@ -71,7 +116,14 @@
        console.error(error.message);
     }
  };
- 
+
+ /**
+  * Función que inicia el polling para obtener el historial del chat.
+  *
+  * Establece un intervalo que cada segundo realiza una petición a la API para obtener los mensajes.
+  * Si hay mensajes nuevos, actualiza el estado reactivo y realiza el scroll hacia el final.
+  * Además, detecta y marca los mensajes sin leer.
+  */
  const startPolling = () => {
     pollingInterval = setInterval(async () => {
        try {
@@ -80,39 +132,58 @@
           );
           if (!res.ok) throw new Error("Error al obtener los mensajes");
           const data = await res.json();
- 
+
+          /**
+           * Formatea los mensajes agregando una propiedad 'posicion'
+           * que determina si se muestra a la izquierda o a la derecha.
+           * @type {Array}
+           */
           const formattedMessages = data.map(msg => ({
              ...msg,
              posicion: msg.EmailSender === email ? 'right' : 'left',
           }));
- 
-          // Solo actualiza si hay mensajes nuevos
+
+          // Actualiza la lista de mensajes si se detectan cambios.
           if (JSON.stringify(formattedMessages) !== JSON.stringify(messages.value)) {
              messages.value = formattedMessages;
              scrollToBottom();
- 
-             // Detecta si hay mensajes sin marcar como leídos (enviados por el amigo)
+
+             // Filtra los mensajes del amigo que no se han marcado como leídos.
              const unreadMessages = formattedMessages.filter(
                 msg => msg.EmailSender === friendMail && !msg.Leido
              );
              if (unreadMessages.length > 0) {
-                // Llama a la función para marcarlos como leídos en la API
+                // Marca los mensajes como leídos a través de la API.
                 await markMessagesAsRead();
              }
           }
        } catch (error) {
           console.error("Polling error:", error.message);
        }
-    }, 1000); // cada 1 segundo
+    }, 1000); // Se ejecuta cada 1 segundo.
  };
- 
- // Limpia el intervalo al desmontar el componente
+
+ /**
+  * Hook de ciclo de vida: onUnmounted.
+  * Limpia el intervalo del polling cuando el componente se desmonte para evitar memory leaks.
+  */
  onUnmounted(() => {
     clearInterval(pollingInterval);
  });
- 
+
+ /**
+  * Hook de ciclo de vida: onMounted.
+  *
+  * Realiza las siguientes acciones al montar el componente:
+  * - Obtiene el historial del chat y lo formatea.
+  * - Realiza scroll al final del contenedor de mensajes.
+  * - Obtiene la información de perfil y nick del amigo.
+  * - Marca como leídos los mensajes existentes.
+  * - Inicia el polling para actualizar continuamente el chat.
+  */
  onMounted(async () => {
     try {
+       // Solicita el historial del chat entre el usuario y el amigo.
        const res = await fetch(
           `https://echobeatapi.duckdns.org/chat/historialDelChat?userPrincipal=${encodeURIComponent(email)}&userAmigo=${encodeURIComponent(friendMail)}`
        );
@@ -125,8 +196,8 @@
           posicion: msg.EmailSender === email ? 'right' : 'left',
        }));
        scrollToBottom();
- 
-       // Obtener foto de perfil y nick del usuario
+
+       // Solicita los datos del usuario (amigo): nick y foto de perfil.
        const userResponse = await fetch(
           `https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(friendMail)}`
        );
@@ -136,8 +207,8 @@
           nick: userData.Nick,
           perfil: userData.LinkFoto,
        };
- 
-       // Marcar los mensajes como leídos al cargar (los que ya existen)
+
+       // Marca los mensajes existentes como leídos al cargar el chat.
        const result = await fetch(
           `https://echobeatapi.duckdns.org/chat/marcarComoLeidos?senderId=${encodeURIComponent(friendMail)}&receiverId=${encodeURIComponent(email)}`,
           {
@@ -150,7 +221,7 @@
        if (!result.ok) {
           throw new Error("Error al leer los mensajes");
        }
-       // Actualiza localmente todos los mensajes del amigo como leídos
+       // Actualiza localmente todos los mensajes enviados por el amigo como leídos.
        messages.value = messages.value.map(msg =>
           msg.EmailSender === friendMail ? { ...msg, Leido: true } : msg
        );
@@ -158,9 +229,19 @@
        console.error(error.message);
     }
     
+    // Inicia el polling para actualizar continuamente el chat.
     startPolling();
  });
- 
+
+ /**
+  * Función para enviar un mensaje.
+  *
+  * Envía el mensaje a través de la API y actualiza la lista de mensajes localmente con el nuevo mensaje.
+  *
+  * @async
+  * @param {string} text - Texto del mensaje a enviar.
+  * @throws {Error} Si falla la petición para enviar el mensaje.
+  */
  const sendMessage = async (text) => {
     if (!text.trim()) return;
     try {
@@ -191,14 +272,21 @@
        console.error(error.message);
     }
  };
- 
+
+ /**
+  * Función para hacer scroll hasta el final del contenedor de mensajes.
+  * Utiliza nextTick para asegurar que la actualización del DOM se haya completado antes de realizar el scroll.
+  *
+  * @async
+  */
  const scrollToBottom = async () => {
     await nextTick();
     if (messageContainer.value) {
        messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
     }
  };
- </script>
+</script>
+
  
  
  <style scoped>

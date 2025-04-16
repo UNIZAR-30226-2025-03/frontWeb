@@ -2,24 +2,28 @@
   <div class="layout">
     <!-- Barra lateral -->
    
-      <aside class="sidebar">
-        <div class="library">
-          <h2>Escuchando </h2>
-          <button class="trash-btn" @click="clearQueue">
-            🗑️
-          </button>
-          <div id="songs-list">
-            <div 
-               v-for="(song, index) in songs" :key="index" class="song-item" @mouseover="hoveredSong = song.id" @mouseleave="hoveredSong = null" @click="playAsong(song.id, index)">  
-               <p class="song-title">{{ song.nombre }}</p>
-               <button 
-                  v-if="hoveredSong === song.id" class="song-trash-btn"  @click.stop="removeSong(index)">
-                  🗑️
-               </button>
-            </div>
-        </div>
-        </div>
-      </aside>
+    <aside class="sidebar">
+      <div class="library">
+        <h2>Escuchando </h2>
+        <button class="trash-btn" @click="clearQueue">
+          🗑️
+        </button>
+        <div id="songs-list">
+          <div v-for="(song, index) in songs" :key="index" 
+               class="song-item" 
+               @mouseover="hoveredSong = song.id" 
+               @mouseleave="hoveredSong = null" 
+               @click="playAsong(song.id, index)">  
+            <p class="song-title">{{ song.nombre }}</p>
+            <button v-if="hoveredSong === song.id" 
+                    class="song-trash-btn" 
+                    @click.stop="removeSong(index)">
+              🗑️
+            </button>
+          </div>
+        </div> 
+      </div>
+    </aside>
     
 
     <!-- Contenido principal -->
@@ -59,25 +63,104 @@
 
 
 <script setup>
-import { ref, onMounted, inject } from 'vue';
-import { useRouter } from 'vue-router';
-import default_img from  '@/assets/kebab.jpg';
+import { ref, onMounted, inject, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import draggable from 'vuedraggable';
+import randomIcon from '@/assets/random-button.png';
+import default_img from '@/assets/kebab.jpg';
+import add_button from '@/assets/add_circle.svg';
+import pauseIcon from '@/assets/pause-circle.svg';
+import playIcon from '@/assets/play-circle.svg';
+import favs_cover from '@/assets/favoritos-cover.jpg';
 
-const playSong = inject('playSong')
+/**
+ * Función inyectada para reproducir canciones.
+ * Se espera que el componente padre provea esta función mediante la inyección de dependencias.
+ * @type {Function}
+ */
+const playSong = inject('playSong');
+
+/**
+ * Instancia del router para navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
-const songsData = ref([]);
-const email =  localStorage.getItem("email");
+
+/**
+ * Objeto de la ruta actual, que se utiliza para obtener parámetros desde la URL.
+ * @type {object}
+ */
+const route = useRoute();
+
+/**
+ * Función inyectada para acceder a los datos de la cola de reproducción (songsData).
+ * Se asume que songsData es inyectado desde un componente padre o proveedor global.
+ * @type {object}
+ */
+const songsData = inject('songsData');
+
+/**
+ * Email del usuario, obtenido desde el localStorage.
+ * @type {string|null}
+ */
+const email = localStorage.getItem("email");
 console.log("email: ", email);
+
+/**
+ * Array reactivo para almacenar las canciones en la cola.
+ * @type {Ref<Array>}
+ */
 const songs = ref([]);
-const playlists = ref([]);//Playlist propias del usario
+
+/**
+ * Array reactivo para almacenar las playlists propias del usuario.
+ * @type {Ref<Array>}
+ */
+const playlists = ref([]);
+
+/**
+ * Estado reactivo para almacenar el id de la playlist actual.
+ * @type {Ref<number>}
+ */
 const id = ref(0);
+
+/**
+ * Estado reactivo para almacenar el nombre del usuario (o de la playlist) en uso.
+ * @type {Ref<any>}
+ */
 const nombre = ref();
+
+/**
+ * Estado reactivo que almacena la canción sobre la que se pasa el cursor.
+ * @type {Ref<any>}
+ */
 const hoveredSong = ref(null);
 
+/**
+ * Estado reactivo que controla la visualización del popup de mensajes.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo que contiene el mensaje a mostrar en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo de popup ("popup-error" o "popup-success").
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
+/**
+ * Función que muestra un popup con un mensaje y un tipo especificado.
+ * El popup se oculta automáticamente después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo del popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -87,95 +170,130 @@ const showPopupMessage = (message, type) => {
       showPopup.value = false;
    }, 3000); // Cierra el popup después de 3 segundos
 };
-  
-const playAsong = async(song,posicion) => {
-   // 1. Reproducir la canción 
+
+/**
+ * Función asíncrona para reproducir una canción específica.
+ * Realiza una petición a la API para obtener los detalles de la canción y actualiza la cola de reproducción.
+ *
+ * @async
+ * @param {number|string} song - Identificador de la canción a reproducir.
+ * @param {number} posicion - Posición en la cola de reproducción.
+ * @throws {Error} Si falla la petición para obtener los detalles de la canción.
+ */
+const playAsong = async (song, posicion) => {
    try {
-   const songResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song}`)
-   
-   if (!songResponse.ok) {
-      throw new Error('Error al reproducir la canción ');
-   }
-   const songData = await songResponse.json();
-   const newSong = {
-      Id: song,
-      Nombre: songData.Nombre,
-      Portada: songData.Portada,
-      Duracion: songData.Duracion,
-   };
-//-------------Actualizar posición cola------------------
-   const bodyData = {
+      // Solicita los detalles de la canción mediante su id.
+      const songResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song}`);
+      if (!songResponse.ok) {
+         throw new Error('Error al reproducir la canción ');
+      }
+      const songData = await songResponse.json();
+      const newSong = {
+         Id: song,
+         Nombre: songData.Nombre,
+         Portada: songData.Portada,
+         Duracion: songData.Duracion,
+      };
+      //-------------Actualizar posición cola------------------
+      const bodyData = {
          userEmail: email,
          reproduccionAleatoria: false,
          posicionCola: posicion,
          colaReproduccion: songsData.value.ColaReproduccion
-   };
+      };
 
-   console.log("JSON enviado:", bodyData);   
-   
-   const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
+      console.log("JSON enviado:", bodyData);
+
+      const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
          method: 'POST',
          headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
          },
-         body:  JSON.stringify(bodyData)
-   });
-   
+         body: JSON.stringify(bodyData)
+      });
 
-   playSong(newSong);
-   
+      // Llama a la función playSong inyectada para reproducir la canción.
+      playSong(newSong);
    } catch (error) {
-   console.error('play a song:', error);
+      console.error('play a song:', error);
    }
-   
 };
 
-const handleClick = (id,playlistType) => {
+/**
+ * Watcher que actualiza la variable local "songs" cuando cambian los datos inyectados en "songsData".
+ * Se asegura que "songs" contenga un array de canciones, ya que puede venir como un solo objeto.
+ */
+watch(
+  songsData,
+  (newVal) => {
+    if (newVal && newVal.ColaReproduccion && newVal.ColaReproduccion.canciones) {
+      songs.value = Array.isArray(newVal.ColaReproduccion.canciones)
+        ? newVal.ColaReproduccion.canciones
+        : [newVal.ColaReproduccion.canciones];
+    } else {
+      songs.value = [];
+    }
+    console.log("Sidebar: Lista de canciones actualizada:", songs.value);
+  },
+  { deep: true }
+);
+
+/**
+ * Función para manejar el clic sobre una playlist.
+ * Al hacer clic, se guarda el tipo de playlist en el localStorage y se redirige al usuario a la vista de la playlist.
+ *
+ * @param {number|string} id - Identificador de la playlist seleccionada.
+ * @param {string} playlistType - Tipo de playlist (por ejemplo, "album").
+ */
+const handleClick = (id, playlistType) => {
    console.log("Playlist seleccionada:", id);
    localStorage.setItem("type", playlistType);
    router.push({ path: '/playlist', query: { id: id } });
+};
 
-}
-
-
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Se ejecuta al montar el componente para inicializar datos como:
+ * - Obtener el nick del usuario mediante su email.
+ * - Obtener las playlists propias del usuario.
+ * - Obtener recomendaciones basadas en preferencias del género.
+ * - Obtener la cola de reproducción actual y actualizar "songs".
+ */
 onMounted(async () => {
+   // Obtener nick del usuario.
    try {
-   const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
-   const nickData = await nick.json();
-   nombre.value = nickData.Nick;
+      const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
+      const nickData = await nick.json();
+      nombre.value = nickData.Nick;
    } catch (error) {
-   console.error('Nick Error:', error);
+      console.error('Nick Error:', error);
    }
 
-
+   // Obtener las playlists propias del usuario.
    try {
-      // Obtener playlist propias
-   const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user/${encodeURIComponent(email)}`);
-   if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
-   
-   const playlistData = await playlistResponse.json();
-   console.log("Playlist data: ", playlistData);
-   if (playlistData.message === 'El usuario no tiene playlists') {
-      playlists.value = [];
-   }
-   else {
-      playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
-   }
-   
-   console.log("playlists data ",playlists.value); // 🔥 Ver en la consola
+      const playlistResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/user/${encodeURIComponent(email)}`);
+      if (!playlistResponse.ok) throw new Error('Error al obtener las playlist del usuario');
 
+      const playlistData = await playlistResponse.json();
+      console.log("Playlist data: ", playlistData);
+      if (playlistData.message === 'El usuario no tiene playlists') {
+         playlists.value = [];
+      } else {
+         playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
+      }
+      console.log("playlists data ", playlists.value); // 🔥 Ver en la consola
    } catch (error) {
       console.error('Playlist Error:', error);
    }
 
+   // Obtener recomendaciones basadas en preferencias del usuario.
    try {
-      // Obtener recomendaciones
       const container = document.getElementById("recomendations-container");
       const response = await fetch(`https://echobeatapi.duckdns.org/genero/preferencia?userEmail=${encodeURIComponent(email)}`);
       if (!response.ok) throw new Error('Error al obtener las recomendaciones del usuario');
       const data = await response.json();
-   
+
       data.forEach(genero => {
          console.log('playlist genero: ', genero);
          const listElement = document.createElement("div");
@@ -186,121 +304,134 @@ onMounted(async () => {
          imgElement.alt = genero.NombreGenero;
          imgElement.classList.add("recomendations-cover");
 
-            // 🔥 Manejar error de imagen: Ocultar o cambiar a una imagen por defecto
+         // Manejar error de imagen: si falla, se muestra una imagen predeterminada o se oculta.
          imgElement.onerror = function () {
-         if (!this.dataset.error) { // Evita bucles infinitos
+            if (!this.dataset.error) { // Evita bucles infinitos
                this.dataset.error = "true"; 
                this.src = default_img; // Imagen de respaldo
-         } else {
+            } else {
                this.style.display = "none"; // Si la imagen de respaldo falla, oculta la imagen
-         }
+            }
          };
 
          const titleElement = document.createElement("p");
          titleElement.textContent = genero.NombreGenero;
          titleElement.classList.add("recomendations-title");
 
-         // 🔗 Agregar evento de clic para redirigir a una nueva página
+         // Agregar evento de clic para redirigir a la página correspondiente.
          listElement.addEventListener("click", () => {
-            handleClick( genero.IdLista,"album");
-
+            handleClick(genero.IdLista, "album");
          });
 
          listElement.appendChild(imgElement);
          listElement.appendChild(titleElement);
          container.appendChild(listElement);
-   });
+      });
    } catch (error) {
-   console.error('Generos Error:', error);
+      console.error('Generos Error:', error);
    }
 
+   // Obtener la cola de reproducción actual del usuario.
    try {
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
       if (!songsResponse.ok) throw new Error('Error la cola');
-      
+
       songsData.value = await songsResponse.json();
       console.log("songsData: ", songsData.value);
-      songs.value = Array.isArray(songsData.value.ColaReproduccion.canciones) ? songsData.value.ColaReproduccion.canciones : [songsData.value.ColaReproduccion.canciones];
+      songs.value = Array.isArray(songsData.value.ColaReproduccion.canciones)
+         ? songsData.value.ColaReproduccion.canciones
+         : [songsData.value.ColaReproduccion.canciones];
       console.log("songsValue: ", songs.value);
       console.log(songs.value);
-      } catch (error) {
+   } catch (error) {
       console.error('Cola Error:', error);
-      }
+   }
 });
 
+/**
+ * Función asíncrona para vaciar la cola de reproducción.
+ * Realiza una petición a la API para limpiar la cola y, luego, elimina los elementos de la lista local con una animación.
+ *
+ * @async
+ * @throws {Error} Si falla la petición a la API.
+ */
 const clearQueue = async () => {
    try {
       const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/clear', {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
-      },
-      body: JSON.stringify({
-         userEmail: email
-      })
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+            userEmail: email
+         })
       });
 
       if (!response.ok) {
-      throw new Error('Error al vaciar la cola de reproducción');
+         throw new Error('Error al vaciar la cola de reproducción');
       }
 
       showPopupMessage("Cola vaciada con éxito", "popup-success");
 
-      // Animación antes de eliminar las canciones
+      // Agrega animación de fade-out a cada elemento de canción.
       document.querySelectorAll('.song-item').forEach((el) => {
          el.classList.add('fade-out');
       });
 
-      // Espera la animación antes de limpiar la lista
+      // Espera a que finalice la animación antes de limpiar la lista.
       setTimeout(() => {
          songs.value = [];
       }, 500);
-      
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
-} 
+};
 
+/**
+ * Función asíncrona para eliminar una canción específica de la cola de reproducción.
+ * Envía una petición a la API y, si es exitosa, elimina la canción del array local con una animación.
+ *
+ * @async
+ * @param {number} position - La posición de la canción en la cola.
+ * @throws {Error} Si la petición a la API falla.
+ */
 const removeSong = async (position) => {
    try {
       const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/delete-song-from-queue', {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
-      },
-      body: JSON.stringify({
-         userEmail: email,
-         posicionCola: position
-      })
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({
+            userEmail: email,
+            posicionCola: position
+         })
       });
 
       if (!response.ok) {
-      throw new Error('Error al eliminar canción de la cola de reproducción');
+         throw new Error('Error al eliminar canción de la cola de reproducción');
       }
 
       showPopupMessage("Canción eliminada de la cola de reproducción con éxito", "popup-success");
 
-      // Animación antes de eliminar la canción
+      // Agrega animación de fade-out al elemento de la canción que será removida.
       const songElement = document.querySelector(`.song-item[data-index="${position}"]`);
       if (songElement) {
          songElement.classList.add('fade-out');
       }
 
-      // Espera la animación antes de quitar del vector
+      // Espera a que termine la animación antes de remover la canción del array.
       setTimeout(() => {
          songs.value.splice(position, 1);
       }, 500);
-      
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
-} 
-
-
-
+};
 </script>
+
   
 <style scoped>
 

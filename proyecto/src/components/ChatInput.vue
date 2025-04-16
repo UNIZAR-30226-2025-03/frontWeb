@@ -11,18 +11,38 @@
 </template>
  
 <script setup>
-import { ref } from 'vue'
+  /**
+   * Importa la función ref para crear variables reactivas en Vue.
+   * @module vue
+   */
+  import { ref } from 'vue'
 
-const emit = defineEmits(['send'])
-const message = ref('')
+  /**
+   * Define el emisor de eventos que acepta el evento 'send'.
+   * @function defineEmits
+   * @returns {function} emit - Función para emitir eventos personalizados.
+   */
+  const emit = defineEmits(['send'])
 
-const submitMessage = () => {
-if (message.value.trim()) {
-   emit('send', message.value)
-   message.value = ''
-}
-}
+  /**
+   * Variable reactiva que almacena el mensaje actual.
+   * @type {Ref<string>}
+   */
+  const message = ref('')
+
+  /**
+   * Función que envía el mensaje a través del evento 'send' si el mensaje no está vacío.
+   * Luego, reinicia el contenido de message.
+   * @function submitMessage
+   */
+  const submitMessage = () => {
+    if (message.value.trim()) {
+      emit('send', message.value)
+      message.value = ''
+    }
+  }
 </script>
+
  
 <style scoped>
 .chat-input {
