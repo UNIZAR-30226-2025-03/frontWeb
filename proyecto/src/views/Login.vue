@@ -137,6 +137,7 @@ const handleLogin = async () => {
 
       setTimeout(() => {
       if (Data.esAdmin) {
+        localStorage.setItem("isAdmin", true);
         router.push("/admin");
       } else {
         router.push("/home");

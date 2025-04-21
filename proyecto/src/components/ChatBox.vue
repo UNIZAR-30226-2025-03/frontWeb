@@ -21,8 +21,11 @@
       <textarea
         v-model="chatInput"
         placeholder="Escribe tu mensaje..."
+        :disabled="isLoading"
       ></textarea>
-      <button @click="sendMessage">Enviar</button>
+      <button @click="sendMessage" :disabled="isLoading || !chatInput.trim()">
+        {{ isLoading ? 'Enviando...' : 'Enviar' }}
+      </button>
     </div>
   </div>
 </template>
@@ -35,6 +38,7 @@ export default {
   data() {
     return {
       chatInput: "",
+      isLoading: false,
       // Inicializa el historial del chat con un mensaje del bot.
       messages: [
         { sender: "bot", text: "¡Bienvenido! ¿En qué puedo ayudarte?" }
@@ -43,11 +47,12 @@ export default {
   },
   methods: {
     async sendMessage() {
-      if (!this.chatInput.trim()) return;
+      if (!this.chatInput.trim() || this.isLoading) return;
       const userMsg = this.chatInput;
       // Añade el mensaje del usuario al historial.
       this.messages.push({ sender: "user", text: userMsg });
       this.chatInput = "";
+      this.isLoading = true;
       try {
         // Llama a la API de Gemini
         const response = await fetch("https://echobeatapi.duckdns.org/gemini", {
@@ -78,6 +83,8 @@ export default {
       } catch (error) {
         console.error("Error al llamar a la API de Gemini:", error);
         this.messages.push({ sender: "bot", text: "Ocurrió un error al obtener la respuesta del chatbot." });
+      } finally {
+        this.isLoading = false;
       }
     },
     // Método que transforma texto Markdown a HTML usando marked.
@@ -159,5 +166,10 @@ export default {
 }
 .chat-footer button:hover {
   opacity: 0.9;
+}
+.chat-footer textarea:disabled,
+.chat-footer button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

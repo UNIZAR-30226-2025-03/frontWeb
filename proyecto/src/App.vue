@@ -3,8 +3,7 @@
   <div id="app">
   
    <div class="container">
-      <div class="header">
-
+      <div class="header" v-if="!isAdmin">
          <!-- Imagen que activa el menú -->
           <div class="busqueda">
             <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
@@ -265,7 +264,7 @@ const genders = ref([]);
 const showGenderDropdown = ref(false);
 const selectedGender = ref('');
 const genderFlyout = ref(null);
-
+const isAdmin = localStorage.getItem("isAdmin") === "true";
 // pop-up 
 const showPopup = ref(false);
 const popupMessage = ref("");

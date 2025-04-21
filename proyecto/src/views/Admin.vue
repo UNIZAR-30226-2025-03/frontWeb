@@ -1,64 +1,69 @@
 <template>
   <div v-if="authorized" class="admin-container">
-    <!-- Agregar el componente ChatBox en la parte superior -->
-    <ChatBox />
+    <div class="admin-inner">
+      <h1 class="admin-title">Panel de Administración</h1>
 
-    <h1>Panel de Administración</h1>
-
-    <!-- Sección de Listas -->
-    <section class="admin-section">
-      <h2>Gestión de Listas Predefinidas</h2>
-      <div class="admin-actions">
-        <button @click="crearLista">Crear Lista</button>
-      </div>
-    </section>
-
-    <!-- Sección de Listas Disponibles -->
-    <section class="admin-section">
-      <h2>Listas Disponibles</h2>
-      <ul class="playlists-scroll">
-        <li
-          v-for="(lista, index) in adminListas"
-          :key="lista.id"
-          class="playlist-card"
-          @click="irADetalleLista(lista.id)"
-        >
-          <img
-            :src="lista.coverImage"
-            alt="Playlist Cover"
-            class="playlist-cover"
-            @error="onImageError"
-          />
-          <h3 class="playlist-title">{{ lista.name }}</h3>
-          <p class="playlist-info">Canciones: {{ lista.totalSongs }}</p>
-          <p class="playlist-info">Género: {{ lista.genre }}</p>
-        </li>
-      </ul>
-    </section>
-
-    <!-- Sección para Eliminar Usuarios -->
-    <section class="admin-section">
-      <h2>Eliminar Usuarios</h2>
-      <div class="user-search">
-        <input
-          type="text"
-          v-model="searchTerm"
-          placeholder="Buscar usuario por email..."
-        />
-      </div>
-      <!-- Grid de usuarios -->
-      <div class="users-grid">
-        <div
-          v-for="user in filteredUsers"
-          :key="user.id"
-          class="user-card"
-          @click="abrirModal(user)"
-        >
-          <p><strong>Email:</strong> {{ user.email }}</p>
-          <p><strong>Nombre:</strong> {{ user.name }}</p>
+      <!-- Fila 1: Chat + Usuarios -->
+      <div class="admin-row">
+        <!-- Chat -->
+        <div class="chat-wrapper">
+          <ChatBox />
         </div>
+
+        <!-- Eliminar Usuarios -->
+        <section class="admin-section users-section">
+          <div class="section-header">
+            <h2>Eliminar Usuarios</h2>
+          </div>
+          <div class="user-search">
+            <input
+              v-model="searchTerm"
+              type="text"
+              placeholder="Buscar usuario por email..."
+            />
+          </div>
+          <div class="users-grid">
+            <div
+              v-for="user in filteredUsers"
+              :key="user.id"
+              class="user-card"
+              @click="abrirModal(user)"
+            >
+              <p><strong>Email:</strong> {{ user.email }}</p>
+              <p><strong>Nombre:</strong> {{ user.name }}</p>
+            </div>
+          </div>
+        </section>
       </div>
-    </section>
+
+      <!-- Fila 2: Listas -->
+      <section class="admin-section playlists-section full-width" ref="listsSection">
+        <div class="section-header">
+          <h2>Listas Disponibles</h2>
+          <button class="primary-btn" @click="crearLista">Crear Lista</button>
+        </div>
+        <div class="playlists-container">
+          <ul class="playlists-scroll">
+            <li
+              v-for="lista in adminListas"
+              :key="lista.id"
+              class="playlist-card"
+              @click="irADetalleLista(lista.id)"
+            >
+              <img
+                :src="lista.coverImage"
+                alt="Playlist Cover"
+                class="playlist-cover"
+                @error="onImageError"
+              />
+              <h3 class="playlist-title">{{ lista.name }}</h3>
+              <p class="playlist-info">Canciones: {{ lista.totalSongs }}</p>
+              <p class="playlist-info">Género: {{ lista.genre }}</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
 
     <!-- Modal de confirmación -->
     <div v-if="modalVisible" class="modal-overlay">
@@ -75,6 +80,7 @@
       </div>
     </div>
   </div>
+
   <div v-else class="loading">
     <p>Cargando ...</p>
   </div>
@@ -94,7 +100,7 @@ export default {
       searchTerm: '',
       modalVisible: false,
       userToDelete: {},
-      authorized: false // Controla si se muestra la página
+      authorized: false
     };
   },
   created() {
@@ -105,61 +111,53 @@ export default {
     filteredUsers() {
       if (!this.searchTerm) return this.allUsers;
       const term = this.searchTerm.toLowerCase();
-      return this.allUsers.filter(user =>
-        user.email.toLowerCase().includes(term)
-      );
+      return this.allUsers.filter(u => u.email.toLowerCase().includes(term));
     }
   },
   methods: {
     onImageError(e) {
-      e.target.src = 'https://via.placeholder.com/150/FF0000/FFFFFF?text=No+Image';
+      e.target.src =
+        'https://via.placeholder.com/150/FF0000/FFFFFF?text=No+Image';
     },
     async verificarAcceso() {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No se encontró el token de autenticación.');
-        }
-        const response = await fetch('https://echobeatapi.duckdns.org/admin/playlists', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          this.adminListas = await response.json();
-          await this.cargarUsuarios();
-          this.authorized = true;
-        } else {
+        if (!token) throw new Error('No se encontró el token.');
+
+        const res = await fetch(
+          'https://echobeatapi.duckdns.org/admin/playlists',
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!res.ok)
           throw new Error('Error al cargar las listas de administración');
-        }
-      } catch (error) {
-        console.error('Error en la verificación de acceso:', error);
+
+        this.adminListas = await res.json();
+        await this.cargarUsuarios();
+        this.authorized = true;
+      } catch (err) {
+        console.error(err);
         this.$router.push('/');
       }
     },
     crearLista() {
       this.$router.push('/createList');
     },
-    irADetalleLista(idLista) {
-      this.$router.push({ path: '/playlist', query: { id: idLista } });
+    irADetalleLista(id) {
+      this.$router.push({ path: '/playlist', query: { id } });
     },
     async cargarUsuarios() {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No se encontró el token de autenticación.');
-        }
-        const response = await fetch('https://echobeatapi.duckdns.org/admin/users', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        if (!token) throw new Error('No se encontró el token.');
+
+        const res = await fetch('https://echobeatapi.duckdns.org/admin/users', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        if (!response.ok) {
-          throw new Error('Error al cargar la lista de usuarios');
-        }
-        this.allUsers = await response.json();
-      } catch (error) {
-        console.error('Error al cargar usuarios:', error);
+        if (!res.ok) throw new Error('Error al cargar la lista de usuarios');
+        this.allUsers = await res.json();
+      } catch (err) {
+        console.error(err);
       }
     },
     abrirModal(user) {
@@ -173,22 +171,17 @@ export default {
     async confirmModal() {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No se encontró el token de autenticación.');
-        }
-        const response = await fetch(`https://echobeatapi.duckdns.org/admin/users/${this.userToDelete.email}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (!response.ok) {
-          throw new Error('Error al eliminar el usuario');
-        }
+        if (!token) throw new Error('No se encontró el token.');
+
+        const res = await fetch(
+          `https://echobeatapi.duckdns.org/admin/users/${this.userToDelete.email}`,
+          { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!res.ok) throw new Error('Error al eliminar el usuario');
         await this.cargarUsuarios();
-        console.log(`Usuario ${this.userToDelete.email} eliminado correctamente`);
-      } catch (error) {
-        console.error('Error al eliminar usuario:', error);
+      } catch (err) {
+        console.error(err);
       }
       this.cancelModal();
     }
@@ -197,150 +190,279 @@ export default {
 </script>
 
 <style scoped>
-/* Actualización para habilitar scroll en la página de administración */
+:deep(header, .main-navbar, .app-header) {
+  display: none !important;
+}
+
+/* 🔷 CONTENEDOR GENERAL */
 .admin-container {
   min-height: 100vh;
-  overflow-y: scroll; /* en lugar de auto */
-  -webkit-overflow-scrolling: touch;
-}
-
-
-/* Resto de estilos de AdminView */
-.admin-section {
-  margin-bottom: 1.5rem;
-}
-.admin-actions button {
-  background-color: #ffa500;
-  border: none;
-  color: #000;
-  margin-right: 0.5rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-}
-.admin-actions button:hover {
-  opacity: 0.8;
-}
-.playlists-scroll {
   display: flex;
-  overflow-x: auto;
-  gap: 1rem;
-  padding: 1rem 0;
-  scrollbar-width: thin;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(to bottom, #111, #552300 40%, #b66520 80%);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
-.playlist-card {
-  min-width: 160px;
-  background-color: #333;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: transform 0.2s;
-  text-align: center;
-}
-.playlist-card:hover {
-  transform: scale(1.05);
-  background-color: #444;
-}
-.playlist-cover {
+
+.admin-inner {
   width: 100%;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 6px;
+  max-width: 1100px;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.admin-title {
+  font-size: 1.8rem;
+  color: #fff;
+  text-align: center;
   margin-bottom: 0.5rem;
 }
+
+/* 🔷 PRIMERA FILA: CHAT Y USUARIOS */
+.admin-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  height: 400px;
+}
+
+.chat-wrapper,
+.users-section {
+  flex: 1;
+  max-width: 48%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+/* 🔷 USUARIOS */
+.user-search {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.user-search input {
+  width: 100%;
+  max-width: 350px;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.users-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.users-grid::-webkit-scrollbar {
+  width: 6px;
+}
+.users-grid::-webkit-scrollbar-thumb {
+  background-color: #888;
+  border-radius: 6px;
+}
+
+.user-card {
+  background: #222;
+  color: #fff;
+  padding: 0.7rem;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.85rem;
+  transition: transform 0.2s;
+}
+.user-card:hover {
+  transform: translateY(-4px);
+  background: #333;
+}
+
+/* 🔷 PLAYLISTS */
+.full-width {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.admin-section {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.primary-btn {
+  background: #ffa500;
+  border: none;
+  color: #111;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: bold;
+}
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+.playlists-container {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.playlists-scroll {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  scrollbar-width: thin;
+}
+
+.playlist-card {
+  background: #222;
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 180px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+.playlist-card:hover {
+  transform: translateY(-6px) scale(1.03);
+}
+
+.playlist-cover {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
 .playlist-title {
-  font-size: 1rem;
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
   color: #ffb347;
-  margin-bottom: 0.3rem;
+  text-align: center;
 }
 .playlist-info {
   font-size: 0.85rem;
-  color: #ccc;
-  margin: 0;
-}
-.user-search {
-  margin: 0.5rem 0;
-}
-.user-search input {
-  padding: 0.5rem;
-  width: 100%;
-  max-width: 300px;
-}
-.users-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 0.5rem;
-}
-.user-card {
-  background-color: #333;
-  padding: 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  color: #ddd;
   text-align: center;
+  margin-bottom: 0.5rem;
 }
-.user-card:hover {
-  background-color: #444;
-}
+
+/* 🔷 MODAL */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
+
 .modal {
-  background-color: #fff;
-  color: #000;
-  padding: 1.5rem;
+  background: #1e1e1e;
+  color: #fff;
+  padding: 2rem;
   border-radius: 8px;
   max-width: 400px;
   width: 90%;
   text-align: center;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+  animation: fadeInScale 0.3s ease;
 }
+
 .modal h3 {
-  margin-top: 0;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  color: #ffa500;
 }
+
+.modal p {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #ddd;
+}
+.modal strong {
+  color: #ff5555;
+}
+
 .modal-actions {
-  margin-top: 1rem;
   display: flex;
-  justify-content: space-around;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
 }
-.confirm-btn {
-  background-color: #d9534f;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  border-radius: 4px;
-}
+
+.confirm-btn,
 .cancel-btn {
-  background-color: #5bc0de;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
+  padding: 0.5rem 1.2rem;
   border-radius: 4px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s ease-in-out;
 }
-.confirm-btn:hover,
+
+.confirm-btn {
+  background: #d9534f;
+  color: #fff;
+}
+.confirm-btn:hover {
+  background: #c9302c;
+}
+
+.cancel-btn {
+  background: #5bc0de;
+  color: #fff;
+}
 .cancel-btn:hover {
-  opacity: 0.9;
+  background: #31b0d5;
 }
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 🔷 LOADING */
 .loading {
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  background: #111;
   color: #fff;
-  background-color: #000;
+  font-size: 1.2rem;
 }
+
+
 </style>
