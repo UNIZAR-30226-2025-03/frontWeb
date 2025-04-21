@@ -85,6 +85,8 @@ const player = ref()
  */
 let fullAudioChunks = [] // Guardará los chunks completos en orden
 
+let shouldAutoPlay = true;
+
 /**
  * Hook onMounted que busca el elemento de audio global para asignarlo a la variable player.
  */
@@ -196,14 +198,19 @@ socket.on('streamComplete', () => {
  * @param {string} songId - ID de la canción a transmitir.
  * @param {string} songName - Nombre de la canción.
  * @param {string} email - Email del usuario que solicita el streaming.
+ * @param {Object} [options={ autoPlay: true }] - Opciones adicionales para el streaming.
+ * @param {boolean} [options.autoPlay=true] - Si es `true`(valor predefinido), reproduce automáticamente al tener suficiente buffer. Si es `false`, solo precarga.
  */
-async function startStreamSong(songId, songName, email) {
+async function startStreamSong(songId, songName, email, options = { autoPlay: true }) {
   console.log("id:", songId);
   console.log("name:", songName);
   console.log("email:", email),
   stopCurrentStream()
   currentSong = songName
   streamingActive = true
+
+  shouldAutoPlay = options.autoPlay ?? true
+
   initMediaSource()
   console.log(`[info] Solicitando inicio de streaming para la canción '${songName}' (ID ${songId})...`)
   socket.emit('startStream', { songId: songId, userId: email })
@@ -279,8 +286,12 @@ function onSourceOpen() {
         const bufferedSeconds = buffered.end(0) - buffered.start(0)
         if (bufferedSeconds >= MIN_BUFFERED_SECONDS) {
           hasStartedPlaying = true
-          player.value.play().catch(err => console.log('[error] El navegador bloqueó la reproducción automática: ' + err))
-          console.log(`[info] Reproducción iniciada con ${bufferedSeconds.toFixed(2)} segundos buffer`)
+         if (shouldAutoPlay) {
+            player.value.play().catch(err => console.log('[error] El navegador bloqueó la reproducción automática: ' + err))
+            console.log(`[info] Reproducción iniciada con ${bufferedSeconds.toFixed(2)} segundos buffer`)
+          } else {
+            console.log(`[info] Canción precargada con ${bufferedSeconds.toFixed(2)}s, sin reproducción automática`)
+          }
 
           if (bufferCheckInterval) clearInterval(bufferCheckInterval)
         } else {
@@ -322,5 +333,8 @@ function onSourceOpen() {
     }, 250)
   }
 }
+
+
+
 
 </script>

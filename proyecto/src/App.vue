@@ -158,6 +158,7 @@
 
         <!-- Right -->
         <div class="extras">
+         
           <div class="volume-wrapper">
             <i class="fa-solid fa-volume-high" @click="muteVolumen" >🔊</i>
             <transition name="fade">
@@ -293,6 +294,7 @@ const streamerRef = ref(null)
 /**
  * @constant {Ref<any>} streamerRef - Referencia al componente AudioStreamer.
  */
+sessionStorage.removeItem('home-song-loaded')
 
 provide('playSong', playSong);
 /**
@@ -302,6 +304,9 @@ provide('playFromQuest', playFromQuest);
 /**
  * Provee la función playFromQuest para uso en componentes hijos.
  */
+
+ provide('streamerRef', streamerRef)
+
 
 emitter.emit("audio-buffer-ready");
 /**
@@ -318,7 +323,7 @@ const lastSong = ref({
 /**
  * @constant {Ref<Object>} lastSong - Objeto que almacena la última canción reproducida.
  */
-
+provide("lastSong", lastSong)
 // VARIABLES COMPARTIDAS
 const songsData = ref([]); // Esta variable contendrá toda la información de la cola
 /**
@@ -358,6 +363,10 @@ const currentSongTime = ref(0);
 /**
  * @constant {Ref<number>} currentSongTime - Tiempo actual de la canción en reproducción.
  */
+
+ provide('currentSongTime', currentSongTime)
+
+
 const isLoading = ref(false);
 /**
  * @constant {Ref<boolean>} isLoading - Estado que indica si se están cargando datos.
@@ -378,6 +387,7 @@ const currentSong = ref('');
 /**
  * @constant {Ref<any>} currentSong - Objeto de la canción actualmente en reproducción.
  */
+provide("currentSong",currentSong)
 const currentStopTime = ref('');
 /**
  * @constant {Ref<string>} currentStopTime - Tiempo en que se detuvo la canción.
@@ -501,6 +511,7 @@ const hasResults = computed(() =>
 /**
  * @constant {ComputedRef<boolean>} hasResults - Computada que indica si existen resultados en alguna categoría.
  */
+
 
 // Opción de búsqueda
 const handleSearchOptionChange = () => {
@@ -726,15 +737,18 @@ const handleClickOutside = (event) => {
  */
 
 const currentTimeNoFormat = ref(0);
+
 /**
  * @constant {Ref<number>} currentTimeNoFormat - Tiempo actual sin formatear.
  */
 
+provide('currentTimeNoFormat', currentTimeNoFormat)
 // Registrar el evento al montar el componente
 onMounted(async () => {
   await updateQueue();
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('audio-buffer-ready', bufferReady);
+  window.addEventListener('beforeunload', enviarProgreso)
    if (player.value) {
       player.value.addEventListener('ended', handleSongEnded);
    }
@@ -756,45 +770,9 @@ onMounted(async () => {
       console.error(error.message);
    }
 
-   try {
-      const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/first-song?Email=${encodeURIComponent(email)}`);
-      if (!songResponse.ok) throw new Error('Error al obtener la última canción');
-
-      const songData = await songResponse.json();
-
-      
-      const durationResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${songData.PrimeraCancionId}`);
-      if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción');
-      const durationData = await durationResponse.json();
-     
-
-      // Extraer los datos de la respuesta
-      const songId = songData.PrimeraCancionId; 
-      const songName = songData.Nombre;
-      const songCover = songData.Portada;
-      currentSongTime.value =  formatTime(songData.MinutoEscucha);
-      currentTimeNoFormat.value = songData.MinutoEscucha;
-      console.log("aaaaaaaaaaa", songData.MinutoEscucha)
-      
-      // Asignar los datos a las variables reactivas
-      lastSong.value = {
-         id: songId,
-         name: songName,
-         cover: songCover,
-         minute: formatTime(durationData),
-      };
-  
-      currentSong.value = {
-         Id: songId,
-         Nombre: songName,
    
-      };
 
-     streamerRef.value.startStreamSong(songId, songName, email);
-
-    console.log('Última canción:', lastSong.value);
-
-      console.log('Última canción:', lastSong.value);
+    try{
 
       // Obtener generos
       const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
@@ -830,22 +808,34 @@ const bufferReady = () => {
  */
 
 onBeforeUnmount(() => {
+  console.log('[UNMOUNT] Componente se desmonta');
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('beforeunload', enviarProgreso)
 
    if (player.value) {
       player.value.removeEventListener('ended', handleSongEnded);
    }
-  const currentTime = player.value.currentTime;
-  streamerRef.value.socket.emit('progressUpdate', {
-              userId: email,
-              songId: currentSong.value.Id,
-              currentTime: currentTime,
-  });
+
 });
 /**
  * Bloque onBeforeUnmount:
  * - Elimina los eventos registrados.
  * - Emite la actualización del progreso del audio antes de desmontar el componente.
+ */
+
+ function enviarProgreso() {
+  if (player.value && streamerRef.value?.socket) {
+    const currentTime = player.value.currentTime
+    streamerRef.value.socket.emit('progressUpdate', {
+      userId: email,
+      songId: currentSong.value.Id,
+      currentTime: currentTime,
+    })
+  }
+}
+
+/**
+ * Funcion que actualiza el estado de la cancion actual al cerrar la pagina:
  */
 
 let lastUpdatedSecond = -1;
@@ -1116,6 +1106,7 @@ function formatTime(seconds) {
     let secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
+provide('formatTime', formatTime);
 /**
  * Función para formatear segundos a minutos y segundos (mm:ss).
  */

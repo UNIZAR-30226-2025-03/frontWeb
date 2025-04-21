@@ -72,7 +72,17 @@ import add_button from '@/assets/add_circle.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
 import favs_cover from '@/assets/favoritos-cover.jpg';
-
+/**
+ * Variable inyectada para reproducir canciones.
+ * Se espera que el componente padre provea esta variable mediante la inyección de dependencias.
+ * @type {object}
+ */
+const streamerRef = inject('streamerRef')
+const currentSongTime = inject('currentSongTime')
+const currentTimeNoFormat = inject('currentTimeNoFormat')
+const formatTime = inject('formatTime')
+const lastSong = inject('lastSong')
+const currentSong = inject('currentSong')
 /**
  * Función inyectada para reproducir canciones.
  * Se espera que el componente padre provea esta función mediante la inyección de dependencias.
@@ -252,6 +262,55 @@ const handleClick = (id, playlistType) => {
    router.push({ path: '/playlist', query: { id: id } });
 };
 
+async function cargarCancionInicioSesion() {
+  const CARGA_KEY = "home-song-loaded"
+
+  if (sessionStorage.getItem(CARGA_KEY)) {
+    console.log("Ya se cargó la canción en esta sesión")
+    return
+  }
+
+  try {
+    const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/first-song?Email=${encodeURIComponent(email)}`)
+    if (!songResponse.ok) throw new Error('Error al obtener la última canción')
+    const songData = await songResponse.json()
+
+    const durationResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${songData.PrimeraCancionId}`)
+    if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción')
+    const durationData = await durationResponse.json()
+
+    const songId = songData.PrimeraCancionId
+    const songName = songData.Nombre
+    const songCover = songData.Portada
+
+    currentSongTime.value = formatTime(songData.MinutoEscucha)
+    currentTimeNoFormat.value = songData.MinutoEscucha
+
+    lastSong.value = {
+      id: songId,
+      name: songName,
+      cover: songCover,
+      minute: formatTime(durationData),
+    }
+
+    currentSong.value = {
+      Id: songId,
+      Nombre: songName,
+    }
+
+    streamerRef.value.startStreamSong(songId, songName, email, { autoPlay: false })
+
+
+    console.log('Última canción:', lastSong.value)
+
+    sessionStorage.setItem(CARGA_KEY, 'true')
+
+  } catch (error) {
+    console.error('Última canción Error:', error)
+  }
+}
+
+
 /**
  * Hook de ciclo de vida: onMounted.
  * Se ejecuta al montar el componente para inicializar datos como:
@@ -261,7 +320,9 @@ const handleClick = (id, playlistType) => {
  * - Obtener la cola de reproducción actual y actualizar "songs".
  */
 onMounted(async () => {
-   // Obtener nick del usuario.
+
+   cargarCancionInicioSesion()
+
    try {
       const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
       const nickData = await nick.json();
