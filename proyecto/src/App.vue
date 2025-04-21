@@ -306,7 +306,9 @@ provide('playFromQuest', playFromQuest);
  */
 
  provide('streamerRef', streamerRef)
-
+/**
+ * Provee la variable streamerRef para uso en componentes hijos.
+ */
 
 emitter.emit("audio-buffer-ready");
 /**
@@ -324,6 +326,9 @@ const lastSong = ref({
  * @constant {Ref<Object>} lastSong - Objeto que almacena la última canción reproducida.
  */
 provide("lastSong", lastSong)
+/**
+ * Provee la variable lastSong para uso en componentes hijos.
+ */
 // VARIABLES COMPARTIDAS
 const songsData = ref([]); // Esta variable contendrá toda la información de la cola
 /**
@@ -365,7 +370,9 @@ const currentSongTime = ref(0);
  */
 
  provide('currentSongTime', currentSongTime)
-
+/**
+ * Provee la variable currentSongTime para uso en componentes hijos.
+ */
 
 const isLoading = ref(false);
 /**
@@ -388,6 +395,9 @@ const currentSong = ref('');
  * @constant {Ref<any>} currentSong - Objeto de la canción actualmente en reproducción.
  */
 provide("currentSong",currentSong)
+/**
+ * Provee la variable currentSong para uso en componentes hijos.
+ */
 const currentStopTime = ref('');
 /**
  * @constant {Ref<string>} currentStopTime - Tiempo en que se detuvo la canción.
@@ -743,6 +753,9 @@ const currentTimeNoFormat = ref(0);
  */
 
 provide('currentTimeNoFormat', currentTimeNoFormat)
+/**
+ * Provee la variable currentTimeNoFormat para uso en componentes hijos.
+ */
 // Registrar el evento al montar el componente
 onMounted(async () => {
   await updateQueue();
@@ -752,25 +765,6 @@ onMounted(async () => {
    if (player.value) {
       player.value.addEventListener('ended', handleSongEnded);
    }
-  try {
-      // Obtener nick del usuario
-      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
-
-      if (!userResponse.ok) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-
-      const userData = await userResponse.json();
-      currentNick.value = userData.Nick;
-      if (!userData || !userData.Nick) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-
-   } catch (error) {
-      console.error(error.message);
-   }
-
-   
 
     try{
 
@@ -1106,9 +1100,13 @@ function formatTime(seconds) {
     let secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
-provide('formatTime', formatTime);
+
 /**
  * Función para formatear segundos a minutos y segundos (mm:ss).
+ */
+ provide('formatTime', formatTime);
+ /**
+ * Provee la variable formatTime para uso en componentes hijos.
  */
 
 // Función para obtener la posición de los íconos en el menú
@@ -1141,6 +1139,7 @@ const fetchResults = async () => {
    try { 
       // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
       const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
+      currentNick.value =  localStorage.getItem("Nick");
       const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=${encodeURIComponent(tipo)}`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 

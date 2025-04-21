@@ -73,16 +73,44 @@ import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
 import favs_cover from '@/assets/favoritos-cover.jpg';
 /**
- * Variable inyectada para reproducir canciones.
- * Se espera que el componente padre provea esta variable mediante la inyección de dependencias.
+ * Referencia inyectada al componente que gestiona el streaming de audio.
+ * Permite controlar el inicio, parada y manipulación de la reproducción.
+ * Se espera que el componente padre provea esta variable mediante provide().
  * @type {object}
  */
 const streamerRef = inject('streamerRef')
+/**
+ * Varaible inyectada que maneja el Tiempo actual de reproducción de la canción, ya formateado (ej: "01:35").
+ * Se actualiza dinámicamente conforme avanza la reproducción.
+ * @type {Ref<string>}
+ */
 const currentSongTime = inject('currentSongTime')
+/**
+ * Varaible inyectada que maneja el tiempo actual de reproducción sin formatear (en segundos).
+ * Útil para lógica interna como cálculos, almacenamiento o sincronización.
+ * @type {Ref<number>}
+ */
+
 const currentTimeNoFormat = inject('currentTimeNoFormat')
+/**
+ * Función inyectada que recibe un número de segundos y devuelve una cadena formateada tipo "mm:ss".
+ * Útil para mostrar el tiempo al usuario.
+ * @type {function(number): string}
+ */
 const formatTime = inject('formatTime')
+/**
+ * Objeto inyectado con información de la última canción reproducida por el usuario.
+ * Incluye ID, nombre, portada y minuto en que se dejó.
+ * @type {Ref<Object>}
+ */
 const lastSong = inject('lastSong')
+
+/**
+ * Objeto inyectado con información de la canción actualmente en reproducción.
+ * @type  {Ref<any>}
+ */
 const currentSong = inject('currentSong')
+
 /**
  * Función inyectada para reproducir canciones.
  * Se espera que el componente padre provea esta función mediante la inyección de dependencias.
@@ -327,6 +355,7 @@ onMounted(async () => {
       const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
       const nickData = await nick.json();
       nombre.value = nickData.Nick;
+      localStorage.setItem("Nick",nombre.value)
    } catch (error) {
       console.error('Nick Error:', error);
    }
