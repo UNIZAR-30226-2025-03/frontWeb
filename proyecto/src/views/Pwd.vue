@@ -19,18 +19,47 @@
 </template>
   
 <script setup>
-import {ref} from "vue";
+import { ref } from "vue";
 import { useRouter } from 'vue-router';
 import logo from '@/assets/logo.png';
 
+/**
+ * Estado reactivo para almacenar el correo electrónico ingresado por el usuario.
+ * @type {Ref<string>}
+ */
 const email = ref("");
 
+/**
+ * Instancia del router para navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
 
+/**
+ * Estado reactivo que controla la visualización del popup.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo para almacenar el mensaje que se mostrará en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo del popup ("popup-error" o "popup-success").
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
+/**
+ * Función para mostrar un popup con un mensaje y tipo especificado.
+ * El popup se oculta automáticamente después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo del popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -41,10 +70,23 @@ const showPopupMessage = (message, type) => {
    }, 3000); // Cierra el popup después de 3 segundos
 };
 
+/**
+ * Función para regresar a la página anterior utilizando el router.
+ */
 const goBack = () => {
    router.back();
 };
 
+/**
+ * Función asíncrona que maneja el proceso de solicitud de recuperación de contraseña.
+ *
+ * Realiza lo siguiente:
+ *  - Envía una petición POST a la API para iniciar el proceso de "forgot-password" usando el correo del usuario.
+ *  - Si la petición es exitosa, muestra un mensaje de éxito y redirige al usuario a la página de login.
+ *  - Si ocurre algún error, muestra un mensaje de error.
+ *
+ * @async
+ */
 const handlerPwd = async () => {
    try {
       const response = await fetch('https://echobeatapi.duckdns.org/auth/forgot-password', {
@@ -69,9 +111,10 @@ const handlerPwd = async () => {
 
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
-}}
-
+   }
+};
 </script>
+
   
 <style scoped>
 .pwd-container {

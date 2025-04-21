@@ -40,72 +40,127 @@
 </template>
   
 <script setup>
-import { ref,onMounted } from 'vue';
-import { useRouter } from 'vue-router';
- 
-const router = useRouter();
-const playlists = ref([]);
-const infoUser = ref({
+  /**
+   * Importa las funciones ref y onMounted de Vue para reactividad y ciclo de vida.
+   * @module vue
+   */
+  import { ref, onMounted } from 'vue';
+
+  /**
+   * Importa useRouter de Vue Router para navegación programática.
+   * @module vue-router
+   */
+  import { useRouter } from 'vue-router';
+
+  /**
+   * Instancia del router para manejar navegación.
+   * @type {import('vue-router').Router}
+   */
+  const router = useRouter();
+
+  /**
+   * Lista reactiva de playlists del usuario amigo.
+   * @type {import('vue').Ref<Array>}
+   */
+  const playlists = ref([]);
+
+  /**
+   * Información reactiva del usuario amigo.
+   * @type {import('vue').Ref<Object>}
+   * @property {string} Nick - Apodo del usuario.
+   * @property {string} Portada - URL de la portada del usuario.
+   * @property {string} Nombre - Nombre completo del usuario.
+   * @property {string} LastList - Última lista escuchada por el usuario.
+   */
+  const infoUser = ref({
     Nick: "",
     Portada: "",
     Nombre: "",
     LastList: ""
-})
-let friendEmail = "";
-const props = defineProps({
-  friend: {
-    type: Object,
-    required: true
-  }
-})
+  });
 
-const emit = defineEmits(['close']) // Para emitir el cierre
+  /**
+   * Email del amigo, obtenido de las props.
+   * @type {string}
+   */
+  let friendEmail = "";
 
-onMounted(async () => {
-  
-   friendEmail = props.friend.contact != null ? props.friend.contact : props.friend.Email;
-   console.log(friendEmail);
-    try {
-        const dataUserResponse = await fetch(`https://echobeatapi.duckdns.org/users/profile-with-playlists?userEmail=${friendEmail}`)
-    if(!dataUserResponse.ok) throw new Error(" Error al cargar la información del usuario")
-    const userData = await dataUserResponse.json();
-
-    playlists.value = userData.Playlists;
-    infoUser.value.Nick = userData.Nick;
-    infoUser.value.Portada = userData.LinkFoto;
-        
-    } catch (error) {
-        console.error( error);
+  /**
+   * Define las propiedades que recibe este componente.
+   * @typedef {Object} Props
+   * @property {Object} friend - Objeto con datos del amigo (requerido).
+   */
+  const props = defineProps({
+    friend: {
+      type: Object,
+      required: true
     }
-    
-    try {
-        
-        const dataUserResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-user?userEmail=${friendEmail}`)
-        if(!dataUserResponse.ok) throw new Error(" Error al cargar la información extra del usuario")
-        const userData = await dataUserResponse.json();
-        infoUser.value.Nombre = userData.NombreCompleto;
-        infoUser.value.LastList = userData.UltimaListaEscuchada;
+  });
 
+  /**
+   * Define el emisor de eventos para notificar el cierre del componente.
+   * @function defineEmits
+   * @returns {function} emit - Función para emitir eventos personalizados.
+   */
+  const emit = defineEmits(['close']);
+
+  /**
+   * Hook que se ejecuta al montar el componente.
+   * Obtiene información del usuario amigo y sus playlists desde la API.
+   */
+  onMounted(async () => {
+    friendEmail = props.friend.contact != null
+      ? props.friend.contact
+      : props.friend.Email;
+    console.log(friendEmail);
+
+    try {
+      const dataUserResponse = await fetch(
+        `https://echobeatapi.duckdns.org/users/profile-with-playlists?userEmail=${friendEmail}`
+      );
+      if (!dataUserResponse.ok) throw new Error("Error al cargar la información del usuario");
+      const userData = await dataUserResponse.json();
+
+      playlists.value = userData.Playlists;
+      infoUser.value.Nick = userData.Nick;
+      infoUser.value.Portada = userData.LinkFoto;
     } catch (error) {
-        
+      console.error(error);
     }
 
-    
-});
+    try {
+      const dataUserResponse = await fetch(
+        `https://echobeatapi.duckdns.org/users/get-user?userEmail=${friendEmail}`
+      );
+      if (!dataUserResponse.ok) throw new Error("Error al cargar la información extra del usuario");
+      const userData = await dataUserResponse.json();
 
-const handleClick = (id,type) => {
-   console.log("Playlist seleccionada:", id);
-   localStorage.setItem("type", type);
-   router.push({ path: '/playlist', query: { id: id} });
-};
+      infoUser.value.Nombre = userData.NombreCompleto;
+      infoUser.value.LastList = userData.UltimaListaEscuchada;
+    } catch (error) {
+      console.error(error);
+    }
+  });
 
-const goToChats = () => {
-  router.push(`/chat/${friendEmail}`);
-};
+  /**
+   * Maneja el clic en una playlist, guardando el tipo y navegando al detalle.
+   * @param {string} id - ID de la playlist.
+   * @param {string} type - Tipo de playlist.
+   */
+  const handleClick = (id, type) => {
+    console.log("Playlist seleccionada:", id);
+    localStorage.setItem("type", type);
+    router.push({ path: '/playlist', query: { id: id } });
+  };
 
-  
-
+  /**
+   * Navega a la pantalla de chat con el amigo.
+   */
+  const goToChats = () => {
+    router.push(`/chat/${friendEmail}`);
+  };
 </script>
+
   
   
 <style scoped>

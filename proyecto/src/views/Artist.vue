@@ -77,18 +77,33 @@
     </div>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted, onBeforeUnmount, inject, watch } from 'vue';
 import { useRouter } from 'vue-router';  // Importar Vue Router para redirigir
 
-// En el componente donde usas playSong
+/**
+ * Función inyectada para reproducir canciones.
+ * Se espera que el componente padre provea esta función mediante la API de inyección de Vue.
+ *
+ * @type {Function}
+ */
 const playSong = inject('playSong');
 
-// Inyectar la función playFromQuest
+/**
+ * Función inyectada para reproducir desde una búsqueda (playFromQuest).
+ * Permite vaciar la cola y reproducir una nueva canción.
+ *
+ * @type {Function}
+ */
 const playFromQuest = inject('playFromQuest');
 
-// Definir las propiedades que recibirá el componente
+/**
+ * Propiedades que recibe el componente.
+ * - artistName: Nombre del artista (requerido).
+ *
+ * @typedef {object} Props
+ * @property {string} artistName - Nombre del artista.
+ */
 const props = defineProps({
   artistName: {
     type: String,
@@ -96,23 +111,69 @@ const props = defineProps({
   }
 });
 
-// Variables reactivas para almacenar los datos del artista
+/** 
+ * Estado reactivo que almacena los datos del artista.
+ * @type {Ref<object|null>}
+ */
 const artist = ref(null);
+
+/**
+ * Estado reactivo que contiene la discografía del artista.
+ * @type {Ref<Array>}
+ */
 const discografia = ref([]);
+
+/**
+ * Estado reactivo que contiene las top canciones del artista.
+ * @type {Ref<Array>}
+ */
 const topCanciones = ref([]);
 
-// Carruseles
+/**
+ * Índice actual para el carrusel de canciones.
+ * @type {Ref<number>}
+ */
 const currentSongIndex = ref(0);
-const currentAlbumIndex = ref(0);
-const songCarouselInterval = ref(null);
-const albumCarouselInterval = ref(null);
-const router = useRouter();  // Instanciamos el router para usar la redirección
 
+/**
+ * Índice actual para el carrusel de álbumes.
+ * @type {Ref<number>}
+ */
+const currentAlbumIndex = ref(0);
+
+/**
+ * Intervalo reactivo para el carrusel de canciones.
+ * @type {Ref<number|null>}
+ */
+const songCarouselInterval = ref(null);
+
+/**
+ * Intervalo reactivo para el carrusel de álbumes.
+ * @type {Ref<number|null>}
+ */
+const albumCarouselInterval = ref(null);
+
+/**
+ * Instancia del router para gestionar redirecciones.
+ * @type {object}
+ */
+const router = useRouter();
+
+/**
+ * Función para regresar a la página anterior utilizando el router.
+ */
 const goBack = () => {
    router.back();
 };
 
-// Llamada a la API para obtener la información del artista
+/**
+ * Llama a la API para obtener la información del artista, discografía y top canciones.
+ * Además, inicia los carruseles de canciones y álbumes.
+ *
+ * @async
+ * @param {string} artistName - Nombre del artista a buscar.
+ * @throws {Error} Si falla la petición a la API.
+ */
 const fetchArtistData = async (artistName) => {
   try {
     const response = await fetch(`https://echobeatapi.duckdns.org/artistas/perfil?artistName=${encodeURIComponent(artistName)}`);
@@ -123,7 +184,7 @@ const fetchArtistData = async (artistName) => {
     discografia.value = data.discografia;
     topCanciones.value = data.topCanciones;
     
-    // Iniciar los carruseles
+    // Iniciar los carruseles una vez cargados los datos
     startSongCarousel();
     startAlbumCarousel();
   } catch (error) {
@@ -131,48 +192,71 @@ const fetchArtistData = async (artistName) => {
   }
 };
 
-// Iniciar el carrusel de canciones
+/**
+ * Inicia el carrusel de canciones que actualiza el índice de la canción actual cada 3 segundos.
+ */
 const startSongCarousel = () => {
   songCarouselInterval.value = setInterval(() => {
     currentSongIndex.value = (currentSongIndex.value + 1) % topCanciones.value.length;
   }, 3000); // Cambia de canción cada 3 segundos
 };
 
-// Iniciar el carrusel de álbumes
+/**
+ * Inicia el carrusel de álbumes que actualiza el índice del álbum actual cada 3 segundos.
+ */
 const startAlbumCarousel = () => {
   albumCarouselInterval.value = setInterval(() => {
     currentAlbumIndex.value = (currentAlbumIndex.value + 1) % discografia.value.length;
   }, 3000); // Cambia de álbum cada 3 segundos
 };
 
-// Detener los carruseles cuando el componente se desmonte
+/**
+ * Detiene los intervalos de los carruseles cuando el componente se desmonte.
+ * Se utiliza el hook de ciclo de vida onBeforeUnmount para evitar memory leaks.
+ */
 onBeforeUnmount(() => {
   clearInterval(songCarouselInterval.value);
   clearInterval(albumCarouselInterval.value);
 });
 
-// Llamar a la función cuando el componente se monte
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Se ejecuta cuando el componente se ha montado y se inicia la obtención de datos del artista.
+ */
 onMounted(() => {
   fetchArtistData(props.artistName);
 });
 
+/**
+ * Redirige a la página del álbum, pasando el id del álbum como query parameter.
+ *
+ * @param {string} albumId - Identificador del álbum.
+ */
 const redirectToAlbum = (albumId) => {
   router.push({ path: '/album', query: { id: albumId } });
 };
 
-// Función para reproducir la canción
+/**
+ * Función para reproducir una canción.
+ * Llama a la función inyectada playFromQuest para limpiar la cola y reproducir la canción seleccionada.
+ *
+ * @param {object} cancion - Objeto que representa la canción a reproducir.
+ */
 const Song = (cancion) => {
   console.log("Reproduciendo canción con ID:", cancion.Id);
   
-  // Llamar a la función playFromQuest para vaciar la cola y añadir la nueva canción
   if (playFromQuest) {
-    playFromQuest(cancion);  // Pasamos la canción a playFromQuest
+    // Se pasa la canción a playFromQuest para la reproducción
+    playFromQuest(cancion);
   }
 };
 
-// Watcher para actualizar los datos cuando cambia el nombre del artista
+/**
+ * Watcher que observa cambios en la propiedad 'artistName'.
+ * Al detectar un cambio, limpia los datos actuales y vuelve a llamar a fetchArtistData para cargar la nueva información.
+ */
 watch(() => props.artistName, (newArtistName) => {
-  // Limpiar los datos previos antes de cargar el nuevo artista
+  // Limpiar datos previos antes de cargar el nuevo artista
   artist.value = null;
   discografia.value = [];
   topCanciones.value = [];
