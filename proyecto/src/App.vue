@@ -992,10 +992,13 @@ function playSong(song) {
       minute: formatTime(song.Duracion),
    };
    if (streamerRef.value?.startStreamSong) {
+
       console.log("id:",song.Id);
       console.log("nommbre:",song.Nombre);
-
-      streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
+      const email2 = localStorage.getItem("email")
+      console.log("email:",email);
+      console.log("email2:",email2);
+      streamerRef.value.startStreamSong(song.Id, song.Nombre, email2);
 
       currentSong.value = song;
       isPlaying.value = true;
