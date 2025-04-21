@@ -39,16 +39,55 @@ import { useRouter } from 'vue-router';
 import googleLogo from '@/assets/Google_logo.svg';
 import logo from '@/assets/logo.png';
 
+/**
+ * Estado reactivo para almacenar el correo electrónico introducido por el usuario.
+ * @type {Ref<string>}
+ */
 const email = ref("");
+
+/**
+ * Estado reactivo para almacenar la contraseña introducida por el usuario.
+ * @type {Ref<string>}
+ */
 const password = ref("");
+
+/**
+ * Instancia del router para la navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
 
+/**
+ * Estado reactivo que controla la visibilidad del popup de mensajes.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo que almacena el mensaje a mostrar en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo de popup ("popup-error" o "popup-success").
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
-// Estado de carga
+/**
+ * Estado reactivo que controla la carga de la página.
+ * @type {Ref<boolean>}
+ */
 const isLoading = ref(true);
+
+/**
+ * Función para mostrar un popup con un mensaje y tipo especificado.
+ * El popup se oculta automáticamente después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo del popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -59,7 +98,15 @@ const showPopupMessage = (message, type) => {
    }, 3000);
 };
 
-// Función para verificar el token
+/**
+ * Función asíncrona para validar un token.
+ * Envía una petición a la API para validar el token proporcionado y retorna la respuesta.
+ *
+ * @async
+ * @param {string} token - Token a validar.
+ * @returns {object|null} Datos del token si es válido o null si no lo es.
+ * @throws {Error} Si ocurre un fallo en la petición a la API.
+ */
 const validateToken = async (token) => {
    console.log("Validando token...");
    try {
@@ -68,29 +115,42 @@ const validateToken = async (token) => {
          headers: {
             "Content-Type": "application/json"
          },
-         body: JSON.stringify({ token }) // Enviamos el token en el body
+         body: JSON.stringify({ token }) // Enviamos el token en el cuerpo de la petición
       });
       console.log(response);
+      // Si la respuesta no es 201, se considera un error en la validación
       if (!response.status === 201) {
          throw new Error("Token inválido o caducado.");
       }
-
       const data = await response.json();
       console.log("Data:");
       console.log(data);
-      return data; // Token válido
+      return data; // Retorna los datos del token si es válido
    } catch (error) {
       console.error(error);
-      return null; // Token inválido
+      return null; // Retorna null si el token es inválido
    }
 };
 
+/**
+ * Función que redirige al usuario a la página de registro.
+ */
 const handleRegister = () => {
    router.push('/Signin');
 };
 
+/**
+ * Función asíncrona que maneja el proceso de login.
+ * Realiza las siguientes acciones:
+ * 1. Verifica que el correo y la contraseña no estén vacíos.
+ * 2. Solicita el nick del usuario mediante su correo.
+ * 3. Procede con el login enviando las credenciales.
+ * 4. Guarda el token y el correo en el localStorage y redirige al usuario al home.
+ *
+ * @async
+ */
 const handleLogin = async () => {
-   // Si no hay token o el token es inválido, proceder con el login normal
+   // Verificar que el correo y la contraseña no sean cadenas vacías
    if (!email.value.trim() || !password.value.trim()) {
       showPopupMessage("Correo y contraseña son obligatorios", "popup-error");
       return;
@@ -112,7 +172,7 @@ const handleLogin = async () => {
          throw new Error("No existe una cuenta con este correo.");
       }
 
-      // 2️⃣ Si existe el nickname, proceder con el login
+      // 2️⃣ Si se obtiene el nickname, proceder con el login
       const loginResponse = await fetch("https://echobeatapi.duckdns.org/auth/login", {
          method: "POST",
          headers: {
@@ -135,6 +195,7 @@ const handleLogin = async () => {
       console.log(Data.Email);
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, "popup-success");
 
+      // Redirige al usuario al home después de 2 segundos
       setTimeout(() => {
       if (Data.esAdmin) {
         localStorage.setItem("isAdmin", true);
@@ -148,35 +209,42 @@ const handleLogin = async () => {
   }
 };
 
+/**
+ * Función para iniciar el proceso de autenticación mediante Google.
+ * Redirige al usuario al backend para la autenticación con Google.
+ */
 const loginWithGoogle = () => {
-   window.location.href = "https://echobeatapi.duckdns.org/auth/google"; // 🔹 Redirige al backend
+   window.location.href = "https://echobeatapi.duckdns.org/auth/google"; // Redirige al backend
 };
 
-// Usamos onMounted para verificar el token cuando se monta el componente
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Se ejecuta al montar el componente para verificar la validez del token.
+ * Si el token es válido, redirige al usuario al home; de lo contrario, elimina el token y redirige al login.
+ */
 onMounted(async () => {
    const token = localStorage.getItem("token");
 
-   // Verificar si hay un token
+   // Verificar si hay un token en el localStorage
    if (token) {
-      // Si hay token, validamos si es válido
+      // Valida el token obtenido
       const tokenValid = await validateToken(token);
       if (tokenValid.message === 'Token válido') {
          console.log(tokenValid);
-         // Si el token es válido, redirigimos al home
+         // Si el token es válido, redirige al home
          console.log("Token válido. Redirigiendo al home...");
          router.push("/home");
       } else {
-         // Si el token no es válido (caducado), elimina el token
+         // Si el token es inválido o ha caducado, elimínalo y redirige al login
          localStorage.removeItem("token");
-         // Redirigir a la página de login ("/")
-         router.push("/"); 
+         router.push("/");
       }
    } else {
-      // Si no hay token, seguimos en la página de login
+      // Si no hay token, permanece en la página de login y marca la carga como finalizada
       isLoading.value = false;
    }
 
-   // Después de verificar el token, actualizamos isLoading a false para renderizar el contenido
+   // Actualiza el estado de carga a false para renderizar el contenido correctamente
    isLoading.value = false;
 });
 </script>

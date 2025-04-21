@@ -58,23 +58,97 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import logo from '@/assets/logo.png';
 
+/**
+ * Instancia del router para navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
+
+/**
+ * Estado reactivo para el nombre de la playlist.
+ * @type {Ref<string>}
+ */
 const nombre = ref("");
+
+/**
+ * Estado reactivo para la descripción de la playlist.
+ * @type {Ref<string>}
+ */
 const descripcion = ref("");
+
+/**
+ * Estado reactivo para la privacidad de la playlist.
+ * @type {Ref<string>}
+ */
 const privacidad = ref("");
-const email =  localStorage.getItem("email");
+
+/**
+ * Email del usuario, obtenido del localStorage.
+ * @type {string|null}
+ */
+const email = localStorage.getItem("email");
+
+/**
+ * Estado reactivo para almacenar la URL de la imagen en caso de usar imagen predeterminada.
+ * @type {Ref<string>}
+ */
 const file = ref('');
 
+/**
+ * Estado reactivo para el archivo seleccionado por el usuario.
+ * @type {Ref<File|null>}
+ */
 const selectedFile = ref(null);
-const profileAction = ref(""); // Acción seleccionada (subir imagen o elegir predeterminada)
-const showImageSelection = ref(false); // Modal para seleccionar imagen predeterminada
-const defaultImages = ref([]);  // Aquí se guardarán las imágenes predeterminadas
+
+/**
+ * Estado reactivo que almacena la acción de perfil seleccionada,
+ * determinando si el usuario va a subir una imagen o escoger una predeterminada.
+ * @type {Ref<string>}
+ */
+const profileAction = ref(""); 
+
+/**
+ * Estado reactivo para mostrar el modal de selección de imagen predeterminada.
+ * @type {Ref<boolean>}
+ */
+const showImageSelection = ref(false);
+
+/**
+ * Estado reactivo para almacenar la lista de imágenes predeterminadas disponibles.
+ * @type {Ref<Array>}
+ */
+const defaultImages = ref([]);
+
+/**
+ * Estado reactivo para almacenar la imagen predeterminada seleccionada.
+ * @type {Ref<string|null>}
+ */
 const selectedDefaultImage = ref(null);
 
+/**
+ * Estado reactivo que controla la visualización del popup.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo para el mensaje que se mostrará en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo para definir el tipo de popup ('popup-error' o 'popup-success').
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
+/**
+ * Función para mostrar un popup con un mensaje y tipo determinado.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo de popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -85,51 +159,82 @@ const showPopupMessage = (message, type) => {
    }, 3000);
 };
 
+/**
+ * Función para regresar a la página anterior utilizando el router.
+ */
 const goBack = () => {
    router.back();
 };
 
-// Función para manejar la selección de un archivo
+/**
+ * Función para manejar la selección de un archivo.
+ * Actualiza el estado reactivo selectedFile y genera una vista previa de la imagen.
+ *
+ * @param {Event} event - Evento del input file.
+ */
 const handleFileChange = (event) => {
    const file = event.target.files[0];
    if (!file) return;
 
    selectedFile.value = file;
 
-   // Generar vista previa de la imagen
+   // Genera una vista previa de la imagen usando FileReader.
    const reader = new FileReader();
    reader.onload = (e) => {
-      user.value.perfil = e.target.result;
+      user.value.perfil = e.target.result; // Se asigna la imagen al perfil del usuario.
    };
    reader.readAsDataURL(file);
 };
 
-//  Función para seleccionar una imagen predeterminada
+/**
+ * Función para seleccionar una imagen predeterminada.
+ * Actualiza el estado reactivo "file" y "selectedDefaultImage" con la URL de la imagen seleccionada.
+ *
+ * @param {string} imageUrl - URL de la imagen predeterminada seleccionada.
+ */
 const selectDefaultImage = (imageUrl) => {
    file.value = imageUrl;
    selectedDefaultImage.value = imageUrl;
 };
 
-
-//  Cerrar el modal de selección de imagen
+/**
+ * Función para cerrar el modal de selección de imagen predeterminada.
+ * Reinicia la acción de perfil y oculta el modal.
+ */
 const closeImageSelection = () => {
    showImageSelection.value = false;
    profileAction.value = "";
 };
 
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Al montar el componente, realiza una petición para obtener imágenes predeterminadas.
+ */
 onMounted(async () => {
    try { 
       const ImageResponse = await fetch("https://echobeatapi.duckdns.org/playlists/default-photos");
       if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
       defaultImages.value = await ImageResponse.json();
-      console.log('Canciones predeterminadas', defaultImages.value)
+      console.log('Canciones predeterminadas', defaultImages.value);
    
    } catch (error) {
       console.error('Error:', error);
    }
 });
 
-
+/**
+ * Función para manejar la creación de una playlist.
+ *
+ * Realiza lo siguiente:
+ * - Valida que todos los campos obligatorios estén completos.
+ * - Si hay un archivo seleccionado, lo envía mediante FormData a la API.
+ * - Si no hay archivo seleccionado, envía la URL de la imagen predeterminada.
+ * - Muestra un popup de éxito o error según corresponda.
+ * - Redirige al usuario al home tras crear la playlist con éxito.
+ *
+ * @async
+ * @throws {Error} Si falla la petición a la API.
+ */
 const handleCreateList = async () => {
    if (!nombre.value.trim() || !descripcion.value.trim() || !profileAction.value.trim() || !privacidad.value.trim()) {
       showPopupMessage("Todos los campos son obligatorios.", "popup-error");
@@ -151,45 +256,44 @@ const handleCreateList = async () => {
          const response = await fetch("https://echobeatapi.duckdns.org/playlists/create", {
             method: "POST",
             headers: {},
-            body: 
-               formData,
-            })
+            body: formData,
+         });
          
          if (!response.ok) {
-            const errorData = await response.text(); // Ver el error en texto
+            const errorData = await response.text(); // Captura el error como texto.
             throw new Error("Error al subir la imagen: ");
          }
       
          showPopupMessage("Lista creada con éxito", "popup-success");
 
          setTimeout(() => {
-         router.push("/home"); 
+            router.push("/home"); 
          }, 2000);
       }
       else {
          console.log("Archivo a subir:", file.value);
          const response = await fetch(`https://echobeatapi.duckdns.org/playlists/create-with-url/`, {
-         method: 'POST',
-         headers: {
-            'Accept': '*/*', 
-            'Content-Type': 'application/json',  
-         },
-         body: JSON.stringify({
-            emailUsuario: email,  
-            nombrePlaylist: nombre.value,
-            descripcionPlaylist: descripcion.value,
-            tipoPrivacidad: privacidad.value,
-            imageUrl: file.value
-         })
-      });
+            method: 'POST',
+            headers: {
+               'Accept': '*/*', 
+               'Content-Type': 'application/json',  
+            },
+            body: JSON.stringify({
+               emailUsuario: email,  
+               nombrePlaylist: nombre.value,
+               descripcionPlaylist: descripcion.value,
+               tipoPrivacidad: privacidad.value,
+               imageUrl: file.value
+            })
+         });
 
-      if (!response.ok) {
-         throw new Error('Error al subir la imagen predeterminada');
-      }
+         if (!response.ok) {
+            throw new Error('Error al subir la imagen predeterminada');
+         }
 
-      showPopupMessage("Lista creada con éxito", "popup-success");
-      setTimeout(() => {
-         router.push("/home"); 
+         showPopupMessage("Lista creada con éxito", "popup-success");
+         setTimeout(() => {
+            router.push("/home"); 
          }, 2000);
       }
    } catch (error) {
@@ -197,7 +301,7 @@ const handleCreateList = async () => {
    }
 };
 </script>
-  
+
 <style scoped>
 .create-list-container {
    position: fixed;

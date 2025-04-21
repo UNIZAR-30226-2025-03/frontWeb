@@ -40,45 +40,83 @@
 </template>
  
 <script setup>
-import { computed } from 'vue';
+  /**
+   * Importa la función computed de Vue para crear propiedades computadas.
+   * @module vue
+   */
+  import { computed } from 'vue';
  
-const props = defineProps({
-   friend: Object,
-   type: String, // "chats", "all" o "request"
-   hasNewMessages: Boolean
-});
+  /**
+   * Define las propiedades esperadas en el componente.
+   * @typedef {Object} Props
+   * @property {Object} friend - Objeto que representa a un amigo.
+   * @property {String} type - Tipo de visualización ("chats", "all" o "request").
+   * @property {Boolean} hasNewMessages - Indica si hay nuevos mensajes.
+   */
+  const props = defineProps({
+     friend: Object,
+     type: String, // "chats", "all" o "request"
+     hasNewMessages: Boolean
+  });
  
-const friendName = computed(() => {
-   if (props.type === 'request') {
-      return props.friend.NickFriendSender;
-   } else {
-      return props.friend.Nick;
-   }
-});
-
-const foto = computed(() => {
-   if (props.type === 'chats') {
-      return props.friend.foto;
-   } else {
-      return props.friend.LinkFoto;
-   }
-})
+  /**
+   * Propiedad computada que determina el nombre del amigo a mostrar.
+   * Si el tipo es 'request', utiliza la propiedad NickFriendSender;
+   * de lo contrario, utiliza la propiedad Nick.
+   * @constant {import('vue').ComputedRef<string>} friendName
+   */
+  const friendName = computed(() => {
+     if (props.type === 'request') {
+        return props.friend.NickFriendSender;
+     } else {
+        return props.friend.Nick;
+     }
+  });
  
-const lastMessageDisplay = computed(() => {
-   return props.friend.mensaje ? `"${props.friend.mensaje}"` : 'Sin mensajes aún';
-});
+  /**
+   * Propiedad computada que obtiene la foto del amigo a mostrar.
+   * Si el tipo es 'chats', usa la propiedad foto; en caso contrario, usa LinkFoto.
+   * @constant {import('vue').ComputedRef<string>} foto
+   */
+  const foto = computed(() => {
+     if (props.type === 'chats') {
+        return props.friend.foto;
+     } else {
+        return props.friend.LinkFoto;
+     }
+  });
  
-const showReadStatus = computed(() => {
-   const currentUserEmail = localStorage.getItem('email');
-   return (
-      props.type === 'chats' &&
-      props.friend?.contact &&
-      currentUserEmail === props.friend?.lastMensaje &&
-      props.friend?.Leido != undefined
-   );
-});
+  /**
+   * Propiedad computada que prepara el mensaje último a mostrar.
+   * Envuelve el mensaje entre comillas si existe, o retorna un texto predeterminado.
+   * @constant {import('vue').ComputedRef<string>} lastMessageDisplay
+   */
+  const lastMessageDisplay = computed(() => {
+     return props.friend.mensaje ? `"${props.friend.mensaje}"` : 'Sin mensajes aún';
+  });
+ 
+  /**
+   * Propiedad computada que determina si se debe mostrar el estado de lectura del mensaje.
+   * Comprueba que:
+   * - El tipo es 'chats'.
+   * - La propiedad 'contact' del amigo existe.
+   * - El correo del usuario actual (obtenido desde localStorage) coincide con la propiedad lastMensaje.
+   * - La propiedad 'Leido' existe.
+   *
+   * @constant {import('vue').ComputedRef<boolean>} showReadStatus
+   */
+  const showReadStatus = computed(() => {
+     const currentUserEmail = localStorage.getItem('email');
+     return (
+        props.type === 'chats' &&
+        props.friend?.contact &&
+        currentUserEmail === props.friend?.lastMensaje &&
+        props.friend?.Leido != undefined
+     );
+  });
  
 </script>
+
  
 <style scoped>
 .friend-item {

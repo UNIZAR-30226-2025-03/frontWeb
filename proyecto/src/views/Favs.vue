@@ -97,24 +97,104 @@ import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
 import favs_cover from '@/assets/favoritos-cover.jpg';
 
-const playSong = inject('playSong')
+/**
+ * Función inyectada para reproducir canciones.
+ * Se espera que el componente padre provea esta función a través de la inyección de dependencias.
+ * @type {Function}
+ */
+const playSong = inject('playSong');
 
+/**
+ * Estado reactivo que controla el efecto visual del botón aleatorio.
+ * @type {Ref<boolean>}
+ */
 const isGlowing = ref(false);
+
+/**
+ * Instancia del router para navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
+
+/**
+ * Estado reactivo que controla la visibilidad del menú de búsqueda.
+ * @type {Ref<boolean>}
+ */
 const searchVisible = ref(false);
-const searchContainerRef = ref(null); // Referencia al contenedor del menú de búsqueda
-const addButtonRef = ref(null); 
+
+/**
+ * Referencia al contenedor del menú de búsqueda.
+ * @type {Ref<HTMLElement|null>}
+ */
+const searchContainerRef = ref(null);
+
+/**
+ * Referencia al botón de añadir, usado para detectar clics fuera del menú.
+ * @type {Ref<HTMLElement|null>}
+ */
+const addButtonRef = ref(null);
+
+/**
+ * Estado reactivo que almacena el texto actual de búsqueda.
+ * @type {Ref<string>}
+ */
 const currentSearch = ref('');
+
+ /**
+  * Estado reactivo que indica si los resultados de búsqueda están cargando.
+  * @type {Ref<boolean>}
+  */
 const isLoading = ref(false);
+
+/**
+ * Estado reactivo para almacenar la canción sobre la que se pasa el cursor.
+ * @type {Ref<any>}
+ */
 const hoveredSong = ref(null);
 
+/**
+ * Email del usuario obtenido del localStorage.
+ * @type {string|null}
+ */
 const email = localStorage.getItem("email");
+
+/**
+ * Estado reactivo que indica si la reproducción debe ser aleatoria.
+ * @type {Ref<boolean>}
+ */
 const aleatorio = ref(false);
+
+/**
+ * Estado reactivo que controla la visibilidad del popup.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo que almacena el mensaje que se mostrará en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo de popup ("popup-error" o "popup-success").
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
+
+/**
+ * Estado reactivo que almacenará los datos de las canciones.
+ * @type {Ref<any>}
+ */
 const songsData = ref('');
 
+/**
+ * Función para mostrar un popup con mensaje y tipo específico.
+ * El popup se cierra automáticamente después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo de popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -125,42 +205,90 @@ const showPopupMessage = (message, type) => {
    }, 3000); // Cierra el popup después de 3 segundos
 };
 
+/**
+ * Computed que filtra la playlist según el término de búsqueda ingresado.
+ * Si el campo de búsqueda está vacío, devuelve toda la playlist.
+ *
+ * @returns {Array} La lista filtrada de canciones.
+ */
 const filteredPlaylist = computed(() => {
    if (!searchTerm.value.trim()) {
-      return playlist.value; // Si no hay búsqueda, mostrar toda la playlist
+      return playlist.value; // Sin búsqueda, muestra toda la playlist
    }
-
    return playlist.value.filter(song =>
       song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
    );
 });
- 
+
+/**
+ * Función para navegar hacia la página anterior en el historial del navegador.
+ */
 const goBack = () => {
    router.back();
 };
- 
-// Toggle para mostrar/ocultar el buscador
-const toggleSearch = () => {
-searchVisible.value = !searchVisible.value;
-};
- 
-const route = useRoute();
-const Id = route.query.id;
 
+/**
+ * Función para alternar la visibilidad del menú de búsqueda.
+ */
+const toggleSearch = () => {
+   searchVisible.value = !searchVisible.value;
+};
+
+/**
+ * Objeto de la ruta actual, obteniendo parámetros de la URL.
+ * @type {object}
+ */
+const route = useRoute();
+
+/**
+ * Identificador de la playlist obtenido del query de la URL.
+ * @type {string}
+ */
+const Id = route.query.id;
 console.log('ID de la playlist:', Id);
 
-const playlistInfo = ref({}); // Inicializado como objeto vacío
-const playlist = ref([]); // Inicializado como array vacío
+/**
+ * Objeto reactivo que almacena la información de la playlist.
+ * Inicializado como objeto vacío.
+ * @type {Ref<object>}
+ */
+const playlistInfo = ref({});
+
+/**
+ * Array reactivo que almacena las canciones de la playlist.
+ * Inicializado como array vacío.
+ * @type {Ref<Array>}
+ */
+const playlist = ref([]);
+
+/**
+ * Estado reactivo para el término de búsqueda específico de la playlist.
+ * @type {Ref<string>}
+ */
 const searchTerm = ref('');
 
+/**
+ * Objeto reactivo que almacena los resultados de búsqueda agrupados por categoría.
+ * @type {Ref<{ artistas: Array, canciones: Array, albums: Array, listas: Array }>}
+ */
 const results = ref({
-artistas: [],
-canciones: [],
-albums: [],
-listas: []
+   artistas: [],
+   canciones: [],
+   albums: [],
+   listas: []
 });
- 
-const playNewSong = async (song,posicion) => {
+
+/**
+ * Función asíncrona para reproducir una nueva canción.
+ * Envía una petición a la API para reproducir la playlist a partir de una posición dada, 
+ * y luego reproduce la nueva canción usando la función inyectada playSong.
+ *
+ * @async
+ * @param {object} song - Objeto de la canción a reproducir.
+ * @param {number} posicion - Posición en la cola de reproducción.
+ * @throws {Error} Si falla la petición a la API.
+ */
+const playNewSong = async (song, posicion) => {
    console.log("cancionid:", song);
    console.log("posicion:", posicion);
 
@@ -170,51 +298,65 @@ const playNewSong = async (song,posicion) => {
       Portada: song.portada,
       Duracion: song.duracion,
    };
- 
+
    console.log(newSong);
-   
+
    const bodyData = {
       userEmail: email,
       reproduccionAleatoria: aleatorio.value,
       posicionCola: posicion,
       colaReproduccion: songsData.value
    };
- 
-   console.log("JSON enviado:", bodyData);   
-   
+
+   console.log("JSON enviado:", bodyData);
+
    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
       method: 'POST',
       headers: {
          'Accept': '*/*', 
-         'Content-Type': 'application/json',  
+         'Content-Type': 'application/json',
       },
-      body:  JSON.stringify(bodyData)
+      body: JSON.stringify(bodyData)
    });
- 
+
    if (!response.ok) {
       throw new Error('Error al reproducir playlist');
    }
    const playlistResponse = await response.json();
-   console.log("playlist response: ",playlistResponse );
+   console.log("playlist response: ", playlistResponse);
 
    playSong(newSong);
-}
- 
-// Función que oculta el menú de búsqueda cuando se hace clic fuera de él
+};
+
+/**
+ * Función que oculta el menú de búsqueda si se detecta un clic fuera del contenedor del menú
+ * y fuera del botón de añadir.
+ *
+ * @param {Event} event - Evento de clic.
+ */
 const handleClickOutside = (event) => {
-   // Si el clic es fuera del contenedor del menú y del botón de añadir, ocultamos el menú
+   // Si el clic es fuera del contenedor del menú de búsqueda y del botón "añadir", se oculta el menú.
    if (
       searchContainerRef.value && 
       !searchContainerRef.value.contains(event.target) && 
       !addButtonRef.value.contains(event.target)
    ) {
-      searchVisible.value = false; // Oculta el desplegable
+      searchVisible.value = false; // Oculta el menú desplegable
    }
 };
- 
+
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Se ejecuta cuando el componente se ha montado y realiza lo siguiente:
+ * - Solicita las canciones favoritas del usuario desde la API.
+ * - Verifica el formato de los datos recibidos.
+ * - Asigna la lista de canciones a la playlist.
+ *
+ * @async
+ */
 onMounted(async () => {
    try {
-      //  OBTENER CANCIONES FAVORITAS
+      // OBTENER CANCIONES FAVORITAS
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(email)}`);
       if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
    
@@ -229,40 +371,68 @@ onMounted(async () => {
       // ASIGNAR LAS CANCIONES A `playlist`
       playlist.value = songsData.value.canciones;
       console.log("✅ Playlist final cargada:", playlist.value);
- 
    } catch (error) {
-     console.error('Error al cargar la playlist:', error);
+      console.error('Error al cargar la playlist:', error);
    }
 });
- 
+
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Añade un listener al documento para detectar clics fuera del menú de búsqueda.
+ */
 onMounted(() => {
-   // Añadir el listener al documento para detectar clics fuera
    document.addEventListener('click', handleClickOutside);
 });
- 
+
+/**
+ * Hook de ciclo de vida: onUnmounted.
+ * Se ejecuta cuando el componente se desmonte.
+ * Remueve el listener del evento 'click' para evitar memory leaks.
+ */
 onUnmounted(() => {
    console.log("Saliendo de la página...");
-   // Aquí puedes hacer una actualización en la base de datos si se reordenaron canciones
    document.removeEventListener('click', handleClickOutside);
 });
- 
-// Imagen de reemplazo
+
+/**
+ * Función para manejar errores al cargar imágenes.
+ * Si ocurre un error al cargar una imagen, se sustituye por una imagen predeterminada.
+ *
+ * @param {Event} event - Evento de error en la carga de imagen.
+ */
 const handleImageError = (event) => {
-   event.target.src = default_img; // Reemplaza la imagen con la default
+   event.target.src = default_img; // Reemplaza la imagen con la predeterminada
 };
- 
-// Gestión al hacer clic en el botón aleatorio
+
+/**
+ * Función que gestiona el clic en el botón aleatorio.
+ * Alterna el efecto visual y la bandera de reproducción aleatoria.
+ */
 const randomClick = () => {
    isGlowing.value = !isGlowing.value;
    aleatorio.value = !aleatorio.value;
 };
- 
+
+/**
+ * Función auxiliar para formatear el tiempo (segundos) a formato "MM:SS".
+ *
+ * @param {number} seconds - Tiempo en segundos.
+ * @returns {string} Tiempo formateado.
+ */
 function formatTime(seconds) {
    let minutes = Math.floor(seconds / 60);
    let secs = seconds % 60;
    return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Función asíncrona para reproducir la playlist completa.
+ * Realiza una petición a la API con los detalles de la cola de reproducción,
+ * y luego reproduce la primera canción de la lista.
+ *
+ * @async
+ * @throws {Error} Si la petición a la API falla.
+ */
 const playPlaylist = async () => {
    try {
       const bodyData = {
@@ -271,25 +441,25 @@ const playPlaylist = async () => {
          colaReproduccion: songsData.value
       };
 
-      console.log("JSON enviado:", bodyData);   
-       
+      console.log("JSON enviado:", bodyData);
+
       const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list`, {
          method: 'POST',
          headers: {
             'Accept': '*/*', 
-            'Content-Type': 'application/json',  
+            'Content-Type': 'application/json',
          },
-         body:  JSON.stringify(bodyData)
+         body: JSON.stringify(bodyData)
       });
- 
+
       if (!response.ok) {
          throw new Error('Error al reproducir playlist');
       }
       const playlistResponse = await response.json();
-      console.log("playlist response: ",playlistResponse );
+      console.log("playlist response: ", playlistResponse);
 
-      const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${playlistResponse.primeraCancionId}`)
-      
+      const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${playlistResponse.primeraCancionId}`);
+
       if (!song.ok) {
          throw new Error('Error al reproducir la canción ');
       }
@@ -301,12 +471,19 @@ const playPlaylist = async () => {
          Duracion: songData.Duracion,
       };
       playSong(newSong);
-
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
-}
- 
+};
+
+/**
+ * Función asíncrona para añadir una canción a la playlist de favoritos.
+ * Envía una petición POST a la API, y si es exitosa, añade la canción al array local de la playlist.
+ *
+ * @async
+ * @param {object} song - Objeto de la canción a añadir.
+ * @throws {Error} Si falla la petición a la API.
+ */
 const addSong = async (song) => {
    try {
       console.log("Email: ", email);
@@ -314,14 +491,14 @@ const addSong = async (song) => {
       const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${email}/${song.Id}`, {
          method: 'POST',
          headers: {
-            'Accept': '*/*', 
+            'Accept': '*/*',
          },
       });
    
       if (!response.ok) {
          throw new Error('Error al añadir canción a favoritos');
       }
- 
+   
       showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
       const newSong = {
          id: song.Id,
@@ -332,12 +509,19 @@ const addSong = async (song) => {
       };
       playlist.value = [...playlist.value, newSong];
       console.log('valor canciones playlist', playlist.value);
-     
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
 };
- 
+
+/**
+ * Función asíncrona para eliminar una canción de la playlist de favoritos.
+ * Envía una petición DELETE a la API, y si la eliminación es exitosa, elimina la canción del array local.
+ *
+ * @async
+ * @param {string} songId - ID de la canción a eliminar.
+ * @throws {Error} Si falla la petición a la API.
+ */
 const removeSong = async (songId) => {
    try {
       console.log("Email: ", email);
@@ -345,49 +529,51 @@ const removeSong = async (songId) => {
       const response = await fetch(`https://echobeatapi.duckdns.org/cancion/unlike/${email}/${songId}`, {
          method: 'DELETE',
          headers: {
-            'Accept': '*/*', 
+            'Accept': '*/*',
          },
       });
- 
+
       if (!response.ok) {
          throw new Error('Error al eliminar la canción de favoritos');
       }
-   
-      // Si la eliminación es exitosa, podemos eliminar la canción localmente del vector
+      // Elimina la canción del array local si la eliminación es exitosa.
       playlist.value = playlist.value.filter(song => song.id !== songId);
       showPopupMessage("Canción eliminada con éxito", "popup-success");
-     
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
- };
- 
+};
+
+/**
+ * Función asíncrona para obtener resultados de búsqueda para canciones.
+ * Si el campo de búsqueda está vacío, resetea los resultados de canciones.
+ * Realiza una petición a la API y actualiza el estado reactivo "results".
+ *
+ * @async
+ */
 const fetchResults = async () => {
-    
    if (!currentSearch.value.trim()) {
       results.value.canciones = [];
       return;
    }
- 
+
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
 
-   try { 
+   try {
       const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
       results.value = await response.json();
       console.log("Respuesta de la API:", results.value);
-
    } catch (error) {
       console.error('Error:', error);
-
    } finally {
-      isLoading.value = false; 
+      isLoading.value = false;
    }
 };
- 
 </script>
+
  
   
 <style scoped>

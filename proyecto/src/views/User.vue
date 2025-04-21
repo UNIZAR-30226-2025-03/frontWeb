@@ -85,23 +85,81 @@
   
 <script setup>
 import { computed, onMounted, ref } from "vue";
-
 import { useRouter } from 'vue-router';
-const email =  localStorage.getItem("email");
 
+/**
+ * Correo electrónico del usuario obtenido del almacenamiento local.
+ * @type {string|null}
+ */
+const email = localStorage.getItem("email");
 
+/**
+ * Referencia al input de archivo.
+ * @type {Ref<HTMLElement|null>}
+ */
 const fileInput = ref(null);
+
+/**
+ * Referencia al archivo seleccionado.
+ * @type {Ref<File|null>}
+ */
 const selectedFile = ref(null);
+
+/**
+ * Acción de perfil seleccionada (subir imagen o elegir predeterminada).
+ * @type {Ref<string>}
+ */
 const profileAction = ref(""); // Acción seleccionada (subir imagen o elegir predeterminada)
+
+/**
+ * Controla la visibilidad del modal para seleccionar imagen predeterminada.
+ * @type {Ref<boolean>}
+ */
 const showImageSelection = ref(false); // Modal para seleccionar imagen predeterminada
+
+/**
+ * Controla la visibilidad del selector de acción de perfil.
+ * @type {Ref<boolean>}
+ */
 const profileActionVisible = ref(false);
+
+/**
+ * Almacena las imágenes predeterminadas obtenidas.
+ * @type {Ref<Array>}
+ */
 const defaultImages = ref([]);  // Aquí se guardarán las imágenes predeterminadas
 
+/**
+ * Instancia del router para la navegación.
+ * @type {object}
+ */
 const router = useRouter();
+
+/**
+ * Estado reactivo que controla la visualización del popup de mensajes.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo que almacena el mensaje que se mostrará en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo del popup ("popup-error" o "popup-success").
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
+/**
+ * Función para mostrar un popup con un mensaje y tipo específico.
+ * El popup se cierra automáticamente después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo del popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -109,9 +167,18 @@ const showPopupMessage = (message, type) => {
 
    setTimeout(() => {
          showPopup.value = false;
-   }, 3000);
+   }, 3000); // Cierra el popup después de 3 segundos
 };
 
+/**
+ * Datos del usuario reactivo.
+ * @type {Ref<Object>}
+ * @property {string} nombre - Nombre completo del usuario.
+ * @property {string} nick - Apodo del usuario.
+ * @property {string} perfil - URL de la foto de perfil del usuario.
+ * @property {string} nacimiento - Fecha de nacimiento del usuario (formateada).
+ * @property {string} privacidad - Configuración de privacidad del usuario.
+ */
 const user = ref({
    nombre: '',
    nick: '',
@@ -120,20 +187,37 @@ const user = ref({
    privacidad: ''
 });
 
+/**
+ * Copia inicial de los datos del usuario para comparación.
+ * @type {Ref<Object>}
+ */
 let initialUser = ref({}); // Copia inicial de los datos del usuario
 
-// Estado de edición para múltiples campos
+/**
+ * Estado reactivo que controla el modo de edición para múltiples campos.
+ * @type {Ref<Object>}
+ * @property {boolean} nombre - Estado de edición para el campo nombre.
+ * @property {boolean} nick - Estado de edición para el campo nick.
+ * @property {boolean} nacimiento - Estado de edición para el campo nacimiento.
+ */
 const editingFields = ref({
    nombre: false,
    nick: false,
    nacimiento: false
 });
 
+/**
+ * Función para navegar a la ruta '/home' usando el router.
+ */
 const goBack = () => {
    router.push('/home');
 };
 
-// Función genérica para alternar el estado de edición
+/**
+ * Función genérica para alternar el estado de edición de un campo específico.
+ *
+ * @param {string} field - El nombre del campo a alternar.
+ */
 const toggleEdit = (field) => {
    editingFields.value[field] = !editingFields.value[field];
 
@@ -142,6 +226,11 @@ const toggleEdit = (field) => {
    }
 };
 
+/**
+ * Función que verifica si hay cambios en los datos del usuario.
+ *
+ * @returns {boolean} - Retorna true si hay diferencias con la copia inicial.
+ */
 const hasChanges = () => {
    return (
       user.value.nick !== initialUser.value.nick || 
@@ -151,10 +240,17 @@ const hasChanges = () => {
    );
 };
 
+/**
+ * Función para navegar a la ruta '/genres' con una query específica.
+ */
 const handleChangeGender = () => {
    router.push({ path: "/genres", query: { from: "user" } });
 };
 
+/**
+ * Función para alternar la visibilidad del selector de acción de perfil.
+ * Si se oculta el selector, también se ocultan el input de archivo y el modal.
+ */
 const toggleProfileActionVisibility = () => {
    // Alternar visibilidad del select
    profileActionVisible.value = !profileActionVisible.value;
@@ -166,7 +262,12 @@ const toggleProfileActionVisibility = () => {
    }
 };
 
-
+/**
+ * Función para formatear una cadena de fecha a formato "dd/mm/yyyy".
+ *
+ * @param {string} dateString - Fecha en formato reconocible por Date.
+ * @returns {string} - La fecha formateada o una cadena vacía si la entrada es nula.
+ */
 const formatDate = (dateString) => {
    if (!dateString) return '';  // Evita errores si la fecha es nula
 
@@ -178,11 +279,18 @@ const formatDate = (dateString) => {
    return `${day}/${month}/${year}`; // Formato dd-mm-yyyy
 };
 
+/**
+ * Propiedad computada para formatear la fecha de nacimiento.
+ * Al obtener: convierte de "dd/mm/yyyy" a "yyyy-mm-dd".
+ * Al establecer: convierte de "yyyy-mm-dd" a "dd/mm/yyyy".
+ *
+ * @type {import("vue").ComputedRef<string>}
+ */
 const formattedNacimiento = computed({
    get() {
       if (!user.value.nacimiento) return "";
       const [day, month, year] = user.value.nacimiento.split("/");
-      return `${year}-${month}-${day}`; //  Convertir dd/mm/yyyy ➝ yyyy-mm-dd
+      return `${year}-${month}-${day}`; // Convertir dd/mm/yyyy ➝ yyyy-mm-dd
    },
    set(value) {
       if (!value) return;
@@ -191,13 +299,21 @@ const formattedNacimiento = computed({
    }
 });
 
-// Función para actualizar `user.nacimiento` cuando cambia el input
+/**
+ * Función para actualizar la fecha de nacimiento del usuario en base al valor del input.
+ *
+ * @param {Event} event - Evento del cambio de input.
+ */
 const updateNacimiento = (event) => {
    formattedNacimiento.value = event.target.value;
 };
 
-
-// Función para manejar la selección de un archivo
+/**
+ * Función para manejar la selección de un archivo.
+ * Genera una vista previa de la imagen y la asigna al perfil del usuario.
+ *
+ * @param {Event} event - Evento al cambiar el input de archivo.
+ */
 const handleFileChange = (event) => {
    const file = event.target.files[0];
    if (!file) return;
@@ -212,19 +328,30 @@ const handleFileChange = (event) => {
    reader.readAsDataURL(file);
 };
 
-
-// Función para seleccionar una imagen predeterminada
+/**
+ * Función para seleccionar una imagen predeterminada.
+ * Asigna la URL de la imagen seleccionada al perfil del usuario y restablece la acción de perfil.
+ *
+ * @param {string} imageUrl - URL de la imagen predeterminada.
+ */
 const selectDefaultImage = (imageUrl) => {
    user.value.perfil = imageUrl;
    profileAction.value = ''; // Vuelve a la opción de 'Subir nueva imagen'
 };
 
-// Cerrar el modal de selección de imagen
+/**
+ * Función para cerrar el modal de selección de imagen predeterminada.
+ * Restablece la acción de perfil y oculta el modal.
+ */
 const closeImageSelection = () => {
    showImageSelection.value = false;
    profileAction.value = "";
 };
 
+/**
+ * Función que se ejecuta al montar el componente.
+ * Obtiene los datos del usuario y las imágenes predeterminadas desde la API.
+ */
 onMounted(async () => {
    try { 
       const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-user?userEmail=${encodeURIComponent(email)}`);
@@ -237,7 +364,7 @@ onMounted(async () => {
       const UserNick = userData.Nick;
       const UserNacimiento = formatDate(userData.FechaNacimiento); 
       const UserPerfil = userData.LinkFoto;
-      const UserPrivacidad = userData.Privacidad
+      const UserPrivacidad = userData.Privacidad;
 
       // Asignar los datos a las variables reactivas
       user.value = {
@@ -255,14 +382,17 @@ onMounted(async () => {
       const ImageResponse = await fetch("https://echobeatapi.duckdns.org/users/default-photos");
       if (!ImageResponse.ok) throw new Error("Error al cargar imágenes predeterminadas");
       defaultImages.value = await ImageResponse.json();
-      console.log('Canciones predeterminadas', defaultImages.value)
+      console.log('Canciones predeterminadas', defaultImages.value);
    
    } catch (error) {
       console.error('Error:', error);
    }
 });
 
-
+/**
+ * Función asíncrona para guardar los cambios del usuario.
+ * Realiza actualizaciones condicionales para foto de perfil, nickname, privacidad, nombre completo y fecha de nacimiento.
+ */
 const handleSave = async () => {
    if (!hasChanges() && !selectedFile.value && user.value.perfil === initialUser.value.perfil) {
       showPopupMessage("No hay cambios para guardar", "popup-error");
@@ -281,9 +411,8 @@ const handleSave = async () => {
             const profileResponse = await fetch("https://echobeatapi.duckdns.org/users/update-photo", { 
                method: "POST",
                headers: {},
-               body: 
-                  formData,
-               })
+               body: formData,
+            });
             
             if (!profileResponse.ok) {
                const errorData = await profileResponse.text(); // Ver el error en texto
@@ -292,7 +421,6 @@ const handleSave = async () => {
 
             console.log("Imagen actualizada con éxito");
          }
-
          else if (user.value.perfil !== initialUser.value.perfil) {
 
             console.log("Archivo a subir:", user.value.perfil);
@@ -309,7 +437,7 @@ const handleSave = async () => {
             });
 
             if (!profileResponse.ok) {
-               console.log("Error con la imagen predeterminada")
+               console.log("Error con la imagen predeterminada");
                throw new Error("Error al actualizar la imagen ");
             }
 
@@ -345,7 +473,6 @@ const handleSave = async () => {
                })
             });
             
-
             if (!privacyResponse.ok) throw new Error("Error al actualizar privacidad");
 
             const privacyData = await privacyResponse.json();
@@ -388,7 +515,7 @@ const handleSave = async () => {
                },
                body: JSON.stringify({
                   userEmail: email,
-                  birthdate: formattedDateForAPI //  Enviar el formato correcto
+                  birthdate: formattedDateForAPI // Enviar el formato correcto
                })
             });
 
@@ -400,7 +527,6 @@ const handleSave = async () => {
 
             console.log(birthData.message);
          }
-
 
       } catch (error) {
          hasError = true;
@@ -414,13 +540,17 @@ const handleSave = async () => {
    }
 };
 
-
+/**
+ * Función para cerrar sesión.
+ * Elimina la información del usuario del almacenamiento local y redirige al login.
+ */
 const logout = () => {
   localStorage.clear(); // 🔹 Eliminar el token
   window.location.href = "/"; // 🔹 Redirigir al login
+  sessionStorage.removeItem('home-song-loaded')
 };
 </script>
-  
+
 <style scoped>
 
 .user-container {
