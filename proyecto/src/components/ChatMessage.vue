@@ -11,22 +11,39 @@
 </template>
  
 <script setup>
-import { computed } from 'vue';
+  /**
+   * Importa la función computed desde Vue.
+   * @module vue
+   */
+  import { computed } from 'vue';
 
-const props = defineProps({
-   message: {
-      type: Object,
-      required: true,
-   }
-});
- 
-const formattedDate = computed(() => {
-   const date = new Date(props.message.Fecha);
-   const hours = date.getHours().toString().padStart(2, '0');
-   const mins = date.getMinutes().toString().padStart(2, '0');
-   return `${hours}:${mins} · ${date.toLocaleDateString()}`;
-});
+  /**
+   * Define las propiedades del componente.
+   * @typedef {Object} Props
+   * @property {Object} message - Objeto que contiene la información del mensaje (obligatorio).
+   */
+  const props = defineProps({
+     message: {
+        type: Object,
+        required: true,
+     }
+  });
+   
+  /**
+   * Computada que formatea la fecha del mensaje.
+   * Obtiene la hora y minutos, rellenando con ceros si es necesario,
+   * y combina la hora formateada con la fecha en formato local.
+   *
+   * @constant {import('vue').ComputedRef<string>} formattedDate
+   */
+  const formattedDate = computed(() => {
+     const date = new Date(props.message.Fecha);
+     const hours = date.getHours().toString().padStart(2, '0');
+     const mins = date.getMinutes().toString().padStart(2, '0');
+     return `${hours}:${mins} · ${date.toLocaleDateString()}`;
+  });
 </script>
+
  
  <style scoped>
 .message {

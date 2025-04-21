@@ -158,6 +158,7 @@
 
         <!-- Right -->
         <div class="extras">
+         
           <div class="volume-wrapper">
             <i class="fa-solid fa-volume-high" @click="muteVolumen" >🔊</i>
             <transition name="fade">
@@ -206,35 +207,113 @@
 
 //falta poner icono de mute
 
-import { computed, ref, provide, onMounted, onBeforeUnmount,watch, nextTick } from 'vue';
+import { computed, ref, provide, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+/**
+ * Importación de funciones reactivas y ciclo de vida desde Vue.
+ */
 
-// Importar las imágenes
+ // Importar las imágenes
 import previewIcon from '@/assets/preview.svg';
+/**
+ * @constant {string} previewIcon - Ruta de la imagen para vista previa.
+ */
 import userIcon from '@/assets/circle-user.svg';
+/**
+ * @constant {string} userIcon - Ruta de la imagen del usuario.
+ */
 import previousIcon from '@/assets/skip_previous.svg';
+/**
+ * @constant {string} previousIcon - Ruta de la imagen para ir a la canción anterior.
+ */
 import pauseIcon from '@/assets/pause-circle.svg';
+/**
+ * @constant {string} pauseIcon - Ruta de la imagen del botón de pausa.
+ */
 import playIcon from '@/assets/play-circle.svg';
+/**
+ * @constant {string} playIcon - Ruta de la imagen del botón de reproducción.
+ */
 import nextIcon from '@/assets/skip_next.svg';
+/**
+ * @constant {string} nextIcon - Ruta de la imagen para ir a la siguiente canción.
+ */
 import recordVinylIcon from '@/assets/record-vinyl.svg';
+/**
+ * @constant {string} recordVinylIcon - Ruta de la imagen del icono de vinilo.
+ */
 import friendsIcon from '@/assets/following.svg';
+/**
+ * @constant {string} friendsIcon - Ruta de la imagen del icono de amigos.
+ */
 import starIcon from '@/assets/star.svg';
+/**
+ * @constant {string} starIcon - Ruta de la imagen del icono de estrella.
+ */
 import settingsIcon from '@/assets/settings.svg';
+/**
+ * @constant {string} settingsIcon - Ruta de la imagen del icono de configuración.
+ */
 import albumIcon from '@/assets/folder-music.svg';
+/**
+ * @constant {string} albumIcon - Ruta de la imagen del icono de álbum.
+ */
 import createList from '@/assets/task-checklist.svg';
+/**
+ * @constant {string} createList - Ruta de la imagen del icono de crear lista.
+ */
 import restart from '@/assets/restart.svg';
+/**
+ * @constant {string} restart - Ruta de la imagen del icono de reinicio.
+ */
 import randomIcon from '@/assets/random-button.png';
+/**
+ * @constant {string} randomIcon - Ruta de la imagen del botón de reproducción aleatoria.
+ */
 import logo from '@/assets/logo.png';
+/**
+ * @constant {string} logo - Ruta de la imagen del logotipo.
+ */
 import router from './router';
+/**
+ * @constant {object} router - Instancia del router para navegación.
+ */
 import AudioStreamer from './components/AudioStreamer.vue'
+/**
+ * @component AudioStreamer - Componente para la transmisión de audio.
+ */
 import CorazonVacio from '@/assets/me-gusta.png';
+/**
+ * @constant {string} CorazonVacio - Ruta de la imagen de "me gusta" vacío.
+ */
 import { emitter } from '@/js/event-bus';
+/**
+ * @constant {object} emitter - Bus de eventos para comunicación entre componentes.
+ */
 
 const streamerRef = ref(null)
+/**
+ * @constant {Ref<any>} streamerRef - Referencia al componente AudioStreamer.
+ */
+sessionStorage.removeItem('home-song-loaded')
 
 provide('playSong', playSong);
+/**
+ * Provee la función playSong para uso en componentes hijos.
+ */
 provide('playFromQuest', playFromQuest);
+/**
+ * Provee la función playFromQuest para uso en componentes hijos.
+ */
+
+ provide('streamerRef', streamerRef)
+/**
+ * Provee la variable streamerRef para uso en componentes hijos.
+ */
 
 emitter.emit("audio-buffer-ready");
+/**
+ * Emite el evento "audio-buffer-ready" a través del bus de eventos.
+ */
 
 // Variables reactivas
 const lastSong = ref({
@@ -243,39 +322,146 @@ const lastSong = ref({
   cover: '',
   minute: 0
 });
+/**
+ * @constant {Ref<Object>} lastSong - Objeto que almacena la última canción reproducida.
+ */
+provide("lastSong", lastSong)
+/**
+ * Provee la variable lastSong para uso en componentes hijos.
+ */
+// VARIABLES COMPARTIDAS
+const songsData = ref([]); // Esta variable contendrá toda la información de la cola
+/**
+ * @constant {Ref<Array>} songsData - Array que almacena la cola de reproducción.
+ */
+// Proveemos songsData para que otros componentes (como Home) puedan inyectarla y reaccionar a sus cambios.
+provide('songsData', songsData);
+/**
+ * Provee la variable songsData para que componentes hijos puedan acceder y reaccionar a sus cambios.
+ */
 
 const player = ref(null);
+/**
+ * @constant {Ref<any>} player - Referencia al elemento de audio.
+ */
 const mute = ref(false);
+/**
+ * @constant {Ref<boolean>} mute - Estado del mute (silencio) del reproductor.
+ */
 const email =  localStorage.getItem("email");
+/**
+ * @constant {string|null} email - Correo electrónico del usuario obtenido del almacenamiento local.
+ */
 const currentNick = ref('');
+/**
+ * @constant {Ref<string>} currentNick - Apodo actual del usuario.
+ */
 const isMenuOpen = ref(false);
+/**
+ * @constant {Ref<boolean>} isMenuOpen - Estado que indica si el menú está abierto.
+ */
 const isPlaying = ref(false);
+/**
+ * @constant {Ref<boolean>} isPlaying - Estado que indica si una canción se está reproduciendo.
+ */
 const currentSongTime = ref(0);
+/**
+ * @constant {Ref<number>} currentSongTime - Tiempo actual de la canción en reproducción.
+ */
+
+ provide('currentSongTime', currentSongTime)
+/**
+ * Provee la variable currentSongTime para uso en componentes hijos.
+ */
+
 const isLoading = ref(false);
+/**
+ * @constant {Ref<boolean>} isLoading - Estado que indica si se están cargando datos.
+ */
 const searchOption = ref('Todo');
+/**
+ * @constant {Ref<string>} searchOption - Opción de búsqueda seleccionada.
+ */
 const currentSearch = ref('');
+/**
+ * @constant {Ref<string>} currentSearch - Término de búsqueda actual.
+ */
 const hoveredSong = ref(null);
+/**
+ * @constant {Ref<any>} hoveredSong - Canción actualmente pasada por encima (hover) en la interfaz.
+ */
 const currentSong = ref('');
+/**
+ * @constant {Ref<any>} currentSong - Objeto de la canción actualmente en reproducción.
+ */
+provide("currentSong",currentSong)
+/**
+ * Provee la variable currentSong para uso en componentes hijos.
+ */
 const currentStopTime = ref('');
+/**
+ * @constant {Ref<string>} currentStopTime - Tiempo en que se detuvo la canción.
+ */
 const progress = ref(0); // Valor de la barra (0 a 100)
+/**
+ * @constant {Ref<number>} progress - Progreso de la reproducción en porcentaje.
+ */
 const isLooping = ref(false);
+/**
+ * @constant {Ref<boolean>} isLooping - Estado que indica si la reproducción está en bucle.
+ */
 
 const searchArea = ref(null);
+/**
+ * @constant {Ref<HTMLElement|null>} searchArea - Referencia al área de búsqueda.
+ */
 const resultsArea = ref(null);
+/**
+ * @constant {Ref<HTMLElement|null>} resultsArea - Referencia al área que muestra los resultados de búsqueda.
+ */
 const hoverLike = ref({});
+/**
+ * @constant {Ref<Object>} hoverLike - Estado de like en hover para canciones.
+ */
 const playlistHoverLike = ref({});
-
+/**
+ * @constant {Ref<Object>} playlistHoverLike - Estado de like en hover para playlists.
+ */
 const audioIsReadyToSeek = ref(false);
+/**
+ * @constant {Ref<boolean>} audioIsReadyToSeek - Indica si el audio está listo para saltar a una posición determinada.
+ */
 
 const genders = ref([]);
+/**
+ * @constant {Ref<Array>} genders - Lista de géneros disponibles.
+ */
 const showGenderDropdown = ref(false);
+/**
+ * @constant {Ref<boolean>} showGenderDropdown - Estado que controla la visibilidad del desplegable de géneros.
+ */
 const selectedGender = ref('');
+/**
+ * @constant {Ref<string>} selectedGender - Género seleccionado actualmente.
+ */
 const genderFlyout = ref(null);
+/**
+ * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
+ */
 
 // pop-up 
 const showPopup = ref(false);
+/**
+ * @constant {Ref<boolean>} showPopup - Estado que controla la visualización del popup.
+ */
 const popupMessage = ref("");
+/**
+ * @constant {Ref<string>} popupMessage - Mensaje que se muestra en el popup.
+ */
 const popupType = ref("popup-error");
+/**
+ * @constant {Ref<string>} popupType - Tipo del popup ("popup-error" o "popup-success").
+ */
 
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
@@ -286,6 +472,11 @@ const showPopupMessage = (message, type) => {
       showPopup.value = false;
    }, 1500);
 };
+/**
+ * Función para mostrar un popup de mensaje.
+ * @param {string} message - Mensaje a mostrar.
+ * @param {string} type - Tipo de popup ("popup-error" o "popup-success").
+ */
 
 const results = ref({
   artistas: [],
@@ -295,6 +486,9 @@ const results = ref({
   playlistsProtegidasDeAmigos: [],
   playlistsPorGenero: []
 });
+/**
+ * @constant {Ref<Object>} results - Objeto que almacena los resultados de la búsqueda en distintas categorías.
+ */
 
 const menuIcons = ref([
   { src: friendsIcon, alt: 'Amigos', action: () => actionIcon('/friends')},
@@ -303,11 +497,18 @@ const menuIcons = ref([
   { src: albumIcon, alt: 'Álbum', action: () => actionIcon('/fav-playlists') },
   { src: createList, alt: 'List', action: () => actionIcon('/createList') }, 
 ]);
+/**
+ * @constant {Ref<Array>} menuIcons - Lista de objetos que contienen los íconos del menú y sus acciones correspondientes.
+ */
 
 const actionIcon = (pagina) => {
    router.push(pagina);
    closeMenu();
-}
+};
+/**
+ * Función para redirigir a una ruta específica y cerrar el menú.
+ * @param {string} pagina - Ruta a la que redirigir.
+ */
 
 const hasResults = computed(() => 
   results.value.artistas.length || 
@@ -317,6 +518,10 @@ const hasResults = computed(() =>
   results.value.playlistsProtegidasDeAmigos.length || 
   results.value.playlistsPorGenero.length
 );
+/**
+ * @constant {ComputedRef<boolean>} hasResults - Computada que indica si existen resultados en alguna categoría.
+ */
+
 
 // Opción de búsqueda
 const handleSearchOptionChange = () => {
@@ -336,12 +541,20 @@ const handleSearchOptionChange = () => {
       fetchResults(); // actualizar búsqueda al cambiar de tipo
    }
 };
+/**
+ * Función para gestionar el cambio de opción de búsqueda.
+ * Actualiza el estado del desplegable y realiza una nueva búsqueda si es necesario.
+ */
 
 const selectGender = (gender) => {
   selectedGender.value = gender;
   currentSearch.value = gender.NombreGenero;
   fetchResults(); 
 };
+/**
+ * Función para seleccionar un género.
+ * @param {Object} gender - Objeto del género seleccionado.
+ */
 
 // Función que cambia el estado del bucle
 const toggleLoop = () => {
@@ -358,6 +571,9 @@ const toggleLoop = () => {
       }
    }
 };
+/**
+ * Función para alternar el modo de reproducción en bucle.
+ */
 
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
@@ -384,7 +600,10 @@ const nextSong = async() => {
   } catch (error) {
     console.error('Error next song:', error);
   }
-}
+};
+/**
+ * Función asíncrona para reproducir la siguiente canción en la cola.
+ */
 
 async function handleSongEnded() {
   try {
@@ -423,7 +642,10 @@ async function handleSongEnded() {
     isPlaying.value = false;
   }
 }
-
+/**
+ * Función asíncrona que se ejecuta cuando finaliza una canción.
+ * Intenta reproducir la siguiente canción de la cola.
+ */
 
 const previousSong = async() =>{
   try {
@@ -451,9 +673,12 @@ const previousSong = async() =>{
   } catch (error) {
     console.error('Error previous song:', error);
   }
-}
+};
+/**
+ * Función asíncrona para reproducir la canción anterior en la cola.
+ */
 
-const handleClick = (id,playlistType) => {
+const handleClick = (id, playlistType) => {
    if (playlistType === "album") {
       router.push({ path: '/album', query: { id: id } });
    }
@@ -463,6 +688,10 @@ const handleClick = (id,playlistType) => {
       router.push({ path: '/playlist', query: { id: id } });
    }
 };
+/**
+ * Función para manejar el clic en una playlist o álbum.
+ * Redirige a la ruta correspondiente basado en el tipo.
+ */
  
 // Funciones de like a playlist
 const likePlaylist = async (idLista) => {
@@ -481,11 +710,18 @@ const likePlaylist = async (idLista) => {
   }
 
 };
+/**
+ * Función asíncrona para dar like a una playlist.
+ * @param {string} idLista - ID de la playlist a la que se dará like.
+ */
 
 // Función para cerrar el desplegable de búsqueda
 const closeSearchResults = () => {
   currentSearch.value = ''; // Limpiar la búsqueda
 };
+/**
+ * Función para cerrar y limpiar los resultados de búsqueda.
+ */
 
 // Agregar evento de clic global
 const handleClickOutside = (event) => {
@@ -505,73 +741,32 @@ const handleClickOutside = (event) => {
     searchOption.value = 'Todo';
   }
 };
+/**
+ * Función que detecta clics fuera de los elementos de búsqueda y género,
+ * y cierra el desplegable de búsqueda o género si es necesario.
+ */
 
 const currentTimeNoFormat = ref(0);
 
+/**
+ * @constant {Ref<number>} currentTimeNoFormat - Tiempo actual sin formatear.
+ */
+
+provide('currentTimeNoFormat', currentTimeNoFormat)
+/**
+ * Provee la variable currentTimeNoFormat para uso en componentes hijos.
+ */
 // Registrar el evento al montar el componente
 onMounted(async () => {
+  await updateQueue();
   document.addEventListener('click', handleClickOutside);
-  document.addEventListener('audio-buffer-ready',bufferReady);
+  document.addEventListener('audio-buffer-ready', bufferReady);
+  window.addEventListener('beforeunload', enviarProgreso)
    if (player.value) {
       player.value.addEventListener('ended', handleSongEnded);
    }
-  try {
-      // Obtener nick del usuario
-      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
 
-      if (!userResponse.ok) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-
-      const userData = await userResponse.json();
-      currentNick.value = userData.Nick;
-      if (!userData || !userData.Nick) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-
-   } catch (error) {
-      console.error(error.message);
-   }
-
-   try {
-      const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/first-song?Email=${encodeURIComponent(email)}`);
-      if (!songResponse.ok) throw new Error('Error al obtener la última canción');
-
-      const songData = await songResponse.json();
-
-      
-      const durationResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${songData.PrimeraCancionId}`);
-      if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción');
-      const durationData = await durationResponse.json();
-     
-
-      // Extraer los datos de la respuesta
-      const songId = songData.PrimeraCancionId; 
-      const songName = songData.Nombre;
-      const songCover = songData.Portada;
-      currentSongTime.value =  formatTime(songData.MinutoEscucha);
-      currentTimeNoFormat.value = songData.MinutoEscucha;
-      console.log("aaaaaaaaaaa", songData.MinutoEscucha)
-      
-      // Asignar los datos a las variables reactivas
-      lastSong.value = {
-         id: songId,
-         name: songName,
-         cover: songCover,
-         minute: formatTime(durationData),
-      };
-  
-      currentSong.value = {
-         Id: songId,
-         Nombre: songName,
-   
-      };
-
-     streamerRef.value.startStreamSong(songId, songName, email);
-
-    console.log('Última canción:', lastSong.value);
-
-      console.log('Última canción:', lastSong.value);
+    try{
 
       // Obtener generos
       const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
@@ -585,6 +780,12 @@ onMounted(async () => {
       console.error('Error:', error);
    }
 });
+/**
+ * Bloque onMounted:
+ * - Actualiza la cola de reproducción.
+ * - Registra eventos globales.
+ * - Obtiene datos del usuario, la primera canción y los géneros.
+ */
 
 const bufferReady = () => {
   if ( currentTimeNoFormat.value != null && player.value) {
@@ -596,26 +797,47 @@ const bufferReady = () => {
    
   }
 };
-
+/**
+ * Función que, al estar listo el buffer de audio, actualiza la posición actual del reproductor.
+ */
 
 onBeforeUnmount(() => {
+  console.log('[UNMOUNT] Componente se desmonta');
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('beforeunload', enviarProgreso)
 
    if (player.value) {
       player.value.removeEventListener('ended', handleSongEnded);
    }
-  const currentTime = player.value.currentTime;
-  streamerRef.value.socket.emit('progressUpdate', {
-              userId: email,
-              songId: currentSong.value.Id,
-              currentTime: currentTime,
-  });
-});
 
+});
+/**
+ * Bloque onBeforeUnmount:
+ * - Elimina los eventos registrados.
+ * - Emite la actualización del progreso del audio antes de desmontar el componente.
+ */
+
+ function enviarProgreso() {
+  if (player.value && streamerRef.value?.socket) {
+    const currentTime = player.value.currentTime
+    streamerRef.value.socket.emit('progressUpdate', {
+      userId: email,
+      songId: currentSong.value.Id,
+      currentTime: currentTime,
+    })
+  }
+}
+
+/**
+ * Funcion que actualiza el estado de la cancion actual al cerrar la pagina:
+ */
 
 let lastUpdatedSecond = -1;
 let progressInterval = null;
 let contador = 1;
+/**
+ * Variables para el seguimiento del progreso y control de intervalos.
+ */
 
 function updateCurrentTime(event) {
    console.log("Progress:", progress.value, "CurrentTime:", event.target.currentTime);
@@ -660,6 +882,10 @@ function updateCurrentTime(event) {
     console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
   }
 }
+/**
+ * Función para actualizar el tiempo actual de la canción.
+ * Calcula y actualiza el progreso y emite el progreso a través del socket.
+ */
 
 const clearQueue = async () => {
    try {
@@ -693,32 +919,46 @@ const clearQueue = async () => {
    } catch (error) {
       console.log(error.message);
    }
-} 
+}; 
+/**
+ * Función asíncrona para vaciar la cola de reproducción.
+ */
 
+ // FUNCION updateQueue
+const updateQueue = async () => {
+  try {
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
+    if (!response.ok) throw new Error('Error al obtener la cola');
+    songsData.value = await response.json();
+    console.log("Cola actualizada:", songsData.value);
+  } catch (error) {
+    console.error('updateQueue error:', error);
+  }
+};
+/**
+ * Función asíncrona para actualizar la cola de reproducción del usuario.
+ */
+
+// Función playFromQuest actualizada
 async function playFromQuest(song) {
    try {
-      // 1️⃣ Vaciar la cola de reproducción antes de añadir la nueva canción
-      await clearQueue();
+      // 1️⃣ Vaciar la cola actual
+      await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/clear', {
+         method: 'POST',
+         headers: { 'Accept': '*/*', 'Content-Type': 'application/json' },
+         body: JSON.stringify({ userEmail: email })
+      });
 
       // 2️⃣ Añadir la nueva canción a la cola de reproducción
       const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/add-song-to-queue', {
          method: 'POST',
-         headers: {
-            'Accept': '*/*',
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({
-            userEmail: email,
-            songId: song.Id
-         })
+         headers: { 'Accept': '*/*', 'Content-Type': 'application/json' },
+         body: JSON.stringify({ userEmail: email, songId: song.Id })
       });
+      if (!response.ok) throw new Error('Error al añadir la canción a la cola de reproducción');
 
-      if (!response.ok) {
-         throw new Error('Error al añadir la canción a la cola de reproducción');
-      }
-
-      // 3️⃣ Actualizar el estado de la cola con solo la nueva canción
-      //songs.value = [song];
+      // 3️⃣ Actualizar la cola global (esto refrescará el estado compartido)
+      await updateQueue();
 
       // 4️⃣ Reproducir la canción
       lastSong.value = {
@@ -726,7 +966,6 @@ async function playFromQuest(song) {
          cover: song.Portada,
          minute: formatTime(song.Duracion),
       };
-
       if (streamerRef.value?.startStreamSong) {
          streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
          currentSong.value = song;
@@ -734,12 +973,15 @@ async function playFromQuest(song) {
       } else {
          console.warn('startStreamSong no está disponible');
       }
-
-
+      
    } catch (error) {
       console.error('Error al reproducir la canción:', error);
    }
 }
+/**
+ * Función asíncrona para reproducir una canción desde una búsqueda o acción externa.
+ * Vacía la cola actual, añade la canción y actualiza la cola, luego reproduce la canción.
+ */
 
 // Función para iniciar una canción
 function playSong(song) {
@@ -761,8 +1003,15 @@ function playSong(song) {
       console.warn('startStreamSong no está disponible')
    }
 }
+/**
+ * Función para reproducir una canción.
+ * Actualiza la última canción, inicia la transmisión y cambia el estado a reproduciendo.
+ */
 
 const volumeSlider = ref(null);
+/**
+ * @constant {Ref<HTMLElement|null>} volumeSlider - Referencia al slider de volumen.
+ */
 function setVolume(volumen) {
   if (!player.value) return
 
@@ -775,11 +1024,18 @@ function setVolume(volumen) {
     volumeSlider.value.style.backgroundSize = `${volume * 100}% 100%`;
   }
 }
+/**
+ * Función para establecer el nivel de volumen.
+ * @param {number} volumen - Nivel de volumen entre 0 y 1.
+ */
 
 function muteVolumen(){
   player.value.volume = 0;
   mute.value = true;
 }
+/**
+ * Función para silenciar el reproductor.
+ */
 
 // Función para pausar/reanudar
 function togglePlay() {
@@ -806,29 +1062,52 @@ function togglePlay() {
       console.warn('No se pudo acceder a stopCurrentStream')
     }
 }
+/**
+ * Función para alternar entre pausar y reanudar la reproducción.
+ */
 
 const backHome = () => {
    router.push('/home');
-}
+};
+/**
+ * Función para redirigir al inicio (home).
+ */
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value;
 }
+/**
+ * Función para alternar la visibilidad del menú.
+ */
 
 function closeMenu() {
   
   isMenuOpen.value = false;
 }
+/**
+ * Función para cerrar el menú.
+ */
 
 const openUser = () => {
   router.push('/user');
 };
+/**
+ * Función para redirigir al perfil del usuario.
+ */
 
 function formatTime(seconds) {
     let minutes = Math.floor(seconds / 60);
     let secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
+
+/**
+ * Función para formatear segundos a minutos y segundos (mm:ss).
+ */
+ provide('formatTime', formatTime);
+ /**
+ * Provee la variable formatTime para uso en componentes hijos.
+ */
 
 // Función para obtener la posición de los íconos en el menú
 function getIconPosition(index, total) {
@@ -838,6 +1117,12 @@ function getIconPosition(index, total) {
   const y = Math.sin(angle) * radius;
   return { transform: `translate(${x}px, ${y}px)` };
 }
+/**
+ * Función para calcular la posición de un ícono en un menú circular.
+ * @param {number} index - Índice del ícono.
+ * @param {number} total - Número total de íconos.
+ * @returns {object} - Objeto con propiedad transform para posicionar el ícono.
+ */
 
 // Búsqueda
 const fetchResults = async () => {
@@ -854,6 +1139,7 @@ const fetchResults = async () => {
    try { 
       // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
       const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
+      currentNick.value =  localStorage.getItem("Nick");
       const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=${encodeURIComponent(tipo)}`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
@@ -871,6 +1157,10 @@ const fetchResults = async () => {
       isLoading.value = false; 
    }
 };
+/**
+ * Función asíncrona para realizar búsquedas.
+ * Realiza una petición a la API con el término y el filtro de búsqueda, y actualiza los resultados.
+ */
 
 function seekAudio(event) {
   const newProgress = event.target.value;
@@ -887,11 +1177,19 @@ function seekAudio(event) {
 
   console.log(`[Seek] Nueva posición: ${newTime} segundos`);
 }
+/**
+ * Función para buscar en el audio.
+ * Calcula y establece una nueva posición en la reproducción basándose en el progreso de la barra.
+ */
 
 // Función para redirigir al perfil del artista
 const goToArtistProfile = (artistName) => {
   router.push(`/artist/${artistName}`);
 };
+/**
+ * Función para redirigir al perfil de un artista.
+ * @param {string} artistName - Nombre del artista.
+ */
 
 </script>
 
