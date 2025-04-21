@@ -72,6 +72,44 @@ import add_button from '@/assets/add_circle.svg';
 import pauseIcon from '@/assets/pause-circle.svg';
 import playIcon from '@/assets/play-circle.svg';
 import favs_cover from '@/assets/favoritos-cover.jpg';
+/**
+ * Referencia inyectada al componente que gestiona el streaming de audio.
+ * Permite controlar el inicio, parada y manipulación de la reproducción.
+ * Se espera que el componente padre provea esta variable mediante provide().
+ * @type {object}
+ */
+const streamerRef = inject('streamerRef')
+/**
+ * Varaible inyectada que maneja el Tiempo actual de reproducción de la canción, ya formateado (ej: "01:35").
+ * Se actualiza dinámicamente conforme avanza la reproducción.
+ * @type {Ref<string>}
+ */
+const currentSongTime = inject('currentSongTime')
+/**
+ * Varaible inyectada que maneja el tiempo actual de reproducción sin formatear (en segundos).
+ * Útil para lógica interna como cálculos, almacenamiento o sincronización.
+ * @type {Ref<number>}
+ */
+
+const currentTimeNoFormat = inject('currentTimeNoFormat')
+/**
+ * Función inyectada que recibe un número de segundos y devuelve una cadena formateada tipo "mm:ss".
+ * Útil para mostrar el tiempo al usuario.
+ * @type {function(number): string}
+ */
+const formatTime = inject('formatTime')
+/**
+ * Objeto inyectado con información de la última canción reproducida por el usuario.
+ * Incluye ID, nombre, portada y minuto en que se dejó.
+ * @type {Ref<Object>}
+ */
+const lastSong = inject('lastSong')
+
+/**
+ * Objeto inyectado con información de la canción actualmente en reproducción.
+ * @type  {Ref<any>}
+ */
+const currentSong = inject('currentSong')
 
 /**
  * Función inyectada para reproducir canciones.
@@ -252,6 +290,55 @@ const handleClick = (id, playlistType) => {
    router.push({ path: '/playlist', query: { id: id } });
 };
 
+async function cargarCancionInicioSesion() {
+  const CARGA_KEY = "home-song-loaded"
+
+  if (sessionStorage.getItem(CARGA_KEY)) {
+    console.log("Ya se cargó la canción en esta sesión")
+    return
+  }
+
+  try {
+    const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/first-song?Email=${encodeURIComponent(email)}`)
+    if (!songResponse.ok) throw new Error('Error al obtener la última canción')
+    const songData = await songResponse.json()
+
+    const durationResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${songData.PrimeraCancionId}`)
+    if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción')
+    const durationData = await durationResponse.json()
+
+    const songId = songData.PrimeraCancionId
+    const songName = songData.Nombre
+    const songCover = songData.Portada
+
+    currentSongTime.value = formatTime(songData.MinutoEscucha)
+    currentTimeNoFormat.value = songData.MinutoEscucha
+
+    lastSong.value = {
+      id: songId,
+      name: songName,
+      cover: songCover,
+      minute: formatTime(durationData),
+    }
+
+    currentSong.value = {
+      Id: songId,
+      Nombre: songName,
+    }
+
+    streamerRef.value.startStreamSong(songId, songName, email, { autoPlay: false })
+
+
+    console.log('Última canción:', lastSong.value)
+
+    sessionStorage.setItem(CARGA_KEY, 'true')
+
+  } catch (error) {
+    console.error('Última canción Error:', error)
+  }
+}
+
+
 /**
  * Hook de ciclo de vida: onMounted.
  * Se ejecuta al montar el componente para inicializar datos como:
@@ -261,11 +348,14 @@ const handleClick = (id, playlistType) => {
  * - Obtener la cola de reproducción actual y actualizar "songs".
  */
 onMounted(async () => {
-   // Obtener nick del usuario.
+
+   cargarCancionInicioSesion()
+
    try {
       const nick = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`)
       const nickData = await nick.json();
       nombre.value = nickData.Nick;
+      localStorage.setItem("Nick",nombre.value)
    } catch (error) {
       console.error('Nick Error:', error);
    }
