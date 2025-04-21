@@ -48,20 +48,54 @@
 </template>
 
 <script setup>
-import { onMounted,ref, onBeforeUnmount } from 'vue';
+import { onMounted, ref, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 import { useRouter } from 'vue-router';
 import { emitter } from '@/js/event-bus';
 
+/**
+ * Instancia del router para la navegación programática.
+ * @type {object}
+ */
 const router = useRouter();
-//pop up 
+
+/**
+ * Estado reactivo que controla la visibilidad del popup.
+ * @type {Ref<boolean>}
+ */
 const showPopup = ref(false);
+
+/**
+ * Estado reactivo para el mensaje que se muestra en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo para definir el tipo de popup ('popup-error' o 'popup-success').
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
-const likedPlaylists = ref([]); 
-const email = localStorage.getItem("email")
+/**
+ * Array reactivo que almacena las playlists que han sido "likeadas".
+ * @type {Ref<Array>}
+ */
+const likedPlaylists = ref([]);
 
+/**
+ * Email del usuario, obtenido del localStorage.
+ * @type {string|null}
+ */
+const email = localStorage.getItem("email");
+
+/**
+ * Función para mostrar un popup con un mensaje y tipo determinado.
+ * Oculta el popup después de 1500 ms.
+ *
+ * @param {string} message - Mensaje a mostrar en el popup.
+ * @param {string} type - Tipo de popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -72,64 +106,94 @@ const showPopupMessage = (message, type) => {
    }, 1500);
 };
 
+/**
+ * Función para regresar a la página anterior utilizando el router.
+ */
 const goBack = () => {
    router.back();
 };
 
+/**
+ * Función asíncrona para obtener las playlists con like del usuario.
+ * Realiza una petición a la API y actualiza el estado reactivo "likedPlaylists".
+ *
+ * @async
+ * @throws {Error} Si la petición a la API falla.
+ */
 async function fetchFavourites() {
   // OBTENER PLAYLISTS CON LIKE
   try {
-      const replyPlaylist = await fetch (`https://echobeatapi.duckdns.org/playlists/liked/${email}`);
+      const replyPlaylist = await fetch(`https://echobeatapi.duckdns.org/playlists/liked/${email}`);
       if (!replyPlaylist.ok) throw new Error('Errror al obtener las playlist');
 
       const likedPlaylistsData = await replyPlaylist.json();
-      console.log("✅ likedPlaylistsData cargada: ",likedPlaylistsData);
+      console.log("✅ likedPlaylistsData cargada: ", likedPlaylistsData);
       likedPlaylists.value = Array.isArray(likedPlaylistsData) ? likedPlaylistsData : [likedPlaylistsData];
       console.log("✅ likedPlaylists cargada: ", likedPlaylists.value);
    } catch (error) {
-
       console.error(error);
    }
 }
 
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Ejecuta la función fetchFavourites() al montar el componente y establece un listener
+ * para el evento 'likedLists-updated' para actualizar los favoritos en tiempo real.
+ */
 onMounted(async () => {
-   
-      fetchFavourites();
+   fetchFavourites();
 
-      emitter.on('likedLists-updated', () => {
-         fetchFavourites(); // vuelve a cargar los favoritos cuando haya un cambio
-      });
-         
+   emitter.on('likedLists-updated', () => {
+      fetchFavourites(); // Vuelve a cargar los favoritos cuando hay un cambio
+   });
 });
 
+/**
+ * Hook de ciclo de vida: onBeforeUnmount.
+ * Se encarga de limpiar el listener del evento 'likedLists-updated' para evitar memory leaks.
+ */
 onBeforeUnmount(() => {
-  emitter.off('likedLists-updated'); // limpia el listener
+  emitter.off('likedLists-updated'); // Limpia el listener
 });
 
+/**
+ * Función asíncrona para quitar el "like" de una playlist.
+ * Envía una petición DELETE a la API y actualiza localmente el array de playlists.
+ *
+ * @async
+ * @param {string} playlistId - ID de la playlist a unlikear.
+ * @throws {Error} Si falla la petición a la API.
+ */
 const unlikePlaylist = async (playlistId) => {
    try {
       const response = await fetch(`https://echobeatapi.duckdns.org/playlists/like/${email}/${playlistId}`, {
-      method: 'DELETE',
+         method: 'DELETE',
       });
 
       if (!response.ok) {
-      throw new Error('Error quitar el like de una playlist');
+         throw new Error('Error quitar el like de una playlist');
       }
-    // ✅ Actualiza el array reactivamente
-    likedPlaylists.value = likedPlaylists.value.filter(p => p.Id !== playlistId);
+      // Actualiza el array de playlists eliminando la playlist con el ID proporcionado.
+      likedPlaylists.value = likedPlaylists.value.filter(p => p.Id !== playlistId);
       showPopupMessage("Playlist unlikeada con exito", "popup-success");
       
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
-} 
+};
 
-const handleClick = (id,type) => {
+/**
+ * Función para manejar el click en una playlist.
+ * Establece el tipo de playlist en el localStorage y redirige al usuario a la vista de la playlist.
+ *
+ * @param {string} id - ID de la playlist seleccionada.
+ * @param {string} type - Tipo de playlist.
+ */
+const handleClick = (id, type) => {
    console.log("Playlist seleccionada:", id);
    localStorage.setItem("type", type);
    router.push({ path: '/playlist', query: { id: id} });
 };
-
 </script>
 
 <style scoped>

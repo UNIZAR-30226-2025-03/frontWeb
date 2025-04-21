@@ -30,20 +30,70 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from 'vue-router';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.png';  // Recurso gráfico: logo
 
-const router = useRouter(); // las rutas del index
-const route = useRoute(); // route es la ruta del url
+/**
+ * Instancia del router para la navegación programática.
+ * @type {object}
+ */
+const router = useRouter();
 
+/**
+ * Objeto reactivo que representa la ruta actual.
+ * @type {object}
+ */
+const route = useRoute();
+
+/**
+ * Estado reactivo para almacenar la nueva contraseña ingresada por el usuario.
+ * @type {Ref<string>}
+ */
 const password = ref("");
+
+/**
+ * Estado reactivo para almacenar la confirmación de la nueva contraseña.
+ * @type {Ref<string>}
+ */
 const confirmPassword = ref("");
+
+/**
+ * Estado reactivo para almacenar el token recibido por query parameters.
+ * @type {Ref<string>}
+ */
 const token = ref("");
 
-const showPopup = ref(false); // Para los mensajes de error
-const showPopupSuccess = ref(false); // Para el mensaje de éxito
+/**
+ * Estado reactivo que controla la visibilidad del popup de error.
+ * @type {Ref<boolean>}
+ */
+const showPopup = ref(false);
+
+/**
+ * Estado reactivo que controla la visibilidad del popup de éxito.
+ * @type {Ref<boolean>}
+ */
+const showPopupSuccess = ref(false);
+
+/**
+ * Estado reactivo que almacena el mensaje a mostrar en el popup.
+ * @type {Ref<string>}
+ */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que define el tipo del popup ('popup-error' o 'popup-success').
+ * @type {Ref<string>}
+ */
 const popupType = ref("popup-error");
 
+/**
+ * Muestra un popup con el mensaje y tipo especificado.
+ *
+ * Además, activa el popup de éxito si el tipo es "popup-success" o cierra el popup de error después de 3 segundos.
+ *
+ * @param {string} message - Mensaje a mostrar en el popup.
+ * @param {string} type - Tipo del popup ("popup-error" o "popup-success").
+ */
 const showPopupMessage = (message, type) => {
    popupMessage.value = message;
    popupType.value = type;
@@ -61,22 +111,40 @@ const showPopupMessage = (message, type) => {
    }
 };
 
+/**
+ * Función para cerrar el popup de éxito.
+ */
 const closePopupSuccess = () => {
    showPopupSuccess.value = false;
 };
 
+/**
+ * Hook de ciclo de vida: onMounted.
+ *
+ * Se ejecuta cuando el componente se ha montado. Se extrae el token de la query de la URL y se almacena en el estado reactivo.
+ */
 onMounted(() => {
    token.value = route.query.token;
    console.log('Token recibido:', token.value);
 });
 
+/**
+ * Función que maneja el cambio de contraseña.
+ *
+ * Realiza las siguientes tareas:
+ * - Verifica que ambos campos de contraseña no estén vacíos.
+ * - Verifica que la contraseña y su confirmación coincidan.
+ * - Realiza la petición a la API para restablecer la contraseña.
+ * - Muestra un popup con el mensaje de error o éxito según corresponda.
+ *
+ * @async
+ * @throws {Error} Si la respuesta de la API no es exitosa.
+ */
 const handlerPwd = async () => {
-
    if (!password.value.trim() || !confirmPassword.value.trim()) {
       showPopupMessage("Introduce las dos contraseñas", "popup-error");
       return;
-   }
-   else if (password.value !== confirmPassword.value) {
+   } else if (password.value !== confirmPassword.value) {
       showPopupMessage("Las contraseñas no coinciden", "popup-error");
       return;
    }
@@ -98,7 +166,6 @@ const handlerPwd = async () => {
       }
 
       showPopupMessage("Contraseña cambiada con éxito. Continúa al inicio de sesión", "popup-success");
-
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
