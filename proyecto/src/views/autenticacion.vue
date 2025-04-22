@@ -24,6 +24,10 @@ export default {
     const email = route.query.email;
     const isNew = route.query.isNew === "true";
 
+    console.log("Token:", token);
+    console.log("Email:", email);
+    console.log("isNew:", isNew);
+
 
     if (token) {
       // Almacena el token y email en localStorage si se encuentran en la URL
