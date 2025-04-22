@@ -3,8 +3,7 @@
   <div id="app">
 
    <div class="container">
-      <div class="header">
-
+      <div class="header" v-if="!isAdmin">
          <!-- Imagen que activa el menú -->
           <div class="busqueda">
             <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
@@ -158,6 +157,7 @@
 
         <!-- Right -->
         <div class="extras">
+         
           <div class="volume-wrapper">
             <i class="fa-solid fa-volume-high" @click="muteVolumen" >🔊</i>
             <transition name="fade">
@@ -293,6 +293,7 @@ const streamerRef = ref(null)
 /**
  * @constant {Ref<any>} streamerRef - Referencia al componente AudioStreamer.
  */
+sessionStorage.removeItem('home-song-loaded')
 
 provide('playSong', playSong);
 /**
@@ -301,6 +302,11 @@ provide('playSong', playSong);
 provide('playFromQuest', playFromQuest);
 /**
  * Provee la función playFromQuest para uso en componentes hijos.
+ */
+
+ provide('streamerRef', streamerRef)
+/**
+ * Provee la variable streamerRef para uso en componentes hijos.
  */
 
 emitter.emit("audio-buffer-ready");
@@ -318,7 +324,10 @@ const lastSong = ref({
 /**
  * @constant {Ref<Object>} lastSong - Objeto que almacena la última canción reproducida.
  */
-
+provide("lastSong", lastSong)
+/**
+ * Provee la variable lastSong para uso en componentes hijos.
+ */
 // VARIABLES COMPARTIDAS
 const songsData = ref([]); // Esta variable contendrá toda la información de la cola
 /**
@@ -358,6 +367,12 @@ const currentSongTime = ref(0);
 /**
  * @constant {Ref<number>} currentSongTime - Tiempo actual de la canción en reproducción.
  */
+
+ provide('currentSongTime', currentSongTime)
+/**
+ * Provee la variable currentSongTime para uso en componentes hijos.
+ */
+
 const isLoading = ref(false);
 /**
  * @constant {Ref<boolean>} isLoading - Estado que indica si se están cargando datos.
@@ -377,6 +392,10 @@ const hoveredSong = ref(null);
 const currentSong = ref('');
 /**
  * @constant {Ref<any>} currentSong - Objeto de la canción actualmente en reproducción.
+ */
+provide("currentSong",currentSong)
+/**
+ * Provee la variable currentSong para uso en componentes hijos.
  */
 const currentStopTime = ref('');
 /**
@@ -425,6 +444,9 @@ const selectedGender = ref('');
  * @constant {Ref<string>} selectedGender - Género seleccionado actualmente.
  */
 const genderFlyout = ref(null);
+
+const isAdmin = localStorage.getItem("isAdmin") === "true";
+
 /**
  * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
  */
@@ -501,6 +523,7 @@ const hasResults = computed(() =>
 /**
  * @constant {ComputedRef<boolean>} hasResults - Computada que indica si existen resultados en alguna categoría.
  */
+
 
 // Opción de búsqueda
 const handleSearchOptionChange = () => {
@@ -726,75 +749,26 @@ const handleClickOutside = (event) => {
  */
 
 const currentTimeNoFormat = ref(0);
+
 /**
  * @constant {Ref<number>} currentTimeNoFormat - Tiempo actual sin formatear.
  */
 
+provide('currentTimeNoFormat', currentTimeNoFormat)
+/**
+ * Provee la variable currentTimeNoFormat para uso en componentes hijos.
+ */
 // Registrar el evento al montar el componente
 onMounted(async () => {
   await updateQueue();
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('audio-buffer-ready', bufferReady);
+  window.addEventListener('beforeunload', enviarProgreso)
    if (player.value) {
       player.value.addEventListener('ended', handleSongEnded);
    }
-  try {
-      // Obtener nick del usuario
-      const userResponse = await fetch(`https://echobeatapi.duckdns.org/users/nick?userEmail=${encodeURIComponent(email)}`);
 
-      if (!userResponse.ok) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-
-      const userData = await userResponse.json();
-      currentNick.value = userData.Nick;
-      if (!userData || !userData.Nick) {
-         throw new Error("No existe una cuenta con este correo.");
-      }
-
-   } catch (error) {
-      console.error(error.message);
-   }
-
-   try {
-      const songResponse = await fetch(`https://echobeatapi.duckdns.org/users/first-song?Email=${encodeURIComponent(email)}`);
-      if (!songResponse.ok) throw new Error('Error al obtener la última canción');
-
-      const songData = await songResponse.json();
-
-      
-      const durationResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${songData.PrimeraCancionId}`);
-      if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción');
-      const durationData = await durationResponse.json();
-     
-
-      // Extraer los datos de la respuesta
-      const songId = songData.PrimeraCancionId; 
-      const songName = songData.Nombre;
-      const songCover = songData.Portada;
-      currentSongTime.value =  formatTime(songData.MinutoEscucha);
-      currentTimeNoFormat.value = songData.MinutoEscucha;
-      console.log("aaaaaaaaaaa", songData.MinutoEscucha)
-      
-      // Asignar los datos a las variables reactivas
-      lastSong.value = {
-         id: songId,
-         name: songName,
-         cover: songCover,
-         minute: formatTime(durationData),
-      };
-  
-      currentSong.value = {
-         Id: songId,
-         Nombre: songName,
-   
-      };
-
-     streamerRef.value.startStreamSong(songId, songName, email);
-
-    console.log('Última canción:', lastSong.value);
-
-      console.log('Última canción:', lastSong.value);
+    try{
 
       // Obtener generos
       const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
@@ -830,22 +804,34 @@ const bufferReady = () => {
  */
 
 onBeforeUnmount(() => {
+  console.log('[UNMOUNT] Componente se desmonta');
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('beforeunload', enviarProgreso)
 
    if (player.value) {
       player.value.removeEventListener('ended', handleSongEnded);
    }
-  const currentTime = player.value.currentTime;
-  streamerRef.value.socket.emit('progressUpdate', {
-              userId: email,
-              songId: currentSong.value.Id,
-              currentTime: currentTime,
-  });
+
 });
 /**
  * Bloque onBeforeUnmount:
  * - Elimina los eventos registrados.
  * - Emite la actualización del progreso del audio antes de desmontar el componente.
+ */
+
+ function enviarProgreso() {
+  if (player.value && streamerRef.value?.socket) {
+    const currentTime = player.value.currentTime
+    streamerRef.value.socket.emit('progressUpdate', {
+      userId: email,
+      songId: currentSong.value.Id,
+      currentTime: currentTime,
+    })
+  }
+}
+
+/**
+ * Funcion que actualiza el estado de la cancion actual al cerrar la pagina:
  */
 
 let lastUpdatedSecond = -1;
@@ -1008,10 +994,13 @@ function playSong(song) {
       minute: formatTime(song.Duracion),
    };
    if (streamerRef.value?.startStreamSong) {
+
       console.log("id:",song.Id);
       console.log("nommbre:",song.Nombre);
-
-      streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
+      const email2 = localStorage.getItem("email")
+      console.log("email:",email);
+      console.log("email2:",email2);
+      streamerRef.value.startStreamSong(song.Id, song.Nombre, email2);
 
       currentSong.value = song;
       isPlaying.value = true;
@@ -1116,8 +1105,13 @@ function formatTime(seconds) {
     let secs = seconds % 60;
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
+
 /**
  * Función para formatear segundos a minutos y segundos (mm:ss).
+ */
+ provide('formatTime', formatTime);
+ /**
+ * Provee la variable formatTime para uso en componentes hijos.
  */
 
 // Función para obtener la posición de los íconos en el menú
@@ -1150,6 +1144,7 @@ const fetchResults = async () => {
    try { 
       // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
       const tipo = searchOption.value === "Todo" ? "" : searchOption.value;
+      currentNick.value =  localStorage.getItem("Nick");
       const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=${encodeURIComponent(tipo)}`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
