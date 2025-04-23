@@ -190,20 +190,27 @@ const handleLogin = async () => {
       }
 
       const Data = await loginResponse.json();
-      localStorage.setItem("token", Data.accessToken);
-      localStorage.setItem("email", Data.Email);
-      console.log(Data.Email);
-      showPopupMessage(`Bienvenido, ${userData.Nick}!`, "popup-success");
 
-      // Redirige al usuario al home después de 2 segundos
-      setTimeout(() => {
+      // 3. Almacenamiento en localStorage (siempre en string)
+      localStorage.setItem('token', Data.accessToken);
+      localStorage.setItem('email', Data.Email);
+      localStorage.setItem('isAdmin', JSON.stringify(Data.esAdmin));
+      localStorage.setItem("isAdmin", Data.esAdmin.toString());
+      console.log(Data.Email);
+      console.log(Data.esAdmin);
+
+      // 4. Mensaje de bienvenida
+      showPopupMessage(`Bienvenido, ${userData.Nick}!`, 'popup-success');
+      //isAdmin.value = Data.esAdmin;
+      // 5. Espera 2 segundos para que el usuario vea el popup
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // 6. Redirección según rol
       if (Data.esAdmin) {
-        localStorage.setItem("isAdmin", true);
-        router.push("/admin");
+         router.push('/admin');
       } else {
-        router.push("/home");
+         router.push('/home');
       }
-      }, 2000);
    } catch (error) {
    showPopupMessage(error.message, "popup-error");
   }
