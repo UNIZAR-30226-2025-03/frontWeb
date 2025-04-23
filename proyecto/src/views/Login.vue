@@ -198,7 +198,7 @@ const handleLogin = async () => {
       // Redirige al usuario al home después de 2 segundos
       setTimeout(() => {
       if (Data.esAdmin) {
-        localStorage.setItem("isAdmin", true);
+        localStorage.setItem("isAdmin", "true");
         router.push("/admin");
       } else {
         router.push("/home");
@@ -248,9 +248,6 @@ onMounted(async () => {
    isLoading.value = false;
 });
 </script>
-
-
-
 
 <style scoped>
 .login-container {

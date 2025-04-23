@@ -1,5 +1,6 @@
 <template>
   <div v-if="authorized" class="admin-container">
+    <button class="logout-btn" @click="logout">Cerrar sesión</button>
     <div class="admin-inner">
       <h1 class="admin-title">Panel de Administración</h1>
 
@@ -184,6 +185,11 @@ export default {
         console.error(err);
       }
       this.cancelModal();
+    },
+    logout() {
+      localStorage.clear(); // Eliminar el token
+      window.location.href = "/"; // Redirigir al login
+      sessionStorage.removeItem('home-song-loaded');
     }
   }
 };
@@ -462,6 +468,25 @@ export default {
   background: #111;
   color: #fff;
   font-size: 1.2rem;
+}
+
+.logout-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #ff5555;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #e04343;
 }
 
 
