@@ -19,16 +19,27 @@ export default {
     // Instancia del router para la navegación programática
     const router = useRouter();
 
-    // 🔹 Capturar el token y el email desde la URL a través de la query
+    // 🔹 Capturar el token,el email y si es nuevo desde la URL a través de la query
     const token = route.query.token;
     const email = route.query.email;
+    const isNew = route.query.isNew === "true";
+
+    console.log("Token:", token);
+    console.log("Email:", email);
+    console.log("isNew:", isNew);
+
 
     if (token) {
       // Almacena el token y email en localStorage si se encuentran en la URL
       localStorage.setItem("token", token);
       localStorage.setItem("email", email);
-      // 🔹 Redirige al usuario a la ruta /home al validar el token
-      router.push("/home");
+
+      if (isNew) {
+        router.push("/genres");
+      } else {
+        router.push("/home");
+      }
+      
     } else {
       // 🔹 Si no se encuentra un token, redirige al usuario a la ruta raíz (login)
       router.push("/");

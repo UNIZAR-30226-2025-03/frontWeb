@@ -3,8 +3,7 @@
   <div id="app">
 
    <div class="container">
-      <div class="header">
-
+      <div class="header" v-if="!isAdmin">
          <!-- Imagen que activa el menú -->
           <div class="busqueda">
             <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
@@ -445,6 +444,9 @@ const selectedGender = ref('');
  * @constant {Ref<string>} selectedGender - Género seleccionado actualmente.
  */
 const genderFlyout = ref(null);
+
+const isAdmin = localStorage.getItem("isAdmin") === "true";
+
 /**
  * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
  */
