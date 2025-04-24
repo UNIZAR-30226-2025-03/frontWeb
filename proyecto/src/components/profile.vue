@@ -27,7 +27,7 @@
                 <div class="playlist-info">
                 <h3 class="playlist-title">{{ element.Nombre }}</h3>
                 <p class="playlist-meta">
-                    {{ element.NumCanciones }} canciones • {{ element.NumLikes }} ❤️ • {{ element.TipoLista }}
+                    {{ element.NumCanciones }} canciones • {{ element.NumLikes }} ❤️ • {{ element.Genero }}
                 </p>
                 </div>
             </div>
@@ -121,9 +121,45 @@
       if (!dataUserResponse.ok) throw new Error("Error al cargar la información del usuario");
       const userData = await dataUserResponse.json();
 
-      playlists.value = userData.Playlists;
+      // Obtenemos las playlists básicas
+      const basePlaylists = userData.Playlists || [];
+
+      // Enriquecer cada playlist con datos detallados
+      const enrichedPlaylists = await Promise.all(
+         basePlaylists.map(async (playlist) => {
+            try {
+               const res = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${playlist.Id}`);
+               if (!res.ok) throw new Error('Error al obtener info de la playlist');
+               const extra = await res.json();
+
+               const detailsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/playlist/${playlist.Id}`);
+               if (!detailsResponse.ok) throw new Error('Error al obtener los detalles de la playlist');
+               const details = await detailsResponse.json();
+      
+               return {
+               ...playlist,
+               NumCanciones: extra.NumCanciones,
+               NumLikes: extra.NumLikes,
+               Genero: details.Genero,
+               };
+            } catch (err) {
+               console.warn(`❌ Error al enriquecer playlist ${playlist.Id}`, err);
+               return {
+                  ...playlist,
+                  NumCanciones: 0,
+                  NumLikes: 0,
+                  Genero: 'Desconocido',
+               };
+            }
+         })
+      );
+
+      // Asignamos la lista final al estado reactivo
+      playlists.value = enrichedPlaylists;
+
       infoUser.value.Nick = userData.Nick;
       infoUser.value.Portada = userData.LinkFoto;
+      console.log("Valor playlists amigo: ", playlists.value);
     } catch (error) {
       console.error(error);
     }
@@ -262,11 +298,13 @@
 .message-button {
   background-color: #5865f2;
   color: white;
+  width: 100px;
   padding: 8px 16px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   margin-top: 10px;
+  white-space: nowrap;
 }
 
 .message-button:hover {

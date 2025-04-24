@@ -171,11 +171,12 @@ const unlikePlaylist = async (playlistId) => {
       });
 
       if (!response.ok) {
-         throw new Error('Error quitar el like de una playlist');
+         throw new Error('Error al eliminar la playlist de favoritos');
       }
       // Actualiza el array de playlists eliminando la playlist con el ID proporcionado.
       likedPlaylists.value = likedPlaylists.value.filter(p => p.Id !== playlistId);
-      showPopupMessage("Playlist unlikeada con exito", "popup-success");
+      emitter.emit('likedLists-updated');
+      showPopupMessage("Playlist eliminada de guardadas con exito", "popup-success");
       
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
