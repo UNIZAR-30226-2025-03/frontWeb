@@ -86,6 +86,7 @@
                         @click.stop="likePlaylist(listaGeneros.id)"
                       >
                       <span>{{ playlistHoverLike[listaGeneros.id] || isLiked(listaGeneros.id) ? '❤️' : '🤍' }}</span>
+
                      </button>
                    </div>
  
@@ -215,7 +216,6 @@
     
    </div>
  
-   
  </template>
  
  <script setup>
@@ -794,6 +794,7 @@
  
    if (clickedOutsideSearch) {
      closeSearchResults();
+
    }
  
    if (showGenderDropdown.value && clickedOutsideGender) {
@@ -1093,6 +1094,7 @@
    // Cambiar visualmente el fondo
    if (volumeSlider.value) {
      volumeSlider.value.style.backgroundSize = `${volume * 100}% 100%`;
+
    }
  }
  /**

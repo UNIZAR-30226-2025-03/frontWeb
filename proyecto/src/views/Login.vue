@@ -208,7 +208,6 @@ const handleLogin = async () => {
       // 6. Redirección según rol
       if (Data.esAdmin) {
          router.push('/admin');
-
       } else {
          router.push('/home');
       }
@@ -256,6 +255,9 @@ onMounted(async () => {
    isLoading.value = false;
 });
 </script>
+
+
+
 
 <style scoped>
 .login-container {

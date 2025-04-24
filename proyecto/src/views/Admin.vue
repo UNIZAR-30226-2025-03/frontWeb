@@ -4,7 +4,6 @@
     <button class="logout-btn" @click="logout">Cerrar sesión</button>
   </div>
   <div v-if="authorized" class="admin-container">
-    <button class="logout-btn" @click="logout">Cerrar sesión</button>
     <div class="admin-inner">
       <div class="section chat-wrapper">
         <ChatBox />
