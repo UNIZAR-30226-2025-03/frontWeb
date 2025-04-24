@@ -4,7 +4,6 @@
     <button class="logout-btn" @click="logout">Cerrar sesión</button>
   </div>
   <div v-if="authorized" class="admin-container">
-    <button class="logout-btn" @click="logout">Cerrar sesión</button>
     <div class="admin-inner">
       <div class="section chat-wrapper">
         <ChatBox />
@@ -154,6 +153,7 @@ export default {
   window.addEventListener('storage', syncAdmin);
 });
 
+</script>
 
 <style scoped>
 :deep(header, .main-navbar, .app-header) { display: none !important; }

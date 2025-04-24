@@ -1420,55 +1420,12 @@ hr{
 }
 
 .playlist-actions input::placeholder {
-   color: white; 
+   color: white; /* Color del placeholder dorado para mejor visibilidad */
    opacity: 0.5;
 }
 
 .playlist-actions button {
    background-color: transparent;
-}
-
-.filterSelect {
-  padding: 10px 18px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  background-color: #8A3A1B;
-  color: #ffffff80;
-  font-size: 13px;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  transition: border-color 0.3s ease;
-}
-
-.filterSelect:hover {
-  border-color: #888;
-}
-
-.filterSelect:focus {
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
-}
-
-.filterSelect option {
-  background-color: #1e1e1e;
-  color: #fff;
-}
-
-.select-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.select-wrapper::after {
-  content: "▼";
-  position: absolute;
-  top: 50%;
-  right: 5px;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #aaa;
 }
 
 .song-list {
@@ -1485,7 +1442,6 @@ hr{
    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
    cursor: pointer; 
 }
-
 .song-list li:hover {
    transition: 0.2s;
    transform: scale(1.03,1.03);  
@@ -1839,6 +1795,49 @@ h1 {
 
 .close-btn:hover {
    opacity: 0.8;
+}
+
+.filterSelect {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #8A3A1B;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.3s ease;
+}
+
+.filterSelect:hover {
+  border-color: #888;
+}
+
+.filterSelect:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+}
+
+.filterSelect option {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #aaa;
 }
 
 /* Estilos para el popup */
