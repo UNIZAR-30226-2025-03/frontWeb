@@ -154,6 +154,7 @@ export default {
   window.addEventListener('storage', syncAdmin);
 });
 
+</script>
 
 <style scoped>
 :deep(header, .main-navbar, .app-header) { display: none !important; }
