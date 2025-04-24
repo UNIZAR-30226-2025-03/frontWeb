@@ -461,14 +461,6 @@ const selectedGender = ref('');
  */
 const genderFlyout = ref(null);
 
-const isAdmin = ref(false); // valor por defecto: no admin
-
-const storedAdmin = localStorage.getItem("isAdmin");
-
-if (storedAdmin === "true") {
-  isAdmin.value = true;
-}
-
 /**
  * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
  */
@@ -529,6 +521,25 @@ const actionIcon = (pagina) => {
    router.push(pagina);
    closeMenu();
 };
+const isAdmin  = ref(false);                 // ▸ reactivo
+
+// 1) Sincronizar al montar
+onMounted(() => {
+  isAdmin.value = localStorage.getItem('isAdmin') === 'true';
+  console.log("isAdmin: ", isAdmin.value);
+  window.addEventListener('storage', syncAdmin);
+});
+
+// 2) Limpieza
+onBeforeUnmount(() => {
+  window.removeEventListener('storage', syncAdmin);
+});
+
+function syncAdmin() {
+  isAdmin.value = localStorage.getItem('isAdmin') === 'true';
+}
+
+
 /**
  * Función para redirigir a una ruta específica y cerrar el menú.
  * @param {string} pagina - Ruta a la que redirigir.
