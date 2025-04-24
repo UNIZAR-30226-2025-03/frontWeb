@@ -545,9 +545,9 @@ const handleSave = async () => {
  * Elimina la información del usuario del almacenamiento local y redirige al login.
  */
 const logout = () => {
-  localStorage.clear(); // 🔹 Eliminar el token
-  window.location.href = "/"; // 🔹 Redirigir al login
-  sessionStorage.removeItem('home-song-loaded')
+  localStorage.clear(); // Eliminar el token
+  window.location.href = "/"; // Redirigir al login
+  sessionStorage.removeItem('home-song-loaded');
 };
 </script>
 

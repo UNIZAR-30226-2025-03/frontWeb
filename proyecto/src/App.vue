@@ -63,14 +63,30 @@
                      </button>
                   </div>
 
-                  <div v-for="listaAmigos in results.playlistsProtegidasDeAmigos" :key="listaAmigos.id" class="result-item">
+                  <div v-for="listaAmigos in results.playlistsProtegidasDeAmigos" :key="listaAmigos.id" class="result-item" @click='handleClick(listaAmigos.id, "")'>
                      <img :src="listaAmigos.portada" alt="Preview" />
                      <span> {{ listaAmigos.nombre }}</span>
+                     <button
+                        @mouseenter="playlistHoverLike[listaAmigos.id] = true"
+                        @mouseleave="playlistHoverLike[listaAmigos.id] = false"
+                        class="like-hover"
+                        @click.stop="likePlaylist(listaAmigos.id)"
+                      >
+                        <span>{{ playlistHoverLike[listaAmigos.id] ? '❤️' : '🤍' }}</span>
+                     </button>
                   </div>
 
-                  <div v-for="listaGeneros in results.playlistsPorGenero" :key="listaGeneros.id" class="result-item">
+                  <div v-for="listaGeneros in results.playlistsPorGenero" :key="listaGeneros.id" class="result-item" @click='handleClick(listaGeneros.id, "")'>
                      <img :src="listaGeneros.portada" alt="Preview" />
                      <span> {{ listaGeneros.nombre }}</span>
+                     <button
+                        @mouseenter="playlistHoverLike[listaGeneros.id] = true"
+                        @mouseleave="playlistHoverLike[listaGeneros.id] = false"
+                        class="like-hover"
+                        @click.stop="likePlaylist(listaGeneros.id)"
+                      >
+                        <span>{{ playlistHoverLike[listaGeneros.id] ? '❤️' : '🤍' }}</span>
+                     </button>
                   </div>
 
                </template>
@@ -445,7 +461,6 @@ const selectedGender = ref('');
  */
 const genderFlyout = ref(null);
 
-
 /**
  * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
  */
@@ -699,6 +714,7 @@ const previousSong = async() =>{
  */
 
 const handleClick = (id, playlistType) => {
+   console.log("Entra función");
    if (playlistType === "album") {
       router.push({ path: '/album', query: { id: id } });
    }
@@ -778,6 +794,7 @@ provide('currentTimeNoFormat', currentTimeNoFormat)
  */
 // Registrar el evento al montar el componente
 onMounted(async () => {
+   console.log("isAdmin: ", isAdmin.value);
   await updateQueue();
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('audio-buffer-ready', bufferReady);
@@ -1158,6 +1175,7 @@ const fetchResults = async () => {
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
    console.log("Filtro seleccionado:", searchOption.value);
+   console.log ("Email búsqueda: ", currentNick.value);
 
    try { 
       // Convertir "Todo" en un valor vacío para que la API devuelva todos los resultados
@@ -1172,6 +1190,8 @@ const fetchResults = async () => {
       console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
       console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
       console.log("Playlists:", JSON.parse(JSON.stringify(results.value.playlists)));
+      console.log("Playlists amigos:", JSON.parse(JSON.stringify(results.value.playlistsProtegidasDeAmigos)));
+      console.log("Playlists por genero:", JSON.parse(JSON.stringify(results.value.playlistsPorGenero)));
 
    } catch (error) {
       console.error('Error:', error);
