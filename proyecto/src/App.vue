@@ -45,7 +45,7 @@
                          class="like-hover"
                          @click.stop="likePlaylist(album.id)"
                        >
-                         <span>{{ hoverLike[album.id] ? '❤️' : '🤍' }}</span>
+                       <span>{{ playlistHoverLike[album.id] || isLiked(album.id) ? '❤️' : '🤍' }}</span>
                       </button>
                    </div>
  
@@ -59,7 +59,7 @@
                          class="like-hover"
                          @click.stop="likePlaylist(lista.id)"
                        >
-                         <span>{{ playlistHoverLike[lista.id] ? '❤️' : '🤍' }}</span>
+                       <span>{{ playlistHoverLike[lista.id] || isLiked(lista.id) ? '❤️' : '🤍' }}</span>
                       </button>
                    </div>
  
@@ -72,7 +72,7 @@
                         class="like-hover"
                         @click.stop="likePlaylist(listaAmigos.id)"
                       >
-                        <span>{{ playlistHoverLike[listaAmigos.id] ? '❤️' : '🤍' }}</span>
+                      <span>{{ playlistHoverLike[listaAmigos.id] || isLiked(listaAmigos.id) ? '❤️' : '🤍' }}</span>
                      </button>
                    </div>
  
@@ -85,7 +85,7 @@
                         class="like-hover"
                         @click.stop="likePlaylist(listaGeneros.id)"
                       >
-                        <span>{{ playlistHoverLike[listaGeneros.id] ? '❤️' : '🤍' }}</span>
+                      <span>{{ playlistHoverLike[listaGeneros.id] || isLiked(listaGeneros.id) ? '❤️' : '🤍' }}</span>
                      </button>
                    </div>
  
@@ -460,12 +460,13 @@
   * @constant {Ref<string>} selectedGender - Género seleccionado actualmente.
   */
  const genderFlyout = ref(null);
- 
- 
  /**
   * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
   */
- 
+  const likedPlaylists = ref([]);
+ /**
+  * @constant {Ref<HTMLElement|null>} likedPlaylists - Lista de playlists guardadas.
+  */
  // pop-up 
  const showPopup = ref(false);
  /**
@@ -517,12 +518,22 @@
  /**
   * @constant {Ref<Array>} menuIcons - Lista de objetos que contienen los íconos del menú y sus acciones correspondientes.
   */
- 
+
+  const isLiked = (id) => likedPlaylists.value.some(p => p.Id === id);
+ /**
+  * Función para comprobar si una playlist se encuentra guardada o no
+  * @param {string} id - Playlist a comprobar.
+  */
  const actionIcon = (pagina) => {
     router.push(pagina);
     closeMenu();
  };
- const isAdmin  = ref(false);                 // ▸ reactivo
+ /**
+  * Función para redirigir a una ruta específica y cerrar el menú.
+  * @param {string} pagina - Ruta a la que redirigir.
+  */
+ 
+  const isAdmin  = ref(false);                 // ▸ reactivo
  
  // 1) Sincronizar al montar
  onMounted(() => {
@@ -539,12 +550,6 @@
  function syncAdmin() {
    isAdmin.value = localStorage.getItem('isAdmin') === 'true';
  }
- 
- 
- /**
-  * Función para redirigir a una ruta específica y cerrar el menú.
-  * @param {string} pagina - Ruta a la que redirigir.
-  */
  
  const hasResults = computed(() => 
    results.value.artistas.length || 
@@ -731,24 +736,43 @@
   
  // Funciones de like a playlist
  const likePlaylist = async (idLista) => {
-  try {
-   
-     const responseLike = await fetch(`https://echobeatapi.duckdns.org/playlists/like/${email}/${idLista}`, {
-         method: 'POST',
-         });
- 
-     if(!responseLike.ok) throw new Error(" No se ha podido dar like a la playlist");
-     showPopupMessage(" Playlist likeada","popup-success"); 
-     emitter.emit('likedLists-updated');
-  
-   } catch (error) {
-     showPopupMessage(error,"popup-error");
+
+   if (isLiked(idLista)) {
+      showPopupMessage("La playlist ya se encuentra guardada", "popup-error");
    }
- 
+
+   else {
+      try {
+         const responseLike = await fetch(`https://echobeatapi.duckdns.org/playlists/like/${email}/${idLista}`, {
+            method: 'POST',
+            });
+      
+         if(!responseLike.ok) throw new Error(" No se ha podido guardar la playlist");
+         showPopupMessage(" Playlist guardada con éxito","popup-success"); 
+         emitter.emit('likedLists-updated');
+   
+      } catch (error) {
+         showPopupMessage(error,"popup-error");
+      }
+   }
  };
  /**
   * Función asíncrona para dar like a una playlist.
   * @param {string} idLista - ID de la playlist a la que se dará like.
+  */
+
+ async function fetchLikedPlaylists() {
+   try {
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/liked/${email}`);
+      const data = await response.json();
+      likedPlaylists.value = Array.isArray(data) ? data : [data];
+      console.log("Playlists con like: ", likedPlaylists.value);
+   } catch (error) {
+      console.error("Error al cargar liked playlists", error);
+   }
+ };
+ /**
+  * Función asíncrona para cargar las playlists guardadas.
   */
  
  // Función para cerrar el desplegable de búsqueda
@@ -775,6 +799,7 @@
    if (showGenderDropdown.value && clickedOutsideGender) {
      showGenderDropdown.value = false;
      searchOption.value = 'Todo';
+     selectedGender.value = '';
    }
  };
  /**
@@ -797,7 +822,14 @@
    await updateQueue();
    document.addEventListener('click', handleClickOutside);
    document.addEventListener('audio-buffer-ready', bufferReady);
-   window.addEventListener('beforeunload', enviarProgreso)
+   window.addEventListener('beforeunload', enviarProgreso);
+   
+   fetchLikedPlaylists();
+
+   emitter.on('likedLists-updated', () => {
+   fetchLikedPlaylists(); // Refresca la lista de likes cuando haya cambios
+   });
+
     if (player.value) {
        player.value.addEventListener('ended', handleSongEnded);
     }
@@ -841,10 +873,10 @@
    console.log('[UNMOUNT] Componente se desmonta');
    document.removeEventListener('click', handleClickOutside);
    window.removeEventListener('beforeunload', enviarProgreso)
- 
-    if (player.value) {
-       player.value.removeEventListener('ended', handleSongEnded);
-    }
+   emitter.off('likedLists-updated');
+   if (player.value) {
+      player.value.removeEventListener('ended', handleSongEnded);
+   }
  
  });
  /**
