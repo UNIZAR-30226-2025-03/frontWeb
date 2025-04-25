@@ -506,24 +506,36 @@ const actionIcon = (pagina) => {
    router.push(pagina);
    closeMenu();
 };
-const isAdmin  = ref(false);                 // ▸ reactivo
-
-// 1) Sincronizar al montar
-onMounted(() => {
-  isAdmin.value = localStorage.getItem('isAdmin') === 'true';
-  console.log("isAdmin: ", isAdmin.value);
-  window.addEventListener('storage', syncAdmin);
-});
-
-// 2) Limpieza
-onBeforeUnmount(() => {
-  window.removeEventListener('storage', syncAdmin);
-});
+const isAdmin = ref(false)         // ▸ reactivo
+let intervalId = null             // ▸ guardará el ID del polling
 
 function syncAdmin() {
-  isAdmin.value = localStorage.getItem('isAdmin') === 'true';
+  // Siempre lee de localStorage y actualiza el ref
+  isAdmin.value = localStorage.getItem('isAdmin') === 'true'
 }
 
+onMounted(() => {
+  // 1) Sincroniza una vez al montar
+  syncAdmin()
+  console.log("isAdmin al montar:", isAdmin.value)
+
+  // 2) Añade listener para otros tabs
+  window.addEventListener('storage', syncAdmin)
+
+  // 3) Arranca el polling: cada 500 ms (puedes ajustar este intervalo)
+  intervalId = setInterval(syncAdmin, 2000)
+})
+
+onBeforeUnmount(() => {
+  // 1) Limpia el listener
+  window.removeEventListener('storage', syncAdmin)
+
+  // 2) Limpia el polling para no dejar timers colgando
+  if (intervalId !== null) {
+    clearInterval(intervalId)
+    intervalId = null
+  }
+})
 
 /**
  * Función para redirigir a una ruta específica y cerrar el menú.

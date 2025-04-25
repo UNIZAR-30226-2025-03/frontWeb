@@ -80,6 +80,7 @@ const popupType = ref("popup-error");
  * @type {Ref<boolean>}
  */
 const isLoading = ref(true);
+const isAdmin = ref(false)
 
 /**
  * Función para mostrar un popup con un mensaje y tipo especificado.
@@ -201,7 +202,7 @@ const handleLogin = async () => {
 
       // 4. Mensaje de bienvenida
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, 'popup-success');
-      //isAdmin.value = Data.esAdmin;
+      isAdmin.value = Data.esAdmin;
       // 5. Espera 2 segundos para que el usuario vea el popup
       await new Promise(resolve => setTimeout(resolve, 2000));
 
