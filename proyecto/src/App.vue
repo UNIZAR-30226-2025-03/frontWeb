@@ -603,6 +603,13 @@ const toggleLoop = () => {
       }
    }
 };
+
+
+/** Devuelve siempre el email actual del localStorage, o cadena vacía si no existe */
+function getEmail() {
+  return localStorage.getItem("email") || "";
+}
+
 /**
  * Función para alternar el modo de reproducción en bucle.
  */
@@ -610,7 +617,10 @@ const toggleLoop = () => {
 // Función para gestionar siguiente cancion
 const nextSong = async() => {
   try {
-    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+    const response = await fetch(
+        `https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(getEmail())}`
+    );
+
     if (!response.ok) throw new Error('Error al obtener next song');
     const nextSongData = await response.json();
     console.log("nextsong: ", nextSongData);
@@ -639,7 +649,7 @@ const nextSong = async() => {
 
 async function handleSongEnded() {
   try {
-    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(getEmail())}`);
 
     if (!response.ok) {
       console.log('[cola] No hay más canciones en la cola. Fin de reproducción.');
@@ -681,7 +691,7 @@ async function handleSongEnded() {
 
 const previousSong = async() =>{
   try {
-    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/anterior?userEmail=${encodeURIComponent(email)}`);
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/anterior?userEmail=${encodeURIComponent(getEmail())}`);
     if (!response.ok) throw new Error('Error al obtener previous song');
     const previousSong = await response.json();
     console.log("previousSong: ", previousSong);
@@ -801,7 +811,7 @@ onMounted(async () => {
     try{
 
       // Obtener generos
-      const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
+      const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(getEmail())}`);
       if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
 
       const data = await genderResponse.json();
@@ -959,7 +969,7 @@ const clearQueue = async () => {
  // FUNCION updateQueue
 const updateQueue = async () => {
   try {
-    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
+    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(getEmail())}`);
     if (!response.ok) throw new Error('Error al obtener la cola');
     songsData.value = await response.json();
     console.log("Cola actualizada:", songsData.value);
