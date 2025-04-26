@@ -40,8 +40,8 @@
                       <span> {{ album.nombre }} </span>
                       <span class="numCanciones-span"> {{ album.numCanciones }} canciones</span>
                       <button
-                         @mouseenter="hoverLike[album.id] = true"
-                         @mouseleave="hoverLike[album.id] = false"
+                         @mouseenter="playlistHoverLike[album.id] = true"
+                         @mouseleave="playlistHoverLike[album.id] = false"
                          class="like-hover"
                          @click.stop="likePlaylist(album.id)"
                        >
