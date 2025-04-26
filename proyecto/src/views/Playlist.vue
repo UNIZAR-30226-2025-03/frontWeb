@@ -51,7 +51,7 @@
             <div class="playlist-description">
                <p :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
                <input v-if="isEditingDescription && type === 'ListaReproduccion'" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
-          </div>
+            </div>
             <p>{{ playlistInfo.NumLikes }} Likes</p>
          </div>
 
@@ -136,7 +136,8 @@
                 </div>
 
                 <div class="song-buttons">
-                  <button @click="addSongToFavorites(element)">❤️</button>
+                  <button v-if="!isFavorite(element.id)" @click="addSongToFavorites(element)">🤍</button>
+                  <button v-else @click="errorMessage">❤️</button>
                   <button @click="playNewSong(element,index)">▶️</button>
                   <button @click="removeSong(element.id)"  v-if="type === 'ListaReproduccion'" >🗑️</button>
 
@@ -156,6 +157,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, inject, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { emitter } from '@/js/event-bus';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
@@ -390,6 +392,12 @@ const email = localStorage.getItem("email");
 const aleatorio = ref(false);
 
 /**
+ * Estado reactivo que almacenará los datos de las canciones favoritas.
+ * @type {Ref<any>}
+ */
+const favoriteSongs = ref([]);
+
+/**
  * Estado reactivo que controla la visibilidad del popup.
  * @type {Ref<boolean>}
  */
@@ -496,6 +504,27 @@ const goBack = () => {
 watch(editedPrivacy, (newValue) => {
    console.log("Valor de editedPrivacy cambiado a:", newValue);
 });
+
+/* ============================
+   Funciones de canciones favoritas
+   ============================ */
+
+/**
+ * Función para comprobar si una canción se encuentra en favoritos o no
+ * @param {string} id - Canción a comprobar.
+ */
+const isFavorite = (id) => {
+   if (!Array.isArray(favoriteSongs.value.canciones)) return false;
+   return favoriteSongs.value.canciones.some(s => s.id === id);
+};
+
+/**
+  * Función para mostrar error cuando la canción ya se encuentra en favoritos
+ */
+const errorMessage = () => {
+   showPopupMessage ("La canción ya se encuentra en favoritos", "popup-error");
+}
+
 
 /* ============================
    Funciones de Edición
@@ -934,6 +963,10 @@ const handleClickOutside = (event) => {
  * - Obtiene las imágenes predeterminadas.
  */
 onMounted(async () => {
+   fetchFavourites();
+   emitter.on('FavoriteSongs-updated', () => {
+      fetchFavourites(); // Vuelve a cargar los favoritos cuando hay un cambio
+   });
    try {
       // OBTENER INFO DE LA PLAYLIST
       const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${Id}`);
@@ -1012,6 +1045,7 @@ onUnmounted(async () => {
  */
 onUnmounted(() => {
    document.removeEventListener('click', handleClickOutside);
+   emitter.off('FavoriteSongs-updated');
    localStorage.removeItem("type");
 });
 
@@ -1211,6 +1245,32 @@ const removeSong = async (songId) => {
 };
 
 /**
+ * Función asíncrona para obtener las canciones favoritas del usuario.
+ * Realiza una petición a la API y actualiza el estado reactivo "songsData".
+ *
+ * @async
+ * @throws {Error} Si la petición a la API falla.
+ */
+ async function fetchFavourites() {
+   try {
+      // OBTENER CANCIONES FAVORITAS
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(email)}`);
+      if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
+   
+      favoriteSongs.value = await songsResponse.json();
+      console.log(" ✅ Canciones favoritas: ", favoriteSongs.value);
+   
+      // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
+      if (!favoriteSongs.value || !Array.isArray(favoriteSongs.value.canciones)) {
+         throw new Error('Las canciones no llegaron en formato de array');
+      }
+ 
+   } catch (error) {
+      console.error('Error al cargar la playlist:', error);
+   }
+}
+
+/**
  * Función asíncrona para añadir una canción a favoritos.
  * Envía una petición POST a la API para marcar la canción como favorita.
  *
@@ -1230,6 +1290,7 @@ const addSongToFavorites = async (song) => {
       if (!response.ok) {
          throw new Error('Error al añadir canción a favoritos');
       }
+      emitter.emit('FavoriteSongs-updated');
       showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
