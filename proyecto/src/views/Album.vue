@@ -49,7 +49,8 @@
                  </div>
  
                  <div class="song-buttons">
-                   <button @click="addSongToFavorites(element)">❤️</button>
+                   <button v-if="!isFavorite(element.id)" @click="addSongToFavorites(element)">🤍</button>
+                   <button v-else @click="errorMessage">❤️</button>
                    <button @click="playNewSong(element,index)">▶️</button>
                  </div>
                </div>
@@ -66,8 +67,9 @@
  
   
 <script setup>
-import { ref, onMounted, watch, inject, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, inject, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { emitter } from '@/js/event-bus';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
@@ -175,6 +177,12 @@ const album = ref([]);
 const searchTerm = ref('');
 
 /**
+ * Estado reactivo que almacenará los datos de las canciones favoritas.
+ * @type {Ref<any>}
+ */
+ const favoriteSongs = ref([]);
+
+/**
  * Computed que filtra las canciones del álbum basado en el término de búsqueda ingresado por el usuario.
  *
  * Si no hay término de búsqueda (cadena vacía), retorna todas las canciones.
@@ -189,6 +197,26 @@ const filteredAlbum = computed(() => {
       song.nombre.toLowerCase().includes(searchTerm.value.toLowerCase())
    );
 });
+
+/* ============================
+   Funciones de canciones favoritas
+   ============================ */
+
+/**
+ * Función para comprobar si una canción se encuentra en favoritos o no
+ * @param {string} id - Canción a comprobar.
+ */
+ const isFavorite = (id) => {
+   if (!Array.isArray(favoriteSongs.value.canciones)) return false;
+   return favoriteSongs.value.canciones.some(s => s.id === id);
+};
+
+/**
+  * Función para mostrar error cuando la canción ya se encuentra en favoritos
+ */
+const errorMessage = () => {
+   showPopupMessage ("La canción ya se encuentra en favoritos", "popup-error");
+}
 
 /**
  * Muestra un popup temporalmente con un mensaje y tipo específico.
@@ -401,6 +429,7 @@ const addSongToFavorites = async (song) => {
       if (!response.ok) {
          throw new Error('Error al añadir canción a favoritos');
       }
+      emitter.emit('FavoriteSongs-updated');
       showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
 
    } catch (error) {
@@ -419,6 +448,10 @@ const addSongToFavorites = async (song) => {
  * Además, valida que los datos recibidos estén correctamente formateados.
  */
 onMounted(async () => {
+   fetchFavourites();
+   emitter.on('FavoriteSongs-updated', () => {
+      fetchFavourites(); // Vuelve a cargar los favoritos cuando hay un cambio
+   });
    try {
       // Petición para obtener la información del álbum
       const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/album/${Id}`);
@@ -447,6 +480,41 @@ onMounted(async () => {
       console.error('Error al cargar el álbum:', error);
    }
 });
+
+/**
+ * Hook de ciclo de vida: onUnmounted.
+ * Remueve el listener de clic y elimina el item "type" del localStorage.
+ */
+ onUnmounted(() => {
+   emitter.off('FavoriteSongs-updated');
+   localStorage.removeItem("type");
+});
+
+/**
+ * Función asíncrona para obtener las canciones favoritas del usuario.
+ * Realiza una petición a la API y actualiza el estado reactivo "songsData".
+ *
+ * @async
+ * @throws {Error} Si la petición a la API falla.
+ */
+ async function fetchFavourites() {
+   try {
+      // OBTENER CANCIONES FAVORITAS
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(email)}`);
+      if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
+   
+      favoriteSongs.value = await songsResponse.json();
+      console.log(" ✅ Canciones favoritas: ", favoriteSongs.value);
+   
+      // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
+      if (!favoriteSongs.value || !Array.isArray(favoriteSongs.value.canciones)) {
+         throw new Error('Las canciones no llegaron en formato de array');
+      }
+ 
+   } catch (error) {
+      console.error('Error al cargar la playlist:', error);
+   }
+}
 
 /**
  * Observador (watch) que detecta cambios en el parámetro 'id' de la ruta.

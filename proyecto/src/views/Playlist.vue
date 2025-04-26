@@ -398,6 +398,11 @@ const aleatorio = ref(false);
 const favoriteSongs = ref([]);
 
 /**
+ * @constant {Ref<string>} currentNick - Apodo actual del usuario.
+ */
+const currentNick = ref('');
+ 
+/**
  * Estado reactivo que controla la visibilidad del popup.
  * @type {Ref<boolean>}
  */
@@ -1311,8 +1316,9 @@ const fetchResults = async () => {
    }
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
+   currentNick.value =  localStorage.getItem("Nick");
    try {
-      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=canciones`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
       results.value = await response.json();
       console.log("Respuesta de la API:", results.value);
