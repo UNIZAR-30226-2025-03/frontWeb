@@ -52,7 +52,7 @@
                <p :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
                <input v-if="isEditingDescription && type === 'ListaReproduccion'" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
             </div>
-            <p>{{ playlistInfo.NumLikes }} Likes</p>
+            <p v-if="type !== 'ajenoPrivado'">{{ playlistInfo.NumLikes }} Likes</p>
          </div>
 
       </div>

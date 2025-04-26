@@ -1506,7 +1506,7 @@
  /* Progreso de la canción */
  .progress-bar-filled {
    height: 100%;
-   background: #323fa6; /* Color verde para el progreso */
+   background: #323fa6; /* Color azul para el progreso */
    border-radius: 2px;
    transition: width 0.1s ease-in-out; /* Animación suave para el progreso */
  }
@@ -1545,11 +1545,16 @@
    white-space: nowrap;
    text-overflow: ellipsis;
    justify-self: start; /* pegado a la izquierda */
+   flex-shrink: 1;
  }
  
  .song-name {
-   color: white;
- }
+  color: white;
+  white-space: normal; 
+  word-break: break-word; 
+  max-width: 250px; 
+}
+
  
  .bottom-bar {
    position: fixed;

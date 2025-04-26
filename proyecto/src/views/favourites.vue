@@ -201,11 +201,10 @@ const handleClick = (id, type) => {
 
 .layout {
    display: flex;
-   height: 100vh;
+   height: calc(100vh - 19vh);
    background: linear-gradient(180deg, #141414 15%, #4a1e04 40%, #8a3a10 60%, #ffb347 100%);
    color: white;
    overflow: hidden;
-  
 }
 
 /* Columna difuminada */
@@ -263,8 +262,8 @@ const handleClick = (id, type) => {
    padding: 12px 24px;
    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05);
    min-width: 60vw;
-   min-height: 60vh;
-   max-height: 60vh;    
+   min-height: 54vh;
+   max-height: calc(60vh - 12vh);    
    border-radius: 12px;   
    margin-bottom: 60px;  
    overflow-y:auto ;
