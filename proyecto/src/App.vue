@@ -147,363 +147,377 @@
                   <img :src="previousIcon" alt="Previous" @click="previousSong"/>
                </button>
    
-  </div>
-
-  
-</template>
-
-<script setup>
-
-//falta poner icono de mute
-
-import { computed, ref, provide, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-/**
- * Importación de funciones reactivas y ciclo de vida desde Vue.
- */
-
- // Importar las imágenes
-import previewIcon from '@/assets/preview.svg';
-/**
- * @constant {string} previewIcon - Ruta de la imagen para vista previa.
- */
-import userIcon from '@/assets/circle-user.svg';
-/**
- * @constant {string} userIcon - Ruta de la imagen del usuario.
- */
-import previousIcon from '@/assets/skip_previous.svg';
-/**
- * @constant {string} previousIcon - Ruta de la imagen para ir a la canción anterior.
- */
-import pauseIcon from '@/assets/pause-circle.svg';
-/**
- * @constant {string} pauseIcon - Ruta de la imagen del botón de pausa.
- */
-import playIcon from '@/assets/play-circle.svg';
-/**
- * @constant {string} playIcon - Ruta de la imagen del botón de reproducción.
- */
-import nextIcon from '@/assets/skip_next.svg';
-/**
- * @constant {string} nextIcon - Ruta de la imagen para ir a la siguiente canción.
- */
-import recordVinylIcon from '@/assets/record-vinyl.svg';
-/**
- * @constant {string} recordVinylIcon - Ruta de la imagen del icono de vinilo.
- */
-import friendsIcon from '@/assets/following.svg';
-/**
- * @constant {string} friendsIcon - Ruta de la imagen del icono de amigos.
- */
-import starIcon from '@/assets/star.svg';
-/**
- * @constant {string} starIcon - Ruta de la imagen del icono de estrella.
- */
-import settingsIcon from '@/assets/settings.svg';
-/**
- * @constant {string} settingsIcon - Ruta de la imagen del icono de configuración.
- */
-import albumIcon from '@/assets/folder-music.svg';
-/**
- * @constant {string} albumIcon - Ruta de la imagen del icono de álbum.
- */
-import createList from '@/assets/task-checklist.svg';
-/**
- * @constant {string} createList - Ruta de la imagen del icono de crear lista.
- */
-import restart from '@/assets/restart.svg';
-/**
- * @constant {string} restart - Ruta de la imagen del icono de reinicio.
- */
-import randomIcon from '@/assets/random-button.png';
-/**
- * @constant {string} randomIcon - Ruta de la imagen del botón de reproducción aleatoria.
- */
-import logo from '@/assets/logo.png';
-/**
- * @constant {string} logo - Ruta de la imagen del logotipo.
- */
-import router from './router';
-/**
- * @constant {object} router - Instancia del router para navegación.
- */
-import AudioStreamer from './components/AudioStreamer.vue'
-/**
- * @component AudioStreamer - Componente para la transmisión de audio.
- */
-import CorazonVacio from '@/assets/me-gusta.png';
-/**
- * @constant {string} CorazonVacio - Ruta de la imagen de "me gusta" vacío.
- */
-import { emitter } from '@/js/event-bus';
-/**
- * @constant {object} emitter - Bus de eventos para comunicación entre componentes.
- */
-
-const streamerRef = ref(null)
-/**
- * @constant {Ref<any>} streamerRef - Referencia al componente AudioStreamer.
- */
-sessionStorage.removeItem('home-song-loaded')
-
-provide('playSong', playSong);
-/**
- * Provee la función playSong para uso en componentes hijos.
- */
-provide('playFromQuest', playFromQuest);
-/**
- * Provee la función playFromQuest para uso en componentes hijos.
- */
-
- provide('streamerRef', streamerRef)
-/**
- * Provee la variable streamerRef para uso en componentes hijos.
- */
-
-emitter.emit("audio-buffer-ready");
-/**
- * Emite el evento "audio-buffer-ready" a través del bus de eventos.
- */
-
-// Variables reactivas
-const lastSong = ref({
-  id: '',
-  name: '',
-  cover: '',
-  minute: 0
-});
-/**
- * @constant {Ref<Object>} lastSong - Objeto que almacena la última canción reproducida.
- */
-provide("lastSong", lastSong)
-/**
- * Provee la variable lastSong para uso en componentes hijos.
- */
-// VARIABLES COMPARTIDAS
-const songsData = ref([]); // Esta variable contendrá toda la información de la cola
-/**
- * @constant {Ref<Array>} songsData - Array que almacena la cola de reproducción.
- */
-// Proveemos songsData para que otros componentes (como Home) puedan inyectarla y reaccionar a sus cambios.
-provide('songsData', songsData);
-/**
- * Provee la variable songsData para que componentes hijos puedan acceder y reaccionar a sus cambios.
- */
-
-const player = ref(null);
-/**
- * @constant {Ref<any>} player - Referencia al elemento de audio.
- */
-const mute = ref(false);
-/**
- * @constant {Ref<boolean>} mute - Estado del mute (silencio) del reproductor.
- */
-const email =  localStorage.getItem("email");
-/**
- * @constant {string|null} email - Correo electrónico del usuario obtenido del almacenamiento local.
- */
-const currentNick = ref('');
-/**
- * @constant {Ref<string>} currentNick - Apodo actual del usuario.
- */
-const isMenuOpen = ref(false);
-/**
- * @constant {Ref<boolean>} isMenuOpen - Estado que indica si el menú está abierto.
- */
-const isPlaying = ref(false);
-/**
- * @constant {Ref<boolean>} isPlaying - Estado que indica si una canción se está reproduciendo.
- */
-const currentSongTime = ref(0);
-/**
- * @constant {Ref<number>} currentSongTime - Tiempo actual de la canción en reproducción.
- */
-
- provide('currentSongTime', currentSongTime)
-/**
- * Provee la variable currentSongTime para uso en componentes hijos.
- */
-
-const isLoading = ref(false);
-/**
- * @constant {Ref<boolean>} isLoading - Estado que indica si se están cargando datos.
- */
-const searchOption = ref('Todo');
-/**
- * @constant {Ref<string>} searchOption - Opción de búsqueda seleccionada.
- */
-const currentSearch = ref('');
-/**
- * @constant {Ref<string>} currentSearch - Término de búsqueda actual.
- */
-const hoveredSong = ref(null);
-/**
- * @constant {Ref<any>} hoveredSong - Canción actualmente pasada por encima (hover) en la interfaz.
- */
-const currentSong = ref('');
-/**
- * @constant {Ref<any>} currentSong - Objeto de la canción actualmente en reproducción.
- */
-provide("currentSong",currentSong)
-/**
- * Provee la variable currentSong para uso en componentes hijos.
- */
-const currentStopTime = ref('');
-/**
- * @constant {Ref<string>} currentStopTime - Tiempo en que se detuvo la canción.
- */
-const progress = ref(0); // Valor de la barra (0 a 100)
-/**
- * @constant {Ref<number>} progress - Progreso de la reproducción en porcentaje.
- */
-const isLooping = ref(false);
-/**
- * @constant {Ref<boolean>} isLooping - Estado que indica si la reproducción está en bucle.
- */
-
-const searchArea = ref(null);
-/**
- * @constant {Ref<HTMLElement|null>} searchArea - Referencia al área de búsqueda.
- */
-const resultsArea = ref(null);
-/**
- * @constant {Ref<HTMLElement|null>} resultsArea - Referencia al área que muestra los resultados de búsqueda.
- */
-const hoverLike = ref({});
-/**
- * @constant {Ref<Object>} hoverLike - Estado de like en hover para canciones.
- */
-const playlistHoverLike = ref({});
-/**
- * @constant {Ref<Object>} playlistHoverLike - Estado de like en hover para playlists.
- */
-const audioIsReadyToSeek = ref(false);
-/**
- * @constant {Ref<boolean>} audioIsReadyToSeek - Indica si el audio está listo para saltar a una posición determinada.
- */
-
-const genders = ref([]);
-/**
- * @constant {Ref<Array>} genders - Lista de géneros disponibles.
- */
-const showGenderDropdown = ref(false);
-/**
- * @constant {Ref<boolean>} showGenderDropdown - Estado que controla la visibilidad del desplegable de géneros.
- */
-const selectedGender = ref('');
-/**
- * @constant {Ref<string>} selectedGender - Género seleccionado actualmente.
- */
-const genderFlyout = ref(null);
-
-
-/**
- * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
- */
-
-// pop-up 
-const showPopup = ref(false);
-/**
- * @constant {Ref<boolean>} showPopup - Estado que controla la visualización del popup.
- */
-const popupMessage = ref("");
-/**
- * @constant {Ref<string>} popupMessage - Mensaje que se muestra en el popup.
- */
-const popupType = ref("popup-error");
-/**
- * @constant {Ref<string>} popupType - Tipo del popup ("popup-error" o "popup-success").
- */
-
-const showPopupMessage = (message, type) => {
-   popupMessage.value = message;
-   popupType.value = type;
-   showPopup.value = true;
-
-   setTimeout(() => {
-      showPopup.value = false;
-   }, 1500);
-};
-/**
- * Función para mostrar un popup de mensaje.
- * @param {string} message - Mensaje a mostrar.
- * @param {string} type - Tipo de popup ("popup-error" o "popup-success").
- */
-
-const results = ref({
-  artistas: [],
-  canciones: [],
-  albums: [],
-  playlists: [],
-  playlistsProtegidasDeAmigos: [],
-  playlistsPorGenero: []
-});
-/**
- * @constant {Ref<Object>} results - Objeto que almacena los resultados de la búsqueda en distintas categorías.
- */
-
-const menuIcons = ref([
-  { src: friendsIcon, alt: 'Amigos', action: () => actionIcon('/friends')},
-  { src: starIcon, alt: 'Favoritos', action: () => actionIcon('/favs')},
-  { src: settingsIcon, alt: 'Configuración' },
-  { src: albumIcon, alt: 'Álbum', action: () => actionIcon('/fav-playlists') },
-  { src: createList, alt: 'List', action: () => actionIcon('/createList') }, 
-]);
-/**
- * @constant {Ref<Array>} menuIcons - Lista de objetos que contienen los íconos del menú y sus acciones correspondientes.
- */
-
-const actionIcon = (pagina) => {
-   router.push(pagina);
-   closeMenu();
-};
-const isAdmin = ref(false)         // ▸ reactivo
-let intervalId = null             // ▸ guardará el ID del polling
-
-function syncAdmin() {
-  // Siempre lee de localStorage y actualiza el ref
-  isAdmin.value = localStorage.getItem('isAdmin') === 'true'
-}
-
-onMounted(() => {
-  // 1) Sincroniza una vez al montar
-  syncAdmin()
-  console.log("isAdmin al montar:", isAdmin.value)
-
-  // 2) Añade listener para otros tabs
-  window.addEventListener('storage', syncAdmin)
-
-  // 3) Arranca el polling: cada 500 ms (puedes ajustar este intervalo)
-  intervalId = setInterval(syncAdmin, 2000)
-})
-
-onBeforeUnmount(() => {
-  // 1) Limpia el listener
-  window.removeEventListener('storage', syncAdmin)
-
-  // 2) Limpia el polling para no dejar timers colgando
-  if (intervalId !== null) {
-    clearInterval(intervalId)
-    intervalId = null
-  }
-})
-
-/**
- * Función para redirigir a una ruta específica y cerrar el menú.
- * @param {string} pagina - Ruta a la que redirigir.
- */
-
-const hasResults = computed(() => 
-  results.value.artistas.length || 
-  results.value.canciones.length || 
-  results.value.albums.length || 
-  results.value.playlists.length || 
-  results.value.playlistsProtegidasDeAmigos.length || 
-  results.value.playlistsPorGenero.length
-);
-/**
- * @constant {ComputedRef<boolean>} hasResults - Computada que indica si existen resultados en alguna categoría.
- */
+               <button class="play-button" @click="togglePlay">
+                  <img :src="isPlaying ? pauseIcon : playIcon" alt="Play/Pause" />
+               </button>
+   
+               <button class="side-buttons">
+                  <img :src="nextIcon" alt="Next" @click="nextSong"/>
+               </button>
+   
+               <button class="side-buttons" @click="toggleLoop">
+                  <img :src="restart" alt="Restart" :class="{'loop-active': isLooping}" />
+             </button>
+           </div>
  
+           <div class="progress">
+             
+             <div>  {{ currentSongTime }} </div>
+             <input type="range" class="progress-bar" min="0" max="100" v-model="progress"  @input="seekAudio" step="0.1"
+             :style="{ backgroundSize: (progress / 100) * 100 + '% 100%' }"/>
+             <div> 
+                {{ lastSong.minute }}
+             </div>
+           </div>
+ 
+         </div>
+ 
+         <!-- Right -->
+         <div class="extras">
+          
+           <div class="volume-wrapper">
+             <i class="fa-solid fa-volume-high" @click="muteVolumen" >🔊</i>
+             <transition name="fade">
+                 <input
+                   ref="volumeSlider"
+                   type="range"
+                   min="0"
+                   max="1"
+                   step="0.01"
+                   @input="setVolume($event.target.value)"
+                   class="volume-slider"
+                 />
+               </transition>
+           </div>
+         </div>
+       </div>
+ 
+       <!-- Capa de fondo difuminada (se muestra solo si el menú está abierto) -->
+       <div v-if="isMenuOpen" class="overlay" @click="closeMenu"></div>
+       
+       <!-- Menú en semicírculo desde la esquina superior izquierda -->
+       <div v-if="isMenuOpen" class="menu-container">
+         <div class="menu">
+           <button class="menu-item" 
+             v-for="(icon, index) in menuIcons" 
+             :key="index" 
+             :style="getIconPosition(index, menuIcons.length)"
+             @click="icon.action">
+             <img :src="icon.src" :alt="icon.alt"/>
+           </button>
+         </div>
+       </div>
+         
+     </div>
+ 
+     <div v-if="showPopup" :class="popupType" class="popup">
+          {{ popupMessage }}
+     </div>
+    
+   </div>
+ 
+ </template>
+ 
+ <script setup>
+ 
+ //falta poner icono de mute
+ 
+ import { computed, ref, provide, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+ /**
+  * Importación de funciones reactivas y ciclo de vida desde Vue.
+  */
+ 
+  // Importar las imágenes
+ import previewIcon from '@/assets/preview.svg';
+ /**
+  * @constant {string} previewIcon - Ruta de la imagen para vista previa.
+  */
+ import userIcon from '@/assets/circle-user.svg';
+ /**
+  * @constant {string} userIcon - Ruta de la imagen del usuario.
+  */
+ import previousIcon from '@/assets/skip_previous.svg';
+ /**
+  * @constant {string} previousIcon - Ruta de la imagen para ir a la canción anterior.
+  */
+ import pauseIcon from '@/assets/pause-circle.svg';
+ /**
+  * @constant {string} pauseIcon - Ruta de la imagen del botón de pausa.
+  */
+ import playIcon from '@/assets/play-circle.svg';
+ /**
+  * @constant {string} playIcon - Ruta de la imagen del botón de reproducción.
+  */
+ import nextIcon from '@/assets/skip_next.svg';
+ /**
+  * @constant {string} nextIcon - Ruta de la imagen para ir a la siguiente canción.
+  */
+ import recordVinylIcon from '@/assets/record-vinyl.svg';
+ /**
+  * @constant {string} recordVinylIcon - Ruta de la imagen del icono de vinilo.
+  */
+ import friendsIcon from '@/assets/following.svg';
+ /**
+  * @constant {string} friendsIcon - Ruta de la imagen del icono de amigos.
+  */
+ import starIcon from '@/assets/star.svg';
+ /**
+  * @constant {string} starIcon - Ruta de la imagen del icono de estrella.
+  */
+ import settingsIcon from '@/assets/settings.svg';
+ /**
+  * @constant {string} settingsIcon - Ruta de la imagen del icono de configuración.
+  */
+ import albumIcon from '@/assets/folder-music.svg';
+ /**
+  * @constant {string} albumIcon - Ruta de la imagen del icono de álbum.
+  */
+ import createList from '@/assets/task-checklist.svg';
+ /**
+  * @constant {string} createList - Ruta de la imagen del icono de crear lista.
+  */
+ import restart from '@/assets/restart.svg';
+ /**
+  * @constant {string} restart - Ruta de la imagen del icono de reinicio.
+  */
+ import randomIcon from '@/assets/random-button.png';
+ /**
+  * @constant {string} randomIcon - Ruta de la imagen del botón de reproducción aleatoria.
+  */
+ import logo from '@/assets/logo.png';
+ /**
+  * @constant {string} logo - Ruta de la imagen del logotipo.
+  */
+ import router from './router';
+ /**
+  * @constant {object} router - Instancia del router para navegación.
+  */
+ import AudioStreamer from './components/AudioStreamer.vue'
+ /**
+  * @component AudioStreamer - Componente para la transmisión de audio.
+  */
+ import CorazonVacio from '@/assets/me-gusta.png';
+ /**
+  * @constant {string} CorazonVacio - Ruta de la imagen de "me gusta" vacío.
+  */
+ import { emitter } from '@/js/event-bus';
+ /**
+  * @constant {object} emitter - Bus de eventos para comunicación entre componentes.
+  */
+ 
+ const streamerRef = ref(null)
+ /**
+  * @constant {Ref<any>} streamerRef - Referencia al componente AudioStreamer.
+  */
+ sessionStorage.removeItem('home-song-loaded')
+ 
+ provide('playSong', playSong);
+ /**
+  * Provee la función playSong para uso en componentes hijos.
+  */
+ provide('playFromQuest', playFromQuest);
+ /**
+  * Provee la función playFromQuest para uso en componentes hijos.
+  */
+ 
+  provide('streamerRef', streamerRef)
+ /**
+  * Provee la variable streamerRef para uso en componentes hijos.
+  */
+ 
+ emitter.emit("audio-buffer-ready");
+ /**
+  * Emite el evento "audio-buffer-ready" a través del bus de eventos.
+  */
+ 
+ // Variables reactivas
+ const lastSong = ref({
+   id: '',
+   name: '',
+   cover: '',
+   minute: 0
+ });
+ /**
+  * @constant {Ref<Object>} lastSong - Objeto que almacena la última canción reproducida.
+  */
+ provide("lastSong", lastSong)
+ /**
+  * Provee la variable lastSong para uso en componentes hijos.
+  */
+ // VARIABLES COMPARTIDAS
+ const songsData = ref([]); // Esta variable contendrá toda la información de la cola
+ /**
+  * @constant {Ref<Array>} songsData - Array que almacena la cola de reproducción.
+  */
+ // Proveemos songsData para que otros componentes (como Home) puedan inyectarla y reaccionar a sus cambios.
+ provide('songsData', songsData);
+ /**
+  * Provee la variable songsData para que componentes hijos puedan acceder y reaccionar a sus cambios.
+  */
+ 
+ const player = ref(null);
+ /**
+  * @constant {Ref<any>} player - Referencia al elemento de audio.
+  */
+ const mute = ref(false);
+ /**
+  * @constant {Ref<boolean>} mute - Estado del mute (silencio) del reproductor.
+  */
+ const email =  localStorage.getItem("email");
+ /**
+  * @constant {string|null} email - Correo electrónico del usuario obtenido del almacenamiento local.
+  */
+ const currentNick = ref('');
+ /**
+  * @constant {Ref<string>} currentNick - Apodo actual del usuario.
+  */
+ const isMenuOpen = ref(false);
+ /**
+  * @constant {Ref<boolean>} isMenuOpen - Estado que indica si el menú está abierto.
+  */
+ const isPlaying = ref(false);
+ /**
+  * @constant {Ref<boolean>} isPlaying - Estado que indica si una canción se está reproduciendo.
+  */
+ const currentSongTime = ref(0);
+ /**
+  * @constant {Ref<number>} currentSongTime - Tiempo actual de la canción en reproducción.
+  */
+ 
+  provide('currentSongTime', currentSongTime)
+ /**
+  * Provee la variable currentSongTime para uso en componentes hijos.
+  */
+ 
+ const isLoading = ref(false);
+ /**
+  * @constant {Ref<boolean>} isLoading - Estado que indica si se están cargando datos.
+  */
+ const searchOption = ref('Todo');
+ /**
+  * @constant {Ref<string>} searchOption - Opción de búsqueda seleccionada.
+  */
+ const currentSearch = ref('');
+ /**
+  * @constant {Ref<string>} currentSearch - Término de búsqueda actual.
+  */
+ const hoveredSong = ref(null);
+ /**
+  * @constant {Ref<any>} hoveredSong - Canción actualmente pasada por encima (hover) en la interfaz.
+  */
+ const currentSong = ref('');
+ /**
+  * @constant {Ref<any>} currentSong - Objeto de la canción actualmente en reproducción.
+  */
+ provide("currentSong",currentSong)
+ /**
+  * Provee la variable currentSong para uso en componentes hijos.
+  */
+ const currentStopTime = ref('');
+ /**
+  * @constant {Ref<string>} currentStopTime - Tiempo en que se detuvo la canción.
+  */
+ const progress = ref(0); // Valor de la barra (0 a 100)
+ /**
+  * @constant {Ref<number>} progress - Progreso de la reproducción en porcentaje.
+  */
+ const isLooping = ref(false);
+ /**
+  * @constant {Ref<boolean>} isLooping - Estado que indica si la reproducción está en bucle.
+  */
+ 
+ const searchArea = ref(null);
+ /**
+  * @constant {Ref<HTMLElement|null>} searchArea - Referencia al área de búsqueda.
+  */
+ const resultsArea = ref(null);
+ /**
+  * @constant {Ref<HTMLElement|null>} resultsArea - Referencia al área que muestra los resultados de búsqueda.
+  */
+ const hoverLike = ref({});
+ /**
+  * @constant {Ref<Object>} hoverLike - Estado de like en hover para canciones.
+  */
+ const playlistHoverLike = ref({});
+ /**
+  * @constant {Ref<Object>} playlistHoverLike - Estado de like en hover para playlists.
+  */
+ const audioIsReadyToSeek = ref(false);
+ /**
+  * @constant {Ref<boolean>} audioIsReadyToSeek - Indica si el audio está listo para saltar a una posición determinada.
+  */
+ 
+ const genders = ref([]);
+ /**
+  * @constant {Ref<Array>} genders - Lista de géneros disponibles.
+  */
+ const showGenderDropdown = ref(false);
+ /**
+  * @constant {Ref<boolean>} showGenderDropdown - Estado que controla la visibilidad del desplegable de géneros.
+  */
+ const selectedGender = ref('');
+ /**
+  * @constant {Ref<string>} selectedGender - Género seleccionado actualmente.
+  */
+ const genderFlyout = ref(null);
+ /**
+  * @constant {Ref<HTMLElement|null>} genderFlyout - Referencia al elemento desplegable de géneros.
+  */
+  const likedPlaylists = ref([]);
+ /**
+  * @constant {Ref<HTMLElement|null>} likedPlaylists - Lista de playlists guardadas.
+  */
+ // pop-up 
+ const showPopup = ref(false);
+ /**
+  * @constant {Ref<boolean>} showPopup - Estado que controla la visualización del popup.
+  */
+ const popupMessage = ref("");
+ /**
+  * @constant {Ref<string>} popupMessage - Mensaje que se muestra en el popup.
+  */
+ const popupType = ref("popup-error");
+ /**
+  * @constant {Ref<string>} popupType - Tipo del popup ("popup-error" o "popup-success").
+  */
+ 
+ const showPopupMessage = (message, type) => {
+    popupMessage.value = message;
+    popupType.value = type;
+    showPopup.value = true;
+ 
+    setTimeout(() => {
+       showPopup.value = false;
+    }, 1500);
+ };
+ /**
+  * Función para mostrar un popup de mensaje.
+  * @param {string} message - Mensaje a mostrar.
+  * @param {string} type - Tipo de popup ("popup-error" o "popup-success").
+  */
+ 
+ const results = ref({
+   artistas: [],
+   canciones: [],
+   albums: [],
+   playlists: [],
+   playlistsProtegidasDeAmigos: [],
+   playlistsPorGenero: []
+ });
+ /**
+  * @constant {Ref<Object>} results - Objeto que almacena los resultados de la búsqueda en distintas categorías.
+  */
+ 
+ const menuIcons = ref([
+   { src: friendsIcon, alt: 'Amigos', action: () => actionIcon('/friends')},
+   { src: starIcon, alt: 'Favoritos', action: () => actionIcon('/favs')},
+   { src: settingsIcon, alt: 'Configuración' },
+   { src: albumIcon, alt: 'Álbum', action: () => actionIcon('/fav-playlists') },
+   { src: createList, alt: 'List', action: () => actionIcon('/createList') }, 
+ ]);
+ /**
+  * @constant {Ref<Array>} menuIcons - Lista de objetos que contienen los íconos del menú y sus acciones correspondientes.
+  */
 
   const isLiked = (id) => likedPlaylists.value.some(p => p.Id === id);
  /**
@@ -701,28 +715,32 @@ const hasResults = computed(() =>
    } catch (error) {
      console.error('Error previous song:', error);
    }
-};
+ };
+ /**
+  * Función asíncrona para reproducir la canción anterior en la cola.
+  */
+ 
+ const handleClick = (id, playlistType) => {
+    if (playlistType === "album") {
+       router.push({ path: '/album', query: { id: id } });
+    }
+    else {
+       console.log("Playlist seleccionada:", id);
+       localStorage.setItem("type", playlistType);
+       router.push({ path: '/playlist', query: { id: id } });
+    }
+ };
+ /**
+  * Función para manejar el clic en una playlist o álbum.
+  * Redirige a la ruta correspondiente basado en el tipo.
+  */
+  
+ // Funciones de like a playlist
+ const likePlaylist = async (idLista) => {
 
-
-/** Devuelve siempre el email actual del localStorage, o cadena vacía si no existe */
-function getEmail() {
-  return localStorage.getItem("email") || "";
-}
-
-/**
- * Función para alternar el modo de reproducción en bucle.
- */
-
-// Función para gestionar siguiente cancion
-const nextSong = async() => {
-  try {
-    const response = await fetch(
-        `https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(getEmail())}`
-    );
-
-    if (!response.ok) throw new Error('Error al obtener next song');
-    const nextSongData = await response.json();
-    console.log("nextsong: ", nextSongData);
+   if (isLiked(idLista)) {
+      showPopupMessage("La playlist ya se encuentra guardada", "popup-error");
+   }
 
    else {
       try {
@@ -744,9 +762,39 @@ const nextSong = async() => {
   * @param {string} idLista - ID de la playlist a la que se dará like.
   */
 
-async function handleSongEnded() {
-  try {
-    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(getEmail())}`);
+ async function fetchLikedPlaylists() {
+   try {
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/liked/${email}`);
+      const data = await response.json();
+      likedPlaylists.value = Array.isArray(data) ? data : [data];
+      console.log("Playlists con like: ", likedPlaylists.value);
+   } catch (error) {
+      console.error("Error al cargar liked playlists", error);
+   }
+ };
+ /**
+  * Función asíncrona para cargar las playlists guardadas.
+  */
+ 
+ // Función para cerrar el desplegable de búsqueda
+ const closeSearchResults = () => {
+   currentSearch.value = ''; // Limpiar la búsqueda
+ };
+ /**
+  * Función para cerrar y limpiar los resultados de búsqueda.
+  */
+ 
+ // Agregar evento de clic global
+ const handleClickOutside = (event) => {
+   const clickedOutsideSearch =
+     searchArea.value && !searchArea.value.contains(event.target) &&
+     resultsArea.value && !resultsArea.value.contains(event.target);
+ 
+   const clickedOutsideGender =
+     genderFlyout.value && !genderFlyout.value.contains(event.target);
+ 
+   if (clickedOutsideSearch) {
+     closeSearchResults();
 
    }
  
@@ -787,70 +835,36 @@ async function handleSongEnded() {
     if (player.value) {
        player.value.addEventListener('ended', handleSongEnded);
     }
-
-    // Si hay siguiente canción, cargar y reproducir
-    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${nextSongData.siguienteCancionId}`);
-    if (!song.ok) throw new Error('Error al obtener los datos de la siguiente canción');
-
-    const songData = await song.json();
-
-    const newSong = {
-      Id: nextSongData.siguienteCancionId,
-      Nombre: songData.Nombre,
-      Portada: songData.Portada,
-      Duracion: songData.Duracion,
-    };
-
-    playSong(newSong);
-  } catch (error) {
-    console.error('[cola] Error al intentar reproducir la siguiente canción:', error);
-    isPlaying.value = false;
-  }
-}
-/**
- * Función asíncrona que se ejecuta cuando finaliza una canción.
- * Intenta reproducir la siguiente canción de la cola.
- */
-
-const previousSong = async() =>{
-  try {
-    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/anterior?userEmail=${encodeURIComponent(getEmail())}`);
-    if (!response.ok) throw new Error('Error al obtener previous song');
-    const previousSong = await response.json();
-    console.log("previousSong: ", previousSong);
-
-    const song = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${previousSong.cancionAnteriorId}`)
-      
-      if (!song.ok) {
-         throw new Error('Error al reproducir la canción ');
-      }
-      const songData = await song.json();
-      const newSong = {
-         Id: previousSong.cancionAnteriorId,
-         Nombre: songData.Nombre,
-         Portada: songData.Portada,
-         Duracion: songData.Duracion,
-      };
-
-      playSong(newSong);
-
-
-  } catch (error) {
-    console.error('Error previous song:', error);
-  }
-};
-/**
- * Función asíncrona para reproducir la canción anterior en la cola.
- */
-
-const handleClick = (id, playlistType) => {
-   if (playlistType === "album") {
-      router.push({ path: '/album', query: { id: id } });
-   }
-   else {
-      console.log("Playlist seleccionada:", id);
-      localStorage.setItem("type", playlistType);
-      router.push({ path: '/playlist', query: { id: id } });
+ 
+     try{
+ 
+       // Obtener generos
+       const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
+       if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
+ 
+       const data = await genderResponse.json();
+       genders.value = data;
+       console.log("Géneros cargados:", genders.value);
+ 
+    } catch (error) {
+       console.error('Error:', error);
+    }
+ });
+ /**
+  * Bloque onMounted:
+  * - Actualiza la cola de reproducción.
+  * - Registra eventos globales.
+  * - Obtiene datos del usuario, la primera canción y los géneros.
+  */
+ 
+ const bufferReady = () => {
+   if ( currentTimeNoFormat.value != null && player.value) {
+     
+     player.value.currentTime =  currentTimeNoFormat.value;
+     console.log(`✅ [Seek buffer-ready] Jump a ${ currentTimeNoFormat.value}s`);
+     currentTimeNoFormat.value = null;
+     progress.value = (player.value.currentTime / player.value.duration) * 100;
+    
    }
  };
  /**
@@ -865,19 +879,22 @@ const handleClick = (id, playlistType) => {
    if (player.value) {
       player.value.removeEventListener('ended', handleSongEnded);
    }
-
-    try{
-
-      // Obtener generos
-      const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(getEmail())}`);
-      if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
-
-      const data = await genderResponse.json();
-      genders.value = data;
-      console.log("Géneros cargados:", genders.value);
-
-   } catch (error) {
-      console.error('Error:', error);
+ 
+ });
+ /**
+  * Bloque onBeforeUnmount:
+  * - Elimina los eventos registrados.
+  * - Emite la actualización del progreso del audio antes de desmontar el componente.
+  */
+ 
+  function enviarProgreso() {
+   if (player.value && streamerRef.value?.socket) {
+     const currentTime = player.value.currentTime
+     streamerRef.value.socket.emit('progressUpdate', {
+       userId: email,
+       songId: currentSong.value.Id,
+       currentTime: currentTime,
+     })
    }
  }
  
@@ -972,70 +989,13 @@ const handleClick = (id, playlistType) => {
     } catch (error) {
        console.log(error.message);
     }
-    
-
-    console.log(`[info] Tiempo actualizado: ${currentSongTime.value}s`);
-  }
-}
-/**
- * Función para actualizar el tiempo actual de la canción.
- * Calcula y actualiza el progreso y emite el progreso a través del socket.
- */
-
-const clearQueue = async () => {
-   try {
-      const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/clear', {
-      method: 'POST',
-      headers: {
-         'Accept': '*/*', 
-         'Content-Type': 'application/json',  
-      },
-      body: JSON.stringify({
-         userEmail: email
-      })
-      });
-
-      if (!response.ok) {
-      throw new Error('Error al vaciar la cola de reproducción');
-      }
-
-      console.log("Cola vaciada con éxito");
-
-      // // Animación antes de eliminar las canciones
-      // document.querySelectorAll('.song-item').forEach((el) => {
-      //    el.classList.add('fade-out');
-      // });
-
-      // // Espera la animación antes de limpiar la lista
-      // setTimeout(() => {
-      //    songs.value = [];
-      // }, 500);
-      
-   } catch (error) {
-      console.log(error.message);
-   }
-}; 
-/**
- * Función asíncrona para vaciar la cola de reproducción.
- */
-
- // FUNCION updateQueue
-const updateQueue = async () => {
-  try {
-    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(getEmail())}`);
-    if (!response.ok) throw new Error('Error al obtener la cola');
-    songsData.value = await response.json();
-    console.log("Cola actualizada:", songsData.value);
-  } catch (error) {
-    console.error('updateQueue error:', error);
-  }
-};
-/**
- * Función asíncrona para actualizar la cola de reproducción del usuario.
- */
-
-// Función playFromQuest actualizada
-async function playFromQuest(song) {
+ }; 
+ /**
+  * Función asíncrona para vaciar la cola de reproducción.
+  */
+ 
+  // FUNCION updateQueue
+ const updateQueue = async () => {
    try {
      const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
      if (!response.ok) throw new Error('Error al obtener la cola');
