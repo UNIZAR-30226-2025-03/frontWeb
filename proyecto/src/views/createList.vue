@@ -204,6 +204,7 @@ const selectDefaultImage = (imageUrl) => {
 const closeImageSelection = () => {
    showImageSelection.value = false;
    profileAction.value = "";
+   selectedDefaultImage.value = '';
 };
 
 /**
@@ -314,6 +315,7 @@ const handleCreateList = async () => {
    display: flex;
    justify-content: center;
    align-items: center;
+   overflow-y: auto;
 }
 
 .create-list-box {

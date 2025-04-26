@@ -22,12 +22,12 @@
             :key="element.Id || index"
             class="playlists-item"
             >
-            <div class="playlist-card" @click="handleClick(element.Id, 'ajeno')">
+            <div class="playlist-card" @click="handleClick(element.Id, isPrivate ? 'ajenoPrivado' : 'ajeno')">
                 <img class="playlist-cover" :src="element.Portada" alt="Portada" />
                 <div class="playlist-info">
                 <h3 class="playlist-title">{{ element.Nombre }}</h3>
                 <p class="playlist-meta">
-                    {{ element.NumCanciones }} canciones • {{ element.NumLikes }} ❤️ • {{ element.TipoLista }}
+                    {{ element.NumCanciones }} canciones • {{ element.NumLikes }} ❤️ • {{ element.Genero }}
                 </p>
                 </div>
             </div>
@@ -63,6 +63,18 @@
    * @type {import('vue').Ref<Array>}
    */
   const playlists = ref([]);
+
+  /**
+    * Correo electrónico del usuario obtenido del almacenamiento local.
+    * @type {string|null}
+    */
+   const email = localStorage.getItem("email");
+   
+   /**
+    * Guarda si el tipo de privacidad es privada o no
+    * @type {Boolean}
+    */
+   const isPrivate = ref(false);
 
   /**
    * Información reactiva del usuario amigo.
@@ -121,9 +133,51 @@
       if (!dataUserResponse.ok) throw new Error("Error al cargar la información del usuario");
       const userData = await dataUserResponse.json();
 
-      playlists.value = userData.Playlists;
+      // Obtenemos las playlists básicas
+      const basePlaylists = userData.Playlists || [];
+
+      const privacyResponse = await fetch(`https://echobeatapi.duckdns.org/users/get-privacy?userEmail=${encodeURIComponent(friendEmail)}`);
+      if (!privacyResponse.ok) throw new Error('Error al obtener la privacidad del usuario');
+      const privacyData = await privacyResponse.json();
+      
+      isPrivate.value = privacyData && privacyData.Privacidad === "privado"; 
+
+      // Enriquecer cada playlist con datos detallados
+      const enrichedPlaylists = await Promise.all(
+         basePlaylists.map(async (playlist) => {
+            try {
+               const res = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${playlist.Id}`);
+               if (!res.ok) throw new Error('Error al obtener info de la playlist');
+               const extra = await res.json();
+
+               const detailsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/playlist/${playlist.Id}`);
+               if (!detailsResponse.ok) throw new Error('Error al obtener los detalles de la playlist');
+               const details = await detailsResponse.json();
+      
+               return {
+               ...playlist,
+               NumCanciones: extra.NumCanciones,
+               NumLikes: isPrivate.value ? undefined : extra.NumLikes,
+               Genero: details.Genero,
+               };
+            } catch (err) {
+               console.warn(`❌ Error al enriquecer playlist ${playlist.Id}`, err);
+               return {
+                  ...playlist,
+                  NumCanciones: 0,
+                  NumLikes: isPrivate.value ? undefined : 0,
+                  Genero: 'Desconocido',
+               };
+            }
+         })
+      );
+
+      // Asignamos la lista final al estado reactivo
+      playlists.value = enrichedPlaylists;
+
       infoUser.value.Nick = userData.Nick;
       infoUser.value.Portada = userData.LinkFoto;
+      console.log("Valor playlists amigo: ", playlists.value);
     } catch (error) {
       console.error(error);
     }
@@ -262,11 +316,13 @@
 .message-button {
   background-color: #5865f2;
   color: white;
+  width: 100px;
   padding: 8px 16px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   margin-top: 10px;
+  white-space: nowrap;
 }
 
 .message-button:hover {
@@ -293,20 +349,22 @@
   height: 36vh;    
   border-radius: 12px;   
   overflow-y:auto ;
- 
 }
 
 .playlists::-webkit-scrollbar {
    width: 0px; /* Hace la barra de desplazamiento invisible */
 }
+
 .playlists-list {
   list-style: none; 
   padding-left: 0;  
   margin: 0;
 }
+
 .playlists-item {
   margin-top: 12px; 
 }
+
 .playlist-card {
   display: flex;
   align-items: center;
@@ -362,8 +420,6 @@
 .close-btn:hover {
   color: white;
 }
-
-
 
 
 </style>

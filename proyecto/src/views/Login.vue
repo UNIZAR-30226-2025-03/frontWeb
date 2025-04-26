@@ -315,7 +315,6 @@ input::placeholder {
    width: 100%;
 }
 
-
 .forgot-password {
    display: inline-block;
    text-align: right;
