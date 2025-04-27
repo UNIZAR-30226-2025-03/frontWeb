@@ -270,6 +270,11 @@ const playlist = ref([]);
 const searchTerm = ref('');
 
 /**
+ * @constant {Ref<string>} currentNick - Apodo actual del usuario.
+ */
+ const currentNick = ref('');
+
+/**
  * Objeto reactivo que almacena los resultados de búsqueda agrupados por categoría.
  * @type {Ref<{ artistas: Array, canciones: Array, albums: Array, listas: Array }>}
  */
@@ -579,9 +584,9 @@ const fetchResults = async () => {
 
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
-
+   currentNick.value =  localStorage.getItem("Nick");
    try {
-      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=canciones`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
       results.value = await response.json();
