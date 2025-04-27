@@ -535,23 +535,36 @@
   */
  
   const isAdmin  = ref(false);                 // ▸ reactivo
+  let intervalId = null 
+  function syncAdmin() {
+   // Siempre lee de localStorage y actualiza el ref
+   isAdmin.value = localStorage.getItem('isAdmin') === 'true'
+ }
  
  // 1) Sincronizar al montar
  onMounted(() => {
-   isAdmin.value = localStorage.getItem('isAdmin') === 'true';
-   console.log("isAdmin: ", isAdmin.value);
-   window.addEventListener('storage', syncAdmin);
- });
+   // 1) Sincroniza una vez al montar
+   syncAdmin()
+   console.log("isAdmin al montar:", isAdmin.value);
+
+   // 2) Añade listener para otros tabs
+   window.addEventListener('storage', syncAdmin)
  
- // 2) Limpieza
+   // 3) Arranca el polling: cada 500 ms (puedes ajustar este intervalo)
+   intervalId = setInterval(syncAdmin, 2000)
+ });
+
  onBeforeUnmount(() => {
-   window.removeEventListener('storage', syncAdmin);
- });
- 
- function syncAdmin() {
-   isAdmin.value = localStorage.getItem('isAdmin') === 'true';
- }
- 
+  // 1) Limpia el listener
+  window.removeEventListener('storage', syncAdmin)
+
+  // 2) Limpia el polling para no dejar timers colgando
+  if (intervalId !== null) {
+    clearInterval(intervalId)
+    intervalId = null
+  }
+})
+
  const hasResults = computed(() => 
    results.value.artistas.length || 
    results.value.canciones.length || 
@@ -583,11 +596,19 @@
        fetchResults(); // actualizar búsqueda al cambiar de tipo
     }
  };
+
+ /**
+  * Función para gestionar la obtención del email del usuario.
+  * Devuelve siempre el email actual del localStorage, o cadena vacía si no existe
+  */
+ function getEmail() {
+   return localStorage.getItem("email") || "";
+ }
+
  /**
   * Función para gestionar el cambio de opción de búsqueda.
   * Actualiza el estado del desplegable y realiza una nueva búsqueda si es necesario.
   */
- 
  const selectGender = (gender) => {
    selectedGender.value = gender;
    currentSearch.value = gender.NombreGenero;
@@ -620,7 +641,7 @@
  // Función para gestionar siguiente cancion
  const nextSong = async() => {
    try {
-     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(getEmail())}`);
      if (!response.ok) throw new Error('Error al obtener next song');
      const nextSongData = await response.json();
      console.log("nextsong: ", nextSongData);
@@ -649,7 +670,7 @@
  
  async function handleSongEnded() {
    try {
-     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(email)}`);
+     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/siguiente-cancion?userEmail=${encodeURIComponent(getEmail())}`);
  
      if (!response.ok) {
        console.log('[cola] No hay más canciones en la cola. Fin de reproducción.');
@@ -691,7 +712,7 @@
  
  const previousSong = async() =>{
    try {
-     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/anterior?userEmail=${encodeURIComponent(email)}`);
+     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/anterior?userEmail=${encodeURIComponent(getEmail())}`);
      if (!response.ok) throw new Error('Error al obtener previous song');
      const previousSong = await response.json();
      console.log("previousSong: ", previousSong);
@@ -744,7 +765,7 @@
 
    else {
       try {
-         const responseLike = await fetch(`https://echobeatapi.duckdns.org/playlists/like/${email}/${idLista}`, {
+         const responseLike = await fetch(`https://echobeatapi.duckdns.org/playlists/like/${getEmail()}/${idLista}`, {
             method: 'POST',
             });
       
@@ -764,7 +785,7 @@
 
  async function fetchLikedPlaylists() {
    try {
-      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/liked/${email}`);
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/liked/${getEmail()}`);
       const data = await response.json();
       likedPlaylists.value = Array.isArray(data) ? data : [data];
       console.log("Playlists con like: ", likedPlaylists.value);
@@ -839,7 +860,7 @@
      try{
  
        // Obtener generos
-       const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(email)}`);
+       const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(getEmail())}`);
        if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
  
        const data = await genderResponse.json();
@@ -891,7 +912,7 @@
    if (player.value && streamerRef.value?.socket) {
      const currentTime = player.value.currentTime
      streamerRef.value.socket.emit('progressUpdate', {
-       userId: email,
+       userId: getEmail(),
        songId: currentSong.value.Id,
        currentTime: currentTime,
      })
@@ -935,7 +956,7 @@
            //const currentTime = parseInt(event.target.currentTime.toFixed(0));
            console.log(`userId: ${email}, songId: ${currentSong.value.Id}, currentTime: ${currentTime}`) 
            streamerRef.value.socket.emit('progressUpdate', {
-               userId: email,
+               userId: getEmail(),
                songId: currentSong.value.Id,
                currentTime: currentTime,
            });
@@ -966,7 +987,7 @@
           'Content-Type': 'application/json',  
        },
        body: JSON.stringify({
-          userEmail: email
+          userEmail: getEmail()
        })
        });
  
@@ -997,7 +1018,7 @@
   // FUNCION updateQueue
  const updateQueue = async () => {
    try {
-     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(email)}`);
+     const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/get-user-queue?userEmail=${encodeURIComponent(getEmail())}`);
      if (!response.ok) throw new Error('Error al obtener la cola');
      songsData.value = await response.json();
      console.log("Cola actualizada:", songsData.value);
@@ -1016,14 +1037,14 @@
        await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/clear', {
           method: 'POST',
           headers: { 'Accept': '*/*', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userEmail: email })
+          body: JSON.stringify({ userEmail: getEmail() })
        });
  
        // 2️⃣ Añadir la nueva canción a la cola de reproducción
        const response = await fetch('https://echobeatapi.duckdns.org/cola-reproduccion/add-song-to-queue', {
           method: 'POST',
           headers: { 'Accept': '*/*', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userEmail: email, songId: song.Id })
+          body: JSON.stringify({ userEmail: getEmail(), songId: song.Id })
        });
        if (!response.ok) throw new Error('Error al añadir la canción a la cola de reproducción');
  
@@ -1037,7 +1058,7 @@
           minute: formatTime(song.Duracion),
        };
        if (streamerRef.value?.startStreamSong) {
-          streamerRef.value.startStreamSong(song.Id, song.Nombre, email);
+          streamerRef.value.startStreamSong(song.Id, song.Nombre, getEmail());
           currentSong.value = song;
           isPlaying.value = true;
        } else {

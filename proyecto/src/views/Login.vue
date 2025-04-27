@@ -82,6 +82,12 @@ const popupType = ref("popup-error");
 const isLoading = ref(true);
 
 /**
+ * Estado reactivo que controla el estado de admin.
+ * @type {Ref<boolean>}
+ */
+ const isAdmin = ref(true);
+
+/**
  * Función para mostrar un popup con un mensaje y tipo especificado.
  * El popup se oculta automáticamente después de 3 segundos.
  *
@@ -201,7 +207,7 @@ const handleLogin = async () => {
 
       // 4. Mensaje de bienvenida
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, 'popup-success');
-      //isAdmin.value = Data.esAdmin;
+      isAdmin.value = Data.esAdmin;
       // 5. Espera 2 segundos para que el usuario vea el popup
       await new Promise(resolve => setTimeout(resolve, 2000));
 
