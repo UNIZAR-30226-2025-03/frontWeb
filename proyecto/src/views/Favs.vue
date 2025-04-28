@@ -89,6 +89,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, inject, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { emitter } from '@/js/event-bus';
 import draggable from 'vuedraggable';
 import randomIcon from '@/assets/random-button.png';
 import default_img from '@/assets/kebab.jpg';
@@ -188,6 +189,7 @@ const popupType = ref("popup-error");
  */
 const songsData = ref('');
 
+
 /**
  * Función para mostrar un popup con mensaje y tipo específico.
  * El popup se cierra automáticamente después de 3 segundos.
@@ -268,6 +270,11 @@ const playlist = ref([]);
 const searchTerm = ref('');
 
 /**
+ * @constant {Ref<string>} currentNick - Apodo actual del usuario.
+ */
+ const currentNick = ref('');
+
+/**
  * Objeto reactivo que almacena los resultados de búsqueda agrupados por categoría.
  * @type {Ref<{ artistas: Array, canciones: Array, albums: Array, listas: Array }>}
  */
@@ -346,22 +353,20 @@ const handleClickOutside = (event) => {
 };
 
 /**
- * Hook de ciclo de vida: onMounted.
- * Se ejecuta cuando el componente se ha montado y realiza lo siguiente:
- * - Solicita las canciones favoritas del usuario desde la API.
- * - Verifica el formato de los datos recibidos.
- * - Asigna la lista de canciones a la playlist.
+ * Función asíncrona para obtener las canciones favoritas del usuario.
+ * Realiza una petición a la API y actualiza el estado reactivo "songsData" y "playlist".
  *
  * @async
+ * @throws {Error} Si la petición a la API falla.
  */
-onMounted(async () => {
+ async function fetchFavourites() {
    try {
       // OBTENER CANCIONES FAVORITAS
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(email)}`);
       if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
    
       songsData.value = await songsResponse.json();
-      console.log("✅ SongsData recibido: ", songsData.value);
+      console.log("✅ Canciones favoritas: ", songsData.value);
    
       // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
       if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
@@ -374,6 +379,23 @@ onMounted(async () => {
    } catch (error) {
       console.error('Error al cargar la playlist:', error);
    }
+}
+
+/**
+ * Hook de ciclo de vida: onMounted.
+ * Se ejecuta cuando el componente se ha montado y realiza lo siguiente:
+ * - Solicita las canciones favoritas del usuario desde la API.
+ * - Verifica el formato de los datos recibidos.
+ * - Asigna la lista de canciones a la playlist.
+ *
+ * @async
+ */
+onMounted(async () => {
+   fetchFavourites();
+   emitter.on('FavoriteSongs-updated', () => {
+      fetchFavourites(); // Vuelve a cargar los favoritos cuando hay un cambio
+   });
+
 });
 
 /**
@@ -392,6 +414,7 @@ onMounted(() => {
 onUnmounted(() => {
    console.log("Saliendo de la página...");
    document.removeEventListener('click', handleClickOutside);
+   emitter.off('FavoriteSongs-updated'); // Limpia el listener
 });
 
 /**
@@ -509,6 +532,7 @@ const addSong = async (song) => {
       };
       playlist.value = [...playlist.value, newSong];
       console.log('valor canciones playlist', playlist.value);
+      emitter.emit('FavoriteSongs-updated');
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
@@ -538,6 +562,7 @@ const removeSong = async (songId) => {
       }
       // Elimina la canción del array local si la eliminación es exitosa.
       playlist.value = playlist.value.filter(song => song.id !== songId);
+      emitter.emit('FavoriteSongs-updated');
       showPopupMessage("Canción eliminada con éxito", "popup-success");
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
@@ -559,9 +584,9 @@ const fetchResults = async () => {
 
    isLoading.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
-
+   currentNick.value =  localStorage.getItem("Nick");
    try {
-      const response = await fetch(`https://echobeatapi.duckdns.org/search/?q=${encodeURIComponent(currentSearch.value)}&tipo=canciones`);
+      const response = await fetch(`https://echobeatapi.duckdns.org/search/?Búsqueda=${encodeURIComponent(currentSearch.value)}&usuarioNick=${currentNick.value}&tipo=canciones`);
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
 
       results.value = await response.json();

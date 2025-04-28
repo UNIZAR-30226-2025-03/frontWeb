@@ -171,11 +171,12 @@ const unlikePlaylist = async (playlistId) => {
       });
 
       if (!response.ok) {
-         throw new Error('Error quitar el like de una playlist');
+         throw new Error('Error al eliminar la playlist de favoritos');
       }
       // Actualiza el array de playlists eliminando la playlist con el ID proporcionado.
       likedPlaylists.value = likedPlaylists.value.filter(p => p.Id !== playlistId);
-      showPopupMessage("Playlist unlikeada con exito", "popup-success");
+      emitter.emit('likedLists-updated');
+      showPopupMessage("Playlist eliminada de guardadas con exito", "popup-success");
       
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
@@ -200,11 +201,10 @@ const handleClick = (id, type) => {
 
 .layout {
    display: flex;
-   height: 100vh;
+   height: calc(100vh - 19vh);
    background: linear-gradient(180deg, #141414 15%, #4a1e04 40%, #8a3a10 60%, #ffb347 100%);
    color: white;
    overflow: hidden;
-  
 }
 
 /* Columna difuminada */
@@ -262,8 +262,8 @@ const handleClick = (id, type) => {
    padding: 12px 24px;
    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05);
    min-width: 60vw;
-   min-height: 60vh;
-   max-height: 60vh;    
+   min-height: 54vh;
+   max-height: calc(60vh - 12vh);    
    border-radius: 12px;   
    margin-bottom: 60px;  
    overflow-y:auto ;

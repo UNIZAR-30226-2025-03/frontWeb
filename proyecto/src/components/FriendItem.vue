@@ -130,6 +130,7 @@
    transition: background 0.2s ease-in-out;
    margin: 10px auto;
    gap: 12px;
+   cursor: pointer;
 }
 
 .friend-item:hover {
@@ -147,8 +148,11 @@
    width: 50px;
    height: 45px;
    border-radius: 50%;
-
    cursor: pointer;
+ }
+
+.avatar:hover {
+   transform: scale(1.1);
  }
  
 .friend-info {
