@@ -325,8 +325,10 @@ async function cargarCancionInicioSesion() {
       Id: songId,
       Nombre: songName,
     }
+    const secToStart = currentTimeNoFormat.value
+    console.log('se va a llamar con el segundo', secToStart)
+    streamerRef.value.startStreamSong(songId, songName, email, secToStart)
 
-    streamerRef.value.startStreamSong(songId, songName, email, { autoPlay: false })
 
 
     console.log('Última canción:', lastSong.value)
