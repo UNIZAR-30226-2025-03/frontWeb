@@ -279,11 +279,11 @@ export default {
         if (!token) throw new Error('No token en localStorage')
 
         const form = new FormData()
-        form.append('artist', this.newSong.artist)
-        form.append('title', this.newSong.title)
-        form.append('genre', this.newSong.genre)
-        form.append('file', this.newSong.file)
-        form.append('cover', this.newSong.coverFile)
+        form.append('NombreCancion', this.newSong.title)      
+        form.append('GeneroCancion', this.newSong.genre)      
+        form.append('nombreArtista', this.newSong.artist)     
+        form.append('mp3', this.newSong.file)                 
+        form.append('foto', this.newSong.coverFile)          
 
         const res = await fetch(
           'https://echobeatapi.duckdns.org/admin/canciones',
