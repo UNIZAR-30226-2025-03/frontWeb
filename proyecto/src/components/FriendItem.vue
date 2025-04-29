@@ -209,10 +209,6 @@
    padding: 8px;
 }
 
-.accept-btn:hover {
-   background: #45a049;
-}
-
 .reject-btn {
    background: #f44336;
    color: white;
@@ -220,8 +216,9 @@
    margin-left: 5px;
 }
 
+.accept-btn:hover,
 .reject-btn:hover {
-   background: #e53935;
+   opacity: 0.6;
 }
 
 .delete-btn {
@@ -230,6 +227,7 @@
 }
 
 .delete-btn:hover {
+   opacity: 0.8;
    background: #f57c00;
 }
 

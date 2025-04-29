@@ -117,7 +117,7 @@
              </div>
           </div>
  
-         <img class="image-right" :src="userIcon" alt="User" @click="openUser"/>
+          <img class="image-right" :src="profile || userIcon" alt="User" @click="openUser" />
        </div>
  
        <main class="main-content">
@@ -484,6 +484,10 @@
  /**
   * @constant {Ref<string>} popupType - Tipo del popup ("popup-error" o "popup-success").
   */
+  const profile = ref('');
+ /**
+  * @constant {Ref<string>} profile - Imagen de perfil del usuario.
+  */
  
  const showPopupMessage = (message, type) => {
     popupMessage.value = message;
@@ -515,7 +519,6 @@
  const menuIcons = ref([
    { src: friendsIcon, alt: 'Amigos', action: () => actionIcon('/friends')},
    { src: starIcon, alt: 'Favoritos', action: () => actionIcon('/favs')},
-   { src: settingsIcon, alt: 'Configuración' },
    { src: albumIcon, alt: 'Álbum', action: () => actionIcon('/fav-playlists') },
    { src: createList, alt: 'List', action: () => actionIcon('/createList') }, 
  ]);
@@ -862,7 +865,16 @@
     }
  
      try{
- 
+
+       // Obtener perfil del usuario
+       const dataUserResponse = await fetch(
+        `https://echobeatapi.duckdns.org/users/profile-with-playlists?userEmail=${getEmail()}`
+       );
+       if (!dataUserResponse.ok) throw new Error("Error al cargar la información del usuario");
+       const userData = await dataUserResponse.json();
+       profile.value = userData.LinkFoto;
+       console.log(" ✅ Perfil usuario: ", profile.value);
+
        // Obtener generos
        const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(getEmail())}`);
        if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
@@ -1212,7 +1224,7 @@
  // Función para obtener la posición de los íconos en el menú
  function getIconPosition(index, total) {
    const angle = (index / (total - 1)) * (Math.PI / 2);
-   const radius = 120;
+   const radius = 108;
    const x = Math.cos(angle) * radius;
    const y = Math.sin(angle) * radius;
    return { transform: `translate(${x}px, ${y}px)` };
@@ -1327,11 +1339,22 @@
  }
  
  /* Imagenes */
- .image-left, .image-right {
+ .image-left{
    width: 40px;
    height: auto;
    filter: brightness(0) invert(1);
    cursor: pointer;
+ }
+
+ .image-right {
+   width: 60px;
+   border-radius: 50%;
+   height: auto;
+   cursor: pointer;
+ }
+
+ .image-right:hover {
+   transform: scale(1.1);
  }
  
  .logo {
@@ -1341,7 +1364,7 @@
    cursor: pointer;
  }
  
- .logo:hover {
+ .logo:hover{
     transform: scale(1.2);
  }
  
