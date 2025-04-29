@@ -140,8 +140,11 @@
          <!-- Center -->
          <div class="controls">
            <div class="buttons">
-             <button class="side-buttons" @click="randomClick">
+               <button class="side-buttons" :class="{ 'active-random': randomMode }" @mouseover="showTooltip = true" @mouseleave="showTooltip = false">
                   <img :src="randomIcon" alt="random" />
+                  <div v-if="showTooltip" class="tooltip">
+                     {{ randomMode ? 'Aleatorio activado' : 'Aleatorio desactivado' }}
+                  </div>
                </button>
                <button class="side-buttons">
                   <img :src="previousIcon" alt="Previous" @click="previousSong"/>
@@ -202,8 +205,13 @@
              v-for="(icon, index) in menuIcons" 
              :key="index" 
              :style="getIconPosition(index, menuIcons.length)"
-             @click="icon.action">
+             @click="icon.action"
+             @mouseover="showTooltipIndex = index"
+             @mouseleave="showTooltipIndex = null">
              <img :src="icon.src" :alt="icon.alt"/>
+             <div v-if="showTooltipIndex === index" class="menu-tooltip">
+               {{ icon.alt }}
+            </div>
            </button>
          </div>
        </div>
@@ -488,6 +496,18 @@
  /**
   * @constant {Ref<string>} profile - Imagen de perfil del usuario.
   */
+  const randomMode = ref(false); 
+ /**
+  * @constant {Ref<boolean>} randomMode - Estado que indica si el aleatorio está activado o no.
+  */
+  const showTooltip = ref(false); 
+ /**
+  * @constant {Ref<boolean>} showTooltip - Estado que indica si el aleatorio está activado o no al pasar el ratón por encima.
+  */
+  const showTooltipIndex = ref(null);
+ /**
+  * @constant {Ref<boolean>} showTooltipIndex - Estado que representa lo que significa cada icono del menú al pasar el ratón por encima.
+  */
  
  const showPopupMessage = (message, type) => {
     popupMessage.value = message;
@@ -518,9 +538,9 @@
  
  const menuIcons = ref([
    { src: friendsIcon, alt: 'Amigos', action: () => actionIcon('/friends')},
-   { src: starIcon, alt: 'Favoritos', action: () => actionIcon('/favs')},
-   { src: albumIcon, alt: 'Álbum', action: () => actionIcon('/fav-playlists') },
-   { src: createList, alt: 'List', action: () => actionIcon('/createList') }, 
+   { src: starIcon, alt: 'Lista de canciones favoritas', action: () => actionIcon('/favs')},
+   { src: albumIcon, alt: 'Listas guardadas', action: () => actionIcon('/fav-playlists') },
+   { src: createList, alt: 'Crear lista', action: () => actionIcon('/createList') }, 
  ]);
  /**
   * @constant {Ref<Array>} menuIcons - Lista de objetos que contienen los íconos del menú y sus acciones correspondientes.
@@ -857,7 +877,12 @@
    fetchLikedPlaylists();
 
    emitter.on('likedLists-updated', () => {
-   fetchLikedPlaylists(); // Refresca la lista de likes cuando haya cambios
+      fetchLikedPlaylists(); // Refresca la lista de likes cuando haya cambios
+   });
+
+   emitter.on('random-changed', (nuevoValor) => {
+      randomMode.value = nuevoValor;
+      console.log("Valor random: ", randomMode.value);
    });
 
     if (player.value) {
@@ -913,6 +938,7 @@
    document.removeEventListener('click', handleClickOutside);
    window.removeEventListener('beforeunload', enviarProgreso)
    emitter.off('likedLists-updated');
+   emitter.off('random-changed');
    if (player.value) {
       player.value.removeEventListener('ended', handleSongEnded);
    }
@@ -1429,6 +1455,22 @@
  .menu-item:hover{
    background-color: rgba(255, 255, 255, 0.4); 
  }
+
+ .menu-tooltip {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+}
+
  
  /* Fondo difuminado */
  .overlay {
@@ -1533,7 +1575,39 @@
    justify-content: center;
    flex: none; 
  }
+
+ .tooltip {
+  position: absolute;
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  margin-top: 5px;
+  white-space: nowrap;
+  z-index: 1000;
+  top: -25px;
+  pointer-events: none;
+ }
  
+ .active-random {
+  animation: pulse-glow 1.5s infinite;
+  background-color: rgba(255, 99, 71, 0.15); /* Un suave fondo */
+  border-radius: 50%;
+ }
+
+ @keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 0px rgba(255, 99, 71, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(255, 99, 71, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 0px rgba(255, 99, 71, 0.7);
+  }
+ }
+
  .loop-active {
    border: 2px solid #ff474d;
    border-radius: 50%; /* Hace que el borde sea redondeado */

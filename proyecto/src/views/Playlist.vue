@@ -1075,6 +1075,7 @@ const handleImageError = (event) => {
 const randomClick = () => {
    isGlowing.value = !isGlowing.value;
    aleatorio.value = !aleatorio.value;
+   emitter.emit('random-changed', aleatorio.value);
 };
 
 /**
