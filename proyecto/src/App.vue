@@ -421,6 +421,10 @@
  /**
   * @constant {Ref<number>} progress - Progreso de la reproducción en porcentaje.
   */
+ provide("progress", progress);
+ /**
+  * Provee la variable progress para uso en componentes hijos.
+  */
  const isLooping = ref(false);
  /**
   * @constant {Ref<boolean>} isLooping - Estado que indica si la reproducción está en bucle.
@@ -1058,6 +1062,7 @@
           minute: formatTime(song.Duracion),
        };
        if (streamerRef.value?.startStreamSong) {
+         progress.value = 0;
           streamerRef.value.startStreamSong(song.Id, song.Nombre, getEmail());
           currentSong.value = song;
           isPlaying.value = true;
@@ -1083,7 +1088,7 @@
        minute: formatTime(song.Duracion),
     };
     if (streamerRef.value?.startStreamSong) {
- 
+       progress.value = 0;
        console.log("id:",song.Id);
        console.log("nommbre:",song.Nombre);
        const email2 = localStorage.getItem("email")

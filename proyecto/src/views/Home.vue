@@ -86,7 +86,7 @@ const streamerRef = inject('streamerRef')
  */
 const currentSongTime = inject('currentSongTime')
 /**
- * Varaible inyectada que maneja el tiempo actual de reproducción sin formatear (en segundos).
+ * Variable inyectada que maneja el tiempo actual de reproducción sin formatear (en segundos).
  * Útil para lógica interna como cálculos, almacenamiento o sincronización.
  * @type {Ref<number>}
  */
@@ -136,6 +136,12 @@ const route = useRoute();
  * @type {object}
  */
 const songsData = inject('songsData');
+
+/**
+ * Variable inyectada que maneja el progreso actual de reproducción.
+ * @type {Ref<number>}
+ */
+ const progress = inject('progress');
 
 /**
  * Email del usuario, obtenido desde el localStorage.
@@ -328,7 +334,10 @@ async function cargarCancionInicioSesion() {
     const secToStart = currentTimeNoFormat.value
     console.log('se va a llamar con el segundo', secToStart)
     streamerRef.value.startStreamSong(songId, songName, email, secToStart)
-
+    console.log("Tiempo se quedó: ", currentTimeNoFormat.value);
+    console.log("Duración canción: ", durationData);
+    progress.value = (currentTimeNoFormat.value / durationData) * 100;
+    console.log("Progreso: ", progress.value);
 
 
     console.log('Última canción:', lastSong.value)
