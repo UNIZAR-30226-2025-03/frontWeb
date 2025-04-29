@@ -289,7 +289,7 @@ export default {
           'https://echobeatapi.duckdns.org/admin/canciones',
           {
             method: 'POST',
-            //headers: { Authorization: `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${token}` },
             body: form
           }
         )
