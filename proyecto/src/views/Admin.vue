@@ -569,6 +569,10 @@ export default {
   background: rgba(0,0,0,0.4);
 }
 
+.user-card:hover {
+  background: #3a3a3a;
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -612,6 +616,7 @@ export default {
   font-weight: 700;
   cursor: pointer;
   background: #d9534f; /* rojo */
+  margin-left: 10px;
 }
 
 .confirm-btn:hover,
@@ -626,5 +631,9 @@ export default {
   height: 100%;
   background: #111;
   color: #fff;
+}
+
+label {
+   margin-right: 5px;
 }
 </style>

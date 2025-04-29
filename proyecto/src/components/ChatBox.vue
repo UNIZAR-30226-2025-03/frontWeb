@@ -102,9 +102,9 @@ export default {
   padding: 1rem;
   margin-bottom: 2rem;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-  max-width: 600px;
+  max-width: 575px;
   width: 100%;
-  margin: 0 auto;
+  margin: 50px auto;
 }
 .chat-header {
   text-align: center;
