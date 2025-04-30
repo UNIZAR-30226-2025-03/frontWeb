@@ -1075,7 +1075,6 @@ const handleImageError = (event) => {
 const randomClick = () => {
    isGlowing.value = !isGlowing.value;
    aleatorio.value = !aleatorio.value;
-   emitter.emit('random-changed', aleatorio.value);
 };
 
 /**
@@ -1170,6 +1169,7 @@ const playPlaylist = async () => {
          Duracion: songData.Duracion,
       };
       playSong(newSong);
+      emitter.emit('random-changed', aleatorio.value);
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
@@ -1639,8 +1639,8 @@ h1 {
 
 .back-btn-container {
    position: absolute;
-   top: 60px;
-   left: 10px;
+   top: 10vh;
+   left: 1vw;
    display: flex;
    justify-content: flex-start;
 }

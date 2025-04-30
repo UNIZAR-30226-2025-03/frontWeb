@@ -756,11 +756,9 @@ button:hover {
 }
 
 .back-btn-container {
-   position: absolute;
-   top: 40px;
-   left: 530px;
    display: flex;
    justify-content: flex-start;
+   margin-top: -1rem; 
 }
 
 .back-btn {

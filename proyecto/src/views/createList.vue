@@ -359,7 +359,7 @@ input::placeholder {
 button {
    width: 60%;
    padding: 12px;
-   margin-top: 2rem;
+   margin-top: 1.5rem;
    border: none;
    border-radius: 4px;
    color: #fff;
@@ -413,11 +413,9 @@ button:hover {
 }
 
 .back-btn-container {
-   position: absolute;
-   top: 20px;
-   left: 510px;
    display: flex;
    justify-content: flex-start;
+   margin-top: -2rem;
 }
 
 .back-btn {
@@ -429,7 +427,7 @@ button:hover {
    font-weight: bold;
    cursor: pointer;
    transition: background-color 0.3s ease;
-   min-width: 100px;
+   max-width: 100px;
 }
 
 .back-btn:hover {

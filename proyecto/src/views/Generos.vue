@@ -318,8 +318,8 @@ button:hover {
 
 .back-btn-container {
    position: absolute;
-   top: 20px;
-   left: 10px;
+   top: 2vh;
+   left: 1vw;
    display: flex;
    justify-content: flex-start;
 }

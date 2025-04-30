@@ -371,8 +371,8 @@ align-self: center;
 
 .back-btn-container {
    position: absolute;
-   top: 9px;
-   left: 10px;
+   top: 3vh;
+   left: 1vw;
    display: flex;
    justify-content: flex-start;
 }

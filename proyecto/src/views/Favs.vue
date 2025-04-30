@@ -494,6 +494,7 @@ const playPlaylist = async () => {
          Duracion: songData.Duracion,
       };
       playSong(newSong);
+      emitter.emit('random-changed', aleatorio.value);
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
    }
@@ -787,9 +788,14 @@ hr{
    transition: transform 0.2s ease-in-out;
 }
 
+@keyframes glowPulse {
+   0% { filter: drop-shadow(0px 0px 8px rgba(20, 18, 166, 0.888)); }
+   50% { filter: drop-shadow(0px 0px 15px rgba(255, 215, 0, 1)); }
+   100% { filter: drop-shadow(0px 0px 8px rgba(255, 215, 0, 0.8)); }
+}
+
 .glow-effect {
-   mix-blend-mode: screen; /* Hace que las partes oscuras del icono se iluminen */
-   filter: drop-shadow(0px 0px 8px rgba(255, 165, 0, 0.8)); /* Agrega brillo */
+   animation: glowPulse 1.5s infinite alternate ease-in-out;
 }
  
 .song-titles {
@@ -859,8 +865,8 @@ h1 {
 
 .back-btn-container {
    position: absolute;
-   top: 60px;
-   left: 10px;
+   top: 10vh;
+   left: 1vw;
    display: flex;
    justify-content: flex-start;
 }

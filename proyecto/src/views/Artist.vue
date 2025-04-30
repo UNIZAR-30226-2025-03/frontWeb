@@ -548,8 +548,8 @@ h1 {
 
 .back-btn-container {
    position: absolute;
-   top: 60px;
-   left: 10px;
+   top: 10vh;
+   left: 1vw;
    display: flex;
    justify-content: flex-start;
 }

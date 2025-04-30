@@ -221,7 +221,7 @@ const handleRegister = async () => {
    box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
    width: 90%;
    max-width: 450px;
-   max-height: 85vh;
+   max-height: 88vh;
 }
 
 h2 {
@@ -274,11 +274,10 @@ button:hover {
 }
 
 .back-btn-container {
-   position: absolute;
-   top: 20px;
-   left: 530px;
    display: flex;
-   justify-content: flex-start;
+   justify-content: left;
+   margin-bottom: 1rem;
+   margin-top: -2rem; 
 }
 
 .back-btn {
@@ -290,7 +289,7 @@ button:hover {
    font-weight: bold;
    cursor: pointer;
    transition: background-color 0.3s ease;
-   min-width: 100px;
+   max-width: 100px;
 }
 
 .back-btn:hover {

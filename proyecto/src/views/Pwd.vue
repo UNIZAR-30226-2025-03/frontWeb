@@ -176,23 +176,23 @@ button:hover {
 }
 
 .back-btn-container {
-   position: absolute;
-   top: 150px;
-   left: 505px;
    display: flex;
    justify-content: flex-start;
+   margin-bottom: 2rem;
+   margin-top: -2rem; 
 }
 
 .back-btn {
    background-color: transparent;
    border: 1px solid #ffa500;
    color: #ffa500;
-   padding: 6px 12px;
+   padding: 4px 10px;           
+   font-size: 0.8rem;           
    border-radius: 6px;
    font-weight: bold;
    cursor: pointer;
    transition: background-color 0.3s ease;
-   min-width: 100px;
+   max-width: 100px;
 }
 
 .back-btn:hover {

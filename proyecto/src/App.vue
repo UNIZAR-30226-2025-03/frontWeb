@@ -7,7 +7,10 @@
           <!-- Imagen que activa el menú -->
            <div class="busqueda">
              <img class="image-left" :src="previewIcon" alt="Preview" @click="toggleMenu"/>
-             <img class="logo" :src="logo" alt="Logo" @click="backHome"/>
+             <img class="logo" :src="logo" alt="Logo" @click="backHome" @mouseover="showHometip = true" @mouseleave="showHometip = false"/>
+             <div v-if="showHometip" class="Hometip">
+               {{ 'Home' }}
+            </div> 
           </div>
           <div class="busqueda" ref="searchArea" @click.stop>
              <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
@@ -158,8 +161,11 @@
                   <img :src="nextIcon" alt="Next" @click="nextSong"/>
                </button>
    
-               <button class="side-buttons" @click="toggleLoop">
+               <button class="side-buttons" @click="toggleLoop" @mouseover="showLooptip = true" @mouseleave="showLooptip = false">
                   <img :src="restart" alt="Restart" :class="{'loop-active': isLooping}" />
+                  <div v-if="showLooptip" class="tooltip">
+                     {{ isLooping ? 'Reproducción en bucle activada' : 'Reproducción en bucle desactivada' }}
+                  </div>
              </button>
            </div>
  
@@ -503,6 +509,14 @@
   const showTooltip = ref(false); 
  /**
   * @constant {Ref<boolean>} showTooltip - Estado que indica si el aleatorio está activado o no al pasar el ratón por encima.
+  */
+  const showLooptip = ref(false); 
+ /**
+  * @constant {Ref<boolean>} showLooptip - Estado que indica si la reproducción en bucle está activada o no al pasar el ratón por encima.
+  */
+  const showHometip = ref(false); 
+ /**
+  * @constant {Ref<boolean>} showHometip - Estado que simboliza el logo al pasar el ratón por encima.
   */
   const showTooltipIndex = ref(null);
  /**
@@ -1100,10 +1114,11 @@
           minute: formatTime(song.Duracion),
        };
        if (streamerRef.value?.startStreamSong) {
-         progress.value = 0;
+          progress.value = 0;
           streamerRef.value.startStreamSong(song.Id, song.Nombre, getEmail());
           currentSong.value = song;
           isPlaying.value = true;
+          randomMode.value = false;
        } else {
           console.warn('startStreamSong no está disponible');
        }
@@ -1587,6 +1602,21 @@
   white-space: nowrap;
   z-index: 1000;
   top: -25px;
+  pointer-events: none;
+ }
+
+ .Hometip {
+  position: absolute;
+  background: #333;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  margin-top: 5px;
+  white-space: nowrap;
+  z-index: 1000;
+  top: 25px;
+  left: 125px;
   pointer-events: none;
  }
  
