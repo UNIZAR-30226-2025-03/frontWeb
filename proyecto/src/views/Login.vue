@@ -36,6 +36,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter } from 'vue-router';
+import { emitter } from '@/js/event-bus';
 import googleLogo from '@/assets/Google_logo.svg';
 import logo from '@/assets/logo.png';
 
@@ -207,6 +208,7 @@ const handleLogin = async () => {
 
       // 4. Mensaje de bienvenida
       showPopupMessage(`Bienvenido, ${userData.Nick}!`, 'popup-success');
+      emitter.emit('user-logged-in', email);
       isAdmin.value = Data.esAdmin;
       // 5. Espera 2 segundos para que el usuario vea el popup
       await new Promise(resolve => setTimeout(resolve, 2000));

@@ -887,11 +887,11 @@
    document.addEventListener('click', handleClickOutside);
    document.addEventListener('audio-buffer-ready', bufferReady);
    window.addEventListener('beforeunload', enviarProgreso);
-   
+
    fetchLikedPlaylists();
 
    emitter.on('likedLists-updated', () => {
-      fetchLikedPlaylists(); // Refresca la lista de likes cuando haya cambios
+      fetchLikedPlaylists();
    });
 
    emitter.on('random-changed', (nuevoValor) => {
@@ -899,33 +899,41 @@
       console.log("Valor random: ", randomMode.value);
    });
 
-    if (player.value) {
-       player.value.addEventListener('ended', handleSongEnded);
-    }
- 
-     try{
+   emitter.on('user-logged-in', async (email) => {
+      try {
+         const dataUserResponse = await fetch(
+            `https://echobeatapi.duckdns.org/users/profile-with-playlists?userEmail=${encodeURIComponent(getEmail())}`
+         );
+         if (!dataUserResponse.ok) throw new Error("Error al cargar la información del usuario");
 
-       // Obtener perfil del usuario
-       const dataUserResponse = await fetch(
-        `https://echobeatapi.duckdns.org/users/profile-with-playlists?userEmail=${getEmail()}`
-       );
-       if (!dataUserResponse.ok) throw new Error("Error al cargar la información del usuario");
-       const userData = await dataUserResponse.json();
-       profile.value = userData.LinkFoto;
-       console.log(" ✅ Perfil usuario: ", profile.value);
+         const userData = await dataUserResponse.json();
+         profile.value = userData.LinkFoto;
+         console.log(" ✅ Perfil usuario: ", profile.value);
 
-       // Obtener generos
-       const genderResponse = await fetch(`https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(getEmail())}`);
-       if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
- 
-       const data = await genderResponse.json();
-       genders.value = data;
-       console.log("Géneros cargados:", genders.value);
- 
-    } catch (error) {
-       console.error('Error:', error);
-    }
- });
+         const genderResponse = await fetch(
+            `https://echobeatapi.duckdns.org/genero?userEmail=${encodeURIComponent(getEmail())}`
+         );
+         if (!genderResponse.ok) throw new Error("Error al cargar los géneros");
+
+         const data = await genderResponse.json();
+         genders.value = data;
+         console.log("Géneros cargados:", genders.value);
+      } catch (error) {
+         console.error("❌ Error al cargar usuario o géneros:", error);
+      }
+   });
+
+   if (player.value) {
+      player.value.addEventListener('ended', handleSongEnded);
+   }
+
+   const email = getEmail();
+   if (email) {
+      // Si ya hay sesión iniciada, cargar los datos del usuario como si se hubiera logueado
+      emitter.emit('user-logged-in', email);
+   }
+});
+
  /**
   * Bloque onMounted:
   * - Actualiza la cola de reproducción.
