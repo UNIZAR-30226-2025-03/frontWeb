@@ -29,7 +29,10 @@
                    <div v-for="cancion in results.canciones" :key="cancion.Id" class="result-item"  @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
                       <img :src="cancion.Portada" alt="Canción" />
                       <div class="song-quest-info">
+                        <div class="song-text">
                          <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                         <span class="song-name-artist">{{ cancion.Autor }}</span>
+                        </div>
                          <button v-if="hoveredSong === cancion.Nombre" @click="playFromQuest(cancion)">
                          <img :src="playIcon" alt="Play" />
                          </button>
@@ -135,7 +138,10 @@
            <div class="song-info">
                <!-- Mostrar la portada y el nombre de la canción -->
                <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
-               <span class="song-name">{{ lastSong.name }}</span>
+               <div class="song-text">
+                  <span class="song-name">{{ lastSong.name }}</span>
+                  <span class="song-name-artist">{{ lastSong.autor }}</span>
+               </div>
              </div>
              
          </div>
@@ -349,7 +355,8 @@
    id: '',
    name: '',
    cover: '',
-   minute: 0
+   minute: 0,
+   autor: ''
  });
  /**
   * @constant {Ref<Object>} lastSong - Objeto que almacena la última canción reproducida.
@@ -1120,6 +1127,7 @@
           name: song.Nombre,
           cover: song.Portada,
           minute: formatTime(song.Duracion),
+          autor: song.Autor
        };
        if (streamerRef.value?.startStreamSong) {
           progress.value = 0;
@@ -1147,6 +1155,7 @@
        name: song.Nombre,
        cover: song.Portada,
        minute: formatTime(song.Duracion),
+       autor: song.Autor
     };
     if (streamerRef.value?.startStreamSong) {
        progress.value = 0;
@@ -1310,6 +1319,27 @@
        console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
        console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
        console.log("Playlists:", JSON.parse(JSON.stringify(results.value.playlists)));
+
+      const rawSongs = results.value.canciones;
+      const cancionesConAutores = [];
+      for (const song of rawSongs) {
+         try {
+            const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song.Id}`);
+            if (!songsResponse.ok) {
+               console.error(`Error al obtener datos de la canción ${song.Id}`);
+               continue;
+            }
+            const songsResponseData = await songsResponse.json();
+            cancionesConAutores.push({
+               ...song,
+               Autor: songsResponseData.Autores.join(', '),
+            });
+         } catch (err) {
+            console.error('Error al procesar canción:', err);
+         }
+      }
+      results.value.canciones = cancionesConAutores;
+      console.log("🕵️‍♂️ Canciones actualizadas:", results.value.canciones);
  
     } catch (error) {
        console.error('Error:', error);
@@ -1699,24 +1729,38 @@
  }
  
  .song-info {
-   display: flex;
-   align-items: center;
-   gap: 0.5rem;
-   overflow: hidden;
-   white-space: nowrap;
-   text-overflow: ellipsis;
-   justify-self: start; /* pegado a la izquierda */
-   flex-shrink: 1;
- }
- 
- .song-name {
-  color: white;
-  white-space: normal; 
-  word-break: break-word; 
-  max-width: 250px; 
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  justify-self: start;
+  flex-shrink: 1;
 }
 
- 
+.song-text {
+  display: flex;
+  flex-direction: column; 
+  overflow: hidden;
+}
+
+.song-name {
+  color: white;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 250px;
+  font-weight: 600;
+}
+
+.song-name-artist {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+
  .bottom-bar {
    position: fixed;
    bottom: 0;

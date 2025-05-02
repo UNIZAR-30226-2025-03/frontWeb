@@ -192,7 +192,7 @@ const unlikePlaylist = async (playlistId) => {
  */
 const handleClick = (id, type) => {
    console.log("Playlist seleccionada:", id);
-   localStorage.setItem("type", type);
+   localStorage.setItem("type", "Ajeno");
    router.push({ path: '/playlist', query: { id: id} });
 };
 </script>

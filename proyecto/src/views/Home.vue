@@ -100,7 +100,7 @@ const currentTimeNoFormat = inject('currentTimeNoFormat')
 const formatTime = inject('formatTime')
 /**
  * Objeto inyectado con información de la última canción reproducida por el usuario.
- * Incluye ID, nombre, portada y minuto en que se dejó.
+ * Incluye ID, nombre, portada, minuto en que se dejó y autor.
  * @type {Ref<Object>}
  */
 const lastSong = inject('lastSong')
@@ -313,10 +313,14 @@ async function cargarCancionInicioSesion() {
     if (!durationResponse.ok) throw new Error('Error al obtener la duración de la última canción')
     const durationData = await durationResponse.json()
 
+    const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${songData.PrimeraCancionId}`);
+    if (!songsResponse.ok) throw new Error('Error al obtener la info de la última canción')
+    const songsResponseData = await songsResponse.json()
+   
     const songId = songData.PrimeraCancionId
     const songName = songData.Nombre
     const songCover = songData.Portada
-
+    const Autor = songsResponseData.Autores.join(', ')
     currentSongTime.value = formatTime(songData.MinutoEscucha)
     currentTimeNoFormat.value = songData.MinutoEscucha
 
@@ -325,6 +329,7 @@ async function cargarCancionInicioSesion() {
       name: songName,
       cover: songCover,
       minute: formatTime(durationData),
+      autor: Autor
     }
 
     currentSong.value = {

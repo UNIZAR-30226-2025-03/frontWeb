@@ -52,7 +52,7 @@
                <p :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
                <input v-if="isEditingDescription && type === 'ListaReproduccion'" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
             </div>
-            <p v-if="type !== 'ajenoPrivado'">{{ playlistInfo.NumLikes }} Likes</p>
+            <p v-if="type !== 'ajenoPrivado' && ownerPrivacy !== 'privado'">{{ playlistInfo.NumLikes }} Likes</p>
          </div>
 
       </div>
@@ -124,8 +124,10 @@
                 </div>
 
                 <div class="song-name-artist">
-                  <p>{{ element.nombre }} ({{ formatTime(element.duracion) }})</p>
+                  <p class="song-title">{{ element.nombre }} <span class="duration">({{ formatTime(element.duracion) }})</span></p>
+                  <p class="song-author">{{ element.Autor }}</p>
                 </div>
+
 
                 <div class="song-album">
                   <p v-if="playlistInfo.type === 'playlist'">Álbum: {{ element.album }}</p>
@@ -413,6 +415,18 @@ const showPopup = ref(false);
  * @type {Ref<string>}
  */
 const popupMessage = ref("");
+
+/**
+ * Estado reactivo que almacena la privacidad del propietario de la playlist.
+ * @type {Ref<string>}
+ */
+ const ownerPrivacy = ref("");
+
+/**
+ * Estado reactivo que almacena el filtro actual de la playlist .
+ * @type {Ref<string>}
+ */
+const currentFilter = ref("");
 
 /**
  * Estado reactivo que define el tipo de popup ("popup-error" o "popup-success").
@@ -704,11 +718,14 @@ async function sortSongs() {
          default:
             filtro = 0;
       }
+      currentFilter.value = filtro;
       const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
       if (!response.ok) throw new Error("Error al ordenar las canciones");
 
       const data = await response.json();
       playlist.value = data.canciones;
+      songsData.value = data;
+      console.log("🕵️‍♂️ Canciones después de ordenar: ", songsData.value);
 
       showPopupMessage('Playlist ordenada correctamente', 'popup-success');
    } catch (error) {
@@ -726,12 +743,22 @@ async function sortSongs() {
  * Se actualiza la información de la playlist, canciones, y se resetea el término de búsqueda.
  */
 watch(() => route.query.id, async (newId, oldId) => {
+   console.log('🕵️‍♂️ route.query.id cambió:', { newId, oldId });
    if (!newId || newId === oldId) return;
    try {
       // OBTENER INFO DE LA PLAYLIST
       const infoResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/lista/${newId}`);
       if (!infoResponse.ok) throw new Error('Error al obtener la información de la playlist');
       playlistInfo.value = await infoResponse.json();
+
+      // OBTENER DETALLES DE LA PLAYLIST
+      const detailsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/playlist/${newId}`);
+      if (!detailsResponse.ok) throw new Error('Error al obtener los detalles de la playlist');
+      playlistDetails.value = await detailsResponse.json();
+      console.log("✅ Playlist details: ", playlistDetails.value);
+      editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
+      ownerPrivacy.value = playlistDetails.value.Autor.Privacidad;
+      console.log("✅ Owner privacy: ", ownerPrivacy.value);
 
       // OBTENER CANCIONES DE LA PLAYLIST
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${newId}/songs`);
@@ -890,15 +917,18 @@ const playNewSong = async (song, posicion) => {
       Nombre: song.nombre,
       Portada: song.portada,
       Duracion: song.duracion,
+      Autor: song.Autor
    };
 
    console.log(newSong);
-
+   const colaSinAutor = songsData.value.map(({ Autor, ...rest }) => rest);
    const bodyData = {
       userEmail: email,
       reproduccionAleatoria: aleatorio.value,
       posicionCola: posicion,
-      colaReproduccion: songsData.value
+      colaReproduccion: {
+         canciones: colaSinAutor
+      }   
    };
 
    console.log("JSON enviado:", bodyData);
@@ -985,6 +1015,8 @@ onMounted(async () => {
       playlistDetails.value = await detailsResponse.json();
       console.log("✅ Playlist details: ", playlistDetails.value);
       editedPrivacy.value = playlistDetails.value.TipoPrivacidad;
+      ownerPrivacy.value = playlistDetails.value.Autor.Privacidad;
+      console.log("✅ Owner privacy: ", ownerPrivacy.value);
 
       // OBTENER CANCIONES DE LA PLAYLIST
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
@@ -997,8 +1029,29 @@ onMounted(async () => {
          throw new Error('Las canciones no llegaron en formato de array');
       }
 
+      const rawSongs = songsData.value.canciones;
+      const cancionesConAutores = [];
+      for (const song of rawSongs) {
+         try {
+            const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song.id}`);
+            if (!songsResponse.ok) {
+               console.error(`Error al obtener datos de la canción ${song.Id}`);
+               continue;
+            }
+            const songsResponseData = await songsResponse.json();
+            cancionesConAutores.push({
+               ...song,
+               Autor: songsResponseData.Autores.join(', '),
+            });
+         } catch (err) {
+            console.error('Error al procesar canción:', err);
+         }
+      }
+      songsData.value = cancionesConAutores;
+      console.log("🕵️‍♂️ Canciones actualizadas:", songsData.value);
+
       // ASIGNAR LAS CANCIONES A `playlist`
-      playlist.value = songsData.value.canciones;
+      playlist.value = songsData.value;
       console.log("✅ Playlist final cargada:", playlist.value);
 
       // Obtener imágenes predeterminadas
@@ -1025,22 +1078,24 @@ onMounted(() => {
  */
 onUnmounted(async () => {
    console.log("Actualizando lista...");
-   try {
-      const canciones = filteredPlaylist.value;
-      const cancionesJson = { canciones };
-      const responde = await fetch("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/json'
-         },
-         body: JSON.stringify({
-            idPlaylist: Number(Id),
-            cancionesJson: cancionesJson
-         })
-      });
-      if (!responde.ok) throw new Error('Error al actualizando lista');
-   } catch (error) {
-      console.error(error);
+   if (sortOption.value === 'default') {
+      try {
+         const canciones = filteredPlaylist.value;
+         const cancionesJson = { canciones };
+         const responde = await fetch("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+               idPlaylist: Number(Id),
+               cancionesJson: cancionesJson
+            })
+         });
+         if (!responde.ok) throw new Error('Error al actualizando lista');
+      } catch (error) {
+         console.error(error);
+      }
    }
 });
 
@@ -1132,11 +1187,15 @@ const deletePlaylist = async () => {
  * @async
  */
 const playPlaylist = async () => {
+   const colaSinAutor = songsData.value.map(({ Autor, ...rest }) => rest);
+   console.log("➡️ Enviando cola:", colaSinAutor);
    try {
       const bodyData = {
          userEmail: email,
          reproduccionAleatoria: aleatorio.value,
-         colaReproduccion: songsData.value
+         colaReproduccion: {
+            canciones: colaSinAutor
+         }
       };
 
       console.log("JSON enviado:", bodyData);   
@@ -1167,6 +1226,7 @@ const playPlaylist = async () => {
          Nombre: songData.Nombre,
          Portada: songData.Portada,
          Duracion: songData.Duracion,
+         Autor: songData.Autores.join(', '),
       };
       playSong(newSong);
       emitter.emit('random-changed', aleatorio.value);
@@ -1593,6 +1653,30 @@ hr{
    width: 22%;
    text-align: center;  
 }
+
+.song-name-artist {
+   padding-top: 8px;
+}
+
+.song-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.duration {
+  font-weight: 450;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.song-author {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 6px;
+  font-style: italic;
+}
+
 
 h1 {
    margin-top: 60px;

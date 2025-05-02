@@ -380,7 +380,8 @@ export default {
       this.$router.push('/createList')
     },
     irADetalleLista(id) {
-      this.$router.push({ path: '/playlist', query: { id } })
+      this.$router.push({ path: '/playlist', query: { id } });
+      localStorage.setItem("type", "ListaReproduccion");
     },
 
     async cargarUsuarios() {
