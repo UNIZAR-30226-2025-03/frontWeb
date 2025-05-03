@@ -25,13 +25,17 @@
       </div>
     </aside>
     
-
     <!-- Contenido principal -->
     <main class="content">
       <!-- Sección Escuchado Recientemente -->
       <section class="recently-played">
         <h2>Bienvenido {{ nombre }}</h2>
-        <div class="playlist-container">
+        <div v-if="!loading && playlists.length === 0">
+         <button @click="crearPrimeraPlaylist" class="first-playlist-button">
+            🎵 Crea tu primera playlist
+         </button>
+      </div>
+        <div class="playlist-container" v-else>
           <div v-for="(playlist, index) in playlists" :key="index" class="playlist-item" @click="handleClick(playlist.Id, playlist.lista.TipoLista)" >
             <div class="playlist-image">
               <img 
@@ -181,6 +185,12 @@ const nombre = ref();
 const hoveredSong = ref(null);
 
 /**
+ * Estado reactivo que controla la carga de los datos.
+ * @type {Ref<boolean>}
+ */
+ const loading = ref(true);
+
+/**
  * Estado reactivo que controla la visualización del popup de mensajes.
  * @type {Ref<boolean>}
  */
@@ -214,6 +224,13 @@ const showPopupMessage = (message, type) => {
       showPopup.value = false;
    }, 3000); // Cierra el popup después de 3 segundos
 };
+
+/**
+ * Función para ir a la página donde se crean playlist.
+ */
+function crearPrimeraPlaylist() {
+  router.push('/createList'); 
+}
 
 /**
  * Función asíncrona para reproducir una canción específica.
@@ -391,6 +408,8 @@ onMounted(async () => {
       console.log("playlists data ", playlists.value); // 🔥 Ver en la consola
    } catch (error) {
       console.error('Playlist Error:', error);
+   } finally {
+      loading.value = false; 
    }
 
    // Obtener recomendaciones basadas en preferencias del usuario.
@@ -598,6 +617,34 @@ const removeSong = async (position) => {
   background: linear-gradient(180deg, #141414, #1e1e1e); /* Gradiente aplicado al contenedor principal */
   /*background-color: #141414;*/
   color: white;
+}
+
+.first-playlist-button {
+  display: inline-block;
+  padding: 12px 24px;
+  margin-top: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #212529;
+  background-color: #ffc107;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  text-align: center;
+  width: fit-content;
+}
+
+.first-playlist-button:hover {
+  background-color: #e0a800;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+.first-playlist-button:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
 }
 
 

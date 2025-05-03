@@ -67,28 +67,37 @@
       </div>
 
       <div class="song-container">
-        <div class="playlist-actions">
-            <button class="button-action" @click="deletePlaylist" v-if="type === 'ListaReproduccion'" >
-               <img :src="deleteIcon" alt="delete"/>
+         <div class="playlist-actions">
+            <button class="button-action tooltip-container" @click="deletePlaylist" v-if="type === 'ListaReproduccion'">
+               <img :src="deleteIcon" alt="Eliminar" />
+               <span class="tooltip">Eliminar playlist</span>
             </button>
-            <button class="button-action" @click="randomClick">
-               <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
+
+            <button class="button-action tooltip-container" @click="randomClick">
+               <img :src="randomIcon" alt="Aleatorio" :class="{ 'glow-effect': isGlowing }" />
+               <span class="tooltip">Reproducción aleatoria</span>
             </button>
-            <input v-model="searchTerm" placeholder="Buscar canción" />
-            <div class="select-wrapper">
+
+            <input v-model="searchTerm" placeholder="Buscar canción" class="search-input" />
+
+            <div class="select-wrapper tooltip-container">
                <select class="filterSelect" v-model="sortOption" @change="sortSongs">
-                  <option disabled value=""> Orden playlist </option>
+                  <option disabled value="">Orden playlist</option>
                   <option value="default">Predefinida</option>
                   <option value="name">Nombre</option>
                   <option value="plays">Reproducciones</option>
                </select>
+               <span class="tooltip">Ordenar canciones</span>
             </div>
 
-            <button ref="addButtonRef" class="button-action" @click="toggleSearch"  v-if="type === 'ListaReproduccion'" >
-               <img :src="add_button" alt="add"/>
+            <button ref="addButtonRef" class="button-action tooltip-container" @click="toggleSearch" v-if="type === 'ListaReproduccion'">
+               <img :src="add_button" alt="Añadir" />
+               <span class="tooltip">Añadir canciones</span>
             </button>
-            <button @click="playPlaylist" class="button-action">  
-               <img :src= "playIcon" alt="Play/Pause" />
+
+            <button class="button-action tooltip-container" @click="playPlaylist">
+               <img :src="playIcon" alt="Reproducir" />
+               <span class="tooltip">Reproducir</span>
             </button>
 
             <!-- El contenedor para el buscador -->
@@ -115,7 +124,7 @@
 
         <hr>
 
-        <draggable :list="filteredPlaylist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
+        <draggable :list="filteredPlaylist" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost" :disabled="type !== 'ListaReproduccion'">
           <template #item="{ element, index }">
             <li class="song-item" :key="element.id || index">
               <div class="song-info">
@@ -724,7 +733,7 @@ async function sortSongs() {
 
       const data = await response.json();
       playlist.value = data.canciones;
-      songsData.value = data;
+      songsData.value = data.canciones;
       console.log("🕵️‍♂️ Canciones después de ordenar: ", songsData.value);
 
       showPopupMessage('Playlist ordenada correctamente', 'popup-success');
@@ -1677,7 +1686,6 @@ hr{
   font-style: italic;
 }
 
-
 h1 {
    margin-top: 60px;
 }
@@ -1990,6 +1998,47 @@ h1 {
   transform: translateY(-50%);
   pointer-events: none;
   color: #aaa;
+}
+
+.tooltip-container {
+   position: relative;
+   display: inline-block;
+}
+
+.tooltip {
+   visibility: hidden;
+   width: max-content;
+   background-color: #333;
+   color: #fff;
+   text-align: center;
+   border-radius: 5px;
+   padding: 6px 10px;
+   position: absolute;
+   z-index: 1;
+   bottom: 125%; /* Sitúa el tooltip arriba del botón */
+   left: 50%;
+   transform: translateX(-50%);
+   opacity: 0;
+   transition: opacity 0.3s;
+   white-space: nowrap;
+   font-size: 0.75rem;
+   pointer-events: none;
+}
+
+.tooltip::after {
+   content: "";
+   position: absolute;
+   top: 100%; /* Flecha hacia abajo */
+   left: 50%;
+   margin-left: -5px;
+   border-width: 5px;
+   border-style: solid;
+   border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip {
+   visibility: visible;
+   opacity: 1;
 }
 
 /* Estilos para el popup */

@@ -33,6 +33,9 @@
          <div v-if="activeTab === 'chats'">
             <h3>Chats recientes</h3>
             <FriendItem v-for="friend in chattedFriends" :key="friend.Nick" :friend="friend" type="chats" :hasNewMessages="friend.hasNewMessages" @click="goToChats(friend)"  @profile="profileRequest(friend)"/>
+            <p v-if="!loadingChats && chattedFriends.length === 0" class="empty-message">
+               No hay chats activos todavía. Haz click en "Añadir amigo" para enviar solicitudes de amistad
+            </p>
          </div>
          
          <div v-else-if="activeTab === 'all'">
@@ -41,12 +44,19 @@
                <input v-model="searchTerm" type="text" placeholder="Buscar amigo" class="search-friend-input"/>
             </div>
             <FriendItem v-for="friend in filteredFriends" :key="friend.Nick" :friend="friend" type="all" @click="goToChat(friend)" @remove="removeFriend" @profile="profileRequest(friend)"/>
+            <p v-if="!loading && filteredFriends.length === 0" class="empty-message">
+               No hay amigos agregados todavía. Haz click en "Añadir amigo" para enviar solicitudes de amistad
+            </p>
          </div>
 
          <div v-else-if="activeTab === 'requests'">
             <h3>Solicitudes recibidas</h3>
             <FriendItem v-for="friend in friendRequests" :key="friend.NickFriendSender" :friend="friend" type="request" @accept="acceptRequest" @reject="rejectRequest" @profile="profileRequest(friend)"/>
+            <p v-if="!loading && friendRequests.length === 0" class="empty-message">
+               No hay solicitudes de amistad pendientes. Haz click en "Añadir amigo" para enviar solicitudes de amistad
+            </p>
          </div>
+
          <transition name="slide-up">
          <Profile
                v-if="showProfile"
@@ -97,6 +107,18 @@ const friendNick = ref("");
  * @type {Ref<string>}
  */
 const searchTerm = ref('');
+
+/**
+ * Estado reactivo que controla la carga de los datos.
+ * @type {Ref<boolean>}
+ */
+ const loading = ref(true);
+
+ /**
+ * Estado reactivo que controla la carga de los datos de los chats.
+ * @type {Ref<boolean>}
+ */
+ const loadingChats = ref(true);
 
 /**
  * Instancia del router para navegación programática.
@@ -266,6 +288,8 @@ async function fetchFriends(nick) {
     console.log("Lista de amigos actualizada:", allFriends.value);
   } catch (error) {
     console.error(error.message);
+  } finally {
+    loading.value = false; 
   }
 }
 
@@ -285,6 +309,8 @@ async function fetchFriendRequests(nick) {
     console.log("Lista de solicitudes actualizada:", friendRequests.value);
   } catch (error) {
     console.error(error.message);
+  } finally {
+    loading.value = false; 
   }
 }
 
@@ -297,6 +323,7 @@ async function fetchFriendRequests(nick) {
  * @throws {Error} Si falla la petición a la API.
  */
 async function fetchChats(email) {
+  loading.value = true;
   try {
     const chatResponse = await fetch(`https://echobeatapi.duckdns.org/chat/chatsDelUsuario?userEmail=${encodeURIComponent(email)}`);
     if (!chatResponse.ok) throw new Error('Error al obtener los chats del usuario');
@@ -325,6 +352,8 @@ async function fetchChats(email) {
     console.log("Chats actualizados:", chattedFriends.value);
   } catch (error) {
     console.error(error.message);
+  } finally {
+    loadingChats.value = false; 
   }
 }
 
@@ -446,9 +475,11 @@ const rejectRequest = async (Nick) => {
  *
  * @param {object} friend - Objeto que representa al amigo.
  */
-const profileRequest = async (friend) => {
-  selectedUser.value = friend;
-  showProfile.value = true;
+ const profileRequest = (friend) => {
+  if (activeTab.value === 'chats' || activeTab.value === 'all') {
+    selectedUser.value = friend;
+    showProfile.value = true;
+  }
 };
 
 /**
@@ -708,6 +739,14 @@ const addFriend = async () => {
   padding: 3px 6px;
   line-height: 1;
   display: inline-block;
+}
+
+.empty-message {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 1.1rem;
+  color: #eee;
+  opacity: 0.8;
 }
 
 .back-btn-container {

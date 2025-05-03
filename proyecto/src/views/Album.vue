@@ -21,18 +21,22 @@
  
        <div class="song-container">
          <div class="album-actions">
-             <button class="button-action" @click="randomClick">
-                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
-             </button>
+            <button class="button-action tooltip-container" @click="randomClick">
+               <img :src="randomIcon" alt="Aleatorio" :class="{ 'glow-effect': isGlowing }" />
+               <span class="tooltip">Reproducción aleatoria</span>
+            </button>
+
              <input v-model="searchTerm" placeholder="Buscar canción" />
-             <button @click="playAlbum" class="button-action">  
-                <img :src= "playIcon" alt="Play/Pause" />
-             </button>
+
+             <button class="button-action tooltip-container" @click="playAlbum">
+               <img :src="playIcon" alt="Reproducir" />
+               <span class="tooltip">Reproducir</span>
+            </button>
          </div>
  
          <hr>
  
-         <draggable :list="filteredAlbum" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost">
+         <draggable :list="filteredAlbum" tag="ul" class="song-list" item-key="id" animation="200" ghost-class="drag-ghost" :disabled="type !== 'ListaReproduccion'">
            <template #item="{ element, index }">
              <li class="song-item" :key="element.id || index">
                <div class="song-info">
@@ -41,8 +45,9 @@
                  </div>
  
                  <div class="song-name-artist">
-                   <p>{{ element.nombre }} ({{ formatTime(element.duracion) }})</p>
-                 </div>
+                  <p class="song-title">{{ element.nombre }} <span class="duration">({{ formatTime(element.duracion) }})</span></p>
+                  <p class="song-author">{{ element.Autor }}</p>
+                </div>
  
                  <div class="song-plays">
                    <p>Reproducciones: {{ element.numReproducciones }}</p>
@@ -325,14 +330,18 @@ const playNewSong = async (song, posicion) => {
       Nombre: song.nombre,
       Portada: song.portada,
       Duracion: song.duracion,
+      Autor: song.Autor
    };
 
+   const colaSinAutor = songsData.value.map(({ Autor, ...rest }) => rest);
    // Construye el objeto de datos para la petición
    const bodyData = {
       userEmail: email,
       reproduccionAleatoria: aleatorio.value,
       posicionCola: posicion,
-      colaReproduccion: songsData.value
+      colaReproduccion: {
+         canciones: colaSinAutor
+      }  
    };
 
    // Realiza la petición para reproducir la canción en la posición especificada
@@ -364,11 +373,14 @@ const playNewSong = async (song, posicion) => {
  * @throws {Error} Si falla la petición para reproducir el álbum o la canción.
  */
 const playAlbum = async () => {
+   const colaSinAutor = songsData.value.map(({ Autor, ...rest }) => rest);
    try {
       const bodyData = {
          userEmail: email,
          reproduccionAleatoria: aleatorio.value,
-         colaReproduccion: songsData.value
+         colaReproduccion: {
+            canciones: colaSinAutor
+         }
       };
 
       // Realiza la petición para reproducir el álbum
@@ -398,6 +410,7 @@ const playAlbum = async () => {
          Nombre: songData.Nombre,
          Portada: songData.Portada,
          Duracion: songData.Duracion,
+         Autor: songData.Autores.join(', '),
       };
 
       // Reproduce la canción
@@ -463,17 +476,37 @@ onMounted(async () => {
       // Petición para obtener las canciones del álbum
       const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/${Id}/songs`);
       if (!songsResponse.ok) throw new Error('Error al obtener las canciones del álbum');
-
       songsData.value = await songsResponse.json();
       console.log("✅ SongsData recibido: ", songsData.value);
 
-      // Verifica que los datos de canciones sean un array válido
-      if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
+       // Verifica que los datos de canciones sean un array válido
+       if (!songsData.value || !Array.isArray(songsData.value.canciones)) {
          throw new Error('Las canciones no llegaron en formato de array');
       }
 
+      const rawSongs = songsData.value.canciones;
+      const cancionesConAutores = [];
+      for (const song of rawSongs) {
+         try {
+            const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song.id}`);
+            if (!songsResponse.ok) {
+               console.error(`Error al obtener datos de la canción ${song.Id}`);
+               continue;
+            }
+            const songsResponseData = await songsResponse.json();
+            cancionesConAutores.push({
+               ...song,
+               Autor: songsResponseData.Autores.join(', '),
+            });
+         } catch (err) {
+            console.error('Error al procesar canción:', err);
+         }
+      }
+      songsData.value = cancionesConAutores;
+      console.log("🕵️‍♂️ Canciones actualizadas:", songsData.value);
+
       // Asigna las canciones del álbum a la variable reactiva
-      album.value = songsData.value.canciones;
+      album.value = songsData.value;
       console.log("✅ Álbum final cargado:", album.value);
 
    } catch (error) {
@@ -745,6 +778,47 @@ hr{
    transition: transform 0.2s ease-in-out;
 }
 
+.tooltip-container {
+   position: relative;
+   display: inline-block;
+}
+
+.tooltip {
+   visibility: hidden;
+   width: max-content;
+   background-color: #333;
+   color: #fff;
+   text-align: center;
+   border-radius: 5px;
+   padding: 6px 10px;
+   position: absolute;
+   z-index: 1;
+   bottom: 125%; /* Sitúa el tooltip arriba del botón */
+   left: 50%;
+   transform: translateX(-50%);
+   opacity: 0;
+   transition: opacity 0.3s;
+   white-space: nowrap;
+   font-size: 0.75rem;
+   pointer-events: none;
+}
+
+.tooltip::after {
+   content: "";
+   position: absolute;
+   top: 100%; /* Flecha hacia abajo */
+   left: 50%;
+   margin-left: -5px;
+   border-width: 5px;
+   border-style: solid;
+   border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip {
+   visibility: visible;
+   opacity: 1;
+}
+
 @keyframes glowPulse {
    0% { filter: drop-shadow(0px 0px 8px rgba(20, 18, 166, 0.888)); }
    50% { filter: drop-shadow(0px 0px 15px rgba(255, 215, 0, 1)); }
@@ -776,6 +850,29 @@ hr{
 .song-buttons {
    width: 22%;
    text-align: center;  
+}
+
+.song-name-artist {
+   padding-top: 8px;
+}
+
+.song-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.duration {
+  font-weight: 450;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.song-author {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 6px;
+  font-style: italic;
 }
  
 h1 {

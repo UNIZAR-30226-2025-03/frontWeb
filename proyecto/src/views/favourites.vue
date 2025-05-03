@@ -32,6 +32,9 @@
                           </li>
                         </template>
                     </draggable>
+                    <p v-if="!loading && likedPlaylists.length === 0" class="empty-message">
+                        Todavía no hay ninguna lista guardada.
+                    </p>
 
                 </section>
             </div>
@@ -90,6 +93,12 @@ const likedPlaylists = ref([]);
 const email = localStorage.getItem("email");
 
 /**
+ * Estado reactivo que controla la carga de los datos.
+ * @type {Ref<boolean>}
+ */
+ const loading = ref(true);
+
+/**
  * Función para mostrar un popup con un mensaje y tipo determinado.
  * Oculta el popup después de 1500 ms.
  *
@@ -132,6 +141,9 @@ async function fetchFavourites() {
       console.log("✅ likedPlaylists cargada: ", likedPlaylists.value);
    } catch (error) {
       console.error(error);
+   
+   } finally {
+      loading.value = false; 
    }
 }
 
@@ -184,16 +196,22 @@ const unlikePlaylist = async (playlistId) => {
 };
 
 /**
- * Función para manejar el click en una playlist.
- * Establece el tipo de playlist en el localStorage y redirige al usuario a la vista de la playlist.
+ * Función para manejar el click en una playlist/album.
+ * Establece el tipo de playlist en el localStorage y redirige al usuario a la vista de la playlist/album.
  *
- * @param {string} id - ID de la playlist seleccionada.
+ * @param {string} id - ID de la playlist/album seleccionada.
  * @param {string} type - Tipo de playlist.
  */
 const handleClick = (id, type) => {
    console.log("Playlist seleccionada:", id);
-   localStorage.setItem("type", "Ajeno");
-   router.push({ path: '/playlist', query: { id: id} });
+   if (type === 'ListaReproduccion') {
+      localStorage.setItem("type", "Ajeno");
+      router.push({ path: '/playlist', query: { id: id} });
+   }
+   else if (type === 'Album') {
+      localStorage.setItem("type", "Album");
+      router.push({ path: '/album', query: { id: id} });
+   }
 };
 </script>
 
@@ -339,6 +357,14 @@ const handleClick = (id, type) => {
    transform: scale(1.3) rotate(-10deg); /* Crece y gira un poco */
    color: red; 
    text-shadow: 0 0 8px rgba(255, 0, 0, 0.7); 
+}
+
+.empty-message {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 1.1rem;
+  color: #eee;
+  opacity: 0.8;
 }
 
 .back-btn-container {

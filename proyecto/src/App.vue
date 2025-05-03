@@ -137,7 +137,7 @@
          <div class="now-playing">
            <div class="song-info">
                <!-- Mostrar la portada y el nombre de la canción -->
-               <img :src="lastSong.cover" alt="Song Icon" class="song-icon" />
+               <img :src="lastSong.cover" class="song-icon" />
                <div class="song-text">
                   <span class="song-name">{{ lastSong.name }}</span>
                   <span class="song-name-artist">{{ lastSong.autor }}</span>
@@ -705,6 +705,7 @@
           Nombre: songData.Nombre,
           Portada: songData.Portada,
           Duracion: songData.Duracion,
+          Autor: songData.Autores.join(', '),
        };
        playSong(newSong);
  
@@ -776,6 +777,7 @@
           Nombre: songData.Nombre,
           Portada: songData.Portada,
           Duracion: songData.Duracion,
+          Autor: songData.Autores.join(', '),
        };
  
        playSong(newSong);
@@ -1426,7 +1428,7 @@
  }
 
  .image-right {
-   width: 60px;
+   width: 50px;
    border-radius: 50%;
    height: auto;
    cursor: pointer;

@@ -14,16 +14,22 @@
  
        <div class="song-container">
          <div class="playlist-actions">
-             <button class="button-action" @click="randomClick">
-                <img :src="randomIcon" alt="random" :class="{ 'glow-effect': isGlowing }" />
-             </button>
+            <button class="button-action tooltip-container" @click="randomClick">
+               <img :src="randomIcon" alt="Aleatorio" :class="{ 'glow-effect': isGlowing }" />
+               <span class="tooltip">Reproducción aleatoria</span>
+            </button>
+
              <input v-model="searchTerm" placeholder="Buscar canción" />
-             <button ref="addButtonRef" class="button-action" @click="toggleSearch">
-                <img :src="add_button" alt="add"/>
-             </button>
-             <button @click="playPlaylist" class="button-action">  
-                <img :src= "playIcon" alt="Play/Pause" />
-             </button>
+
+             <button ref="addButtonRef" class="button-action tooltip-container" @click="toggleSearch">
+               <img :src="add_button" alt="Añadir" />
+               <span class="tooltip">Añadir canciones</span>
+            </button>
+
+             <button class="button-action tooltip-container" @click="playPlaylist">
+               <img :src="playIcon" alt="Reproducir" />
+               <span class="tooltip">Reproducir</span>
+            </button>
  
              <!-- El contenedor para el buscador -->
              <div v-if="searchVisible" ref="searchContainerRef" class="search-container" :class="{'active': searchVisible}">
@@ -58,8 +64,9 @@
                  </div>
  
                  <div class="song-name-artist">
-                   <p>{{ element.nombre }} ({{ formatTime(element.duracion) }})</p>
-                 </div>
+                  <p class="song-title">{{ element.nombre }} <span class="duration">({{ formatTime(element.duracion) }})</span></p>
+                  <p class="song-author">{{ element.Autor }}</p>
+                </div>
  
                  <div class="song-album">
                    <p v-if="playlistInfo.type === 'playlist'">Álbum: {{ element.album }}</p>
@@ -77,6 +84,9 @@
              </li>
            </template>
          </draggable>
+         <p v-if="!loading && songsData.length === 0" class="empty-message">
+            Todavía no hay ninguna canción guardada. Haz click en el botón de añadir para agregar alguna
+         </p>
        </div>
     </div>
      <div v-if="showPopup" :class="popupType" class="popup">
@@ -164,6 +174,12 @@ const email = localStorage.getItem("email");
  * @type {Ref<boolean>}
  */
 const aleatorio = ref(false);
+
+/**
+ * Estado reactivo que controla la carga de los datos.
+ * @type {Ref<boolean>}
+ */
+ const loading = ref(true);
 
 /**
  * Estado reactivo que controla la visibilidad del popup.
@@ -304,15 +320,18 @@ const playNewSong = async (song, posicion) => {
       Nombre: song.nombre,
       Portada: song.portada,
       Duracion: song.duracion,
+      Autor: song.Autor
    };
 
    console.log(newSong);
-
+   const colaSinAutor = songsData.value.map(({ Autor, ...rest }) => rest);
    const bodyData = {
       userEmail: email,
       reproduccionAleatoria: aleatorio.value,
       posicionCola: posicion,
-      colaReproduccion: songsData.value
+      colaReproduccion: {
+         canciones: colaSinAutor
+      } 
    };
 
    console.log("JSON enviado:", bodyData);
@@ -373,11 +392,33 @@ const handleClickOutside = (event) => {
          throw new Error('Las canciones no llegaron en formato de array');
       }
  
+      const rawSongs = songsData.value.canciones;
+      const cancionesConAutores = [];
+      for (const song of rawSongs) {
+         try {
+            const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song.id}`);
+            if (!songsResponse.ok) {
+               console.error(`Error al obtener datos de la canción ${song.Id}`);
+               continue;
+            }
+            const songsResponseData = await songsResponse.json();
+            cancionesConAutores.push({
+               ...song,
+               Autor: songsResponseData.Autores.join(', '),
+            });
+         } catch (err) {
+            console.error('Error al procesar canción:', err);
+         }
+      }
+      songsData.value = cancionesConAutores;
+      console.log("🕵️‍♂️ Canciones actualizadas:", songsData.value);
       // ASIGNAR LAS CANCIONES A `playlist`
-      playlist.value = songsData.value.canciones;
+      playlist.value = songsData.value;
       console.log("✅ Playlist final cargada:", playlist.value);
    } catch (error) {
       console.error('Error al cargar la playlist:', error);
+   } finally {
+      loading.value = false; 
    }
 }
 
@@ -457,11 +498,14 @@ function formatTime(seconds) {
  * @throws {Error} Si la petición a la API falla.
  */
 const playPlaylist = async () => {
+   const colaSinAutor = songsData.value.map(({ Autor, ...rest }) => rest);
    try {
       const bodyData = {
          userEmail: email,
          reproduccionAleatoria: aleatorio.value,
-         colaReproduccion: songsData.value
+         colaReproduccion: {
+            canciones: colaSinAutor
+         }
       };
 
       console.log("JSON enviado:", bodyData);
@@ -492,6 +536,7 @@ const playPlaylist = async () => {
          Nombre: songData.Nombre,
          Portada: songData.Portada,
          Duracion: songData.Duracion,
+         Autor: songData.Autores.join(', '),
       };
       playSong(newSong);
       emitter.emit('random-changed', aleatorio.value);
@@ -788,6 +833,47 @@ hr{
    transition: transform 0.2s ease-in-out;
 }
 
+.tooltip-container {
+   position: relative;
+   display: inline-block;
+}
+
+.tooltip {
+   visibility: hidden;
+   width: max-content;
+   background-color: #333;
+   color: #fff;
+   text-align: center;
+   border-radius: 5px;
+   padding: 6px 10px;
+   position: absolute;
+   z-index: 1;
+   bottom: 125%; /* Sitúa el tooltip arriba del botón */
+   left: 50%;
+   transform: translateX(-50%);
+   opacity: 0;
+   transition: opacity 0.3s;
+   white-space: nowrap;
+   font-size: 0.75rem;
+   pointer-events: none;
+}
+
+.tooltip::after {
+   content: "";
+   position: absolute;
+   top: 100%; /* Flecha hacia abajo */
+   left: 50%;
+   margin-left: -5px;
+   border-width: 5px;
+   border-style: solid;
+   border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip {
+   visibility: visible;
+   opacity: 1;
+}
+
 @keyframes glowPulse {
    0% { filter: drop-shadow(0px 0px 8px rgba(20, 18, 166, 0.888)); }
    50% { filter: drop-shadow(0px 0px 15px rgba(255, 215, 0, 1)); }
@@ -818,7 +904,30 @@ hr{
 .song-plays,
 .song-buttons {
    width: 22%;
-   text-align: center;
+   text-align: center;  
+}
+
+.song-name-artist {
+   padding-top: 8px;
+}
+
+.song-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.duration {
+  font-weight: 450;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.song-author {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 6px;
+  font-style: italic;
 }
  
 h1 {
@@ -999,6 +1108,14 @@ h1 {
 .addButton:focus {
    outline: none;
    box-shadow: 0 0 8px rgba(255, 165, 0, 0.7);
+}
+
+.empty-message {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 1.1rem;
+  color: #eee;
+  opacity: 0.8;
 }
   
 /* Mensaje emergente */
