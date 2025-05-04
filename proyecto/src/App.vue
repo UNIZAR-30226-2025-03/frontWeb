@@ -13,7 +13,7 @@
             </div> 
           </div>
           <div class="busqueda" ref="searchArea" @click.stop>
-             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
+             <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch"/>
              <div class="search-results" v-if="currentSearch && !isLoading && showResults" ref="resultsArea">
                  <template v-if="hasResults">
                      <!-- Resultados de artistas -->
@@ -662,6 +662,22 @@
   * @constant {ComputedRef<boolean>} hasResults - Computada que indica si existen resultados en alguna categoría.
   */
  
+  let searchTimeout = null;
+
+watch(currentSearch, (newVal) => {
+  clearTimeout(searchTimeout); // Limpiar si el usuario sigue escribiendo
+
+  if (!newVal.trim()) {
+    results.value = { artistas: [], canciones: [], albums: [], playlists: [], playlistsProtegidasDeAmigos: [], playlistsPorGenero: [] };
+    showResults.value = false;
+    return;
+  }
+
+  // Esperar 400ms antes de hacer la búsqueda
+  searchTimeout = setTimeout(() => {
+    fetchResults();
+  }, 400);
+});
  
  // Opción de búsqueda
  const handleSearchOptionChange = () => {

@@ -102,7 +102,7 @@
 
             <!-- El contenedor para el buscador -->
             <div v-if="searchVisible" ref="searchContainerRef" class="search-container" :class="{'active': searchVisible}">
-               <input type="text" placeholder="Buscar canción..." v-model="currentSearch" @input="fetchResults"/>
+               <input type="text" placeholder="Buscar canción..." v-model="currentSearch"/>
                <div class="search-results" v-if="currentSearch && !isLoading">
                   <div v-if="results?.canciones.length">
                      <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item" @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
@@ -115,7 +115,7 @@
                      </div>
                   </div>
 
-                  <div v-else class="no-results">
+                  <div v-else-if="!isLoading && currentSearch.trim()" class="no-results">
                      ❌ Sin resultados
                   </div>
                </div>
@@ -1285,7 +1285,7 @@ const addSong = async (song) => {
          Autor: song.Autor
       };
       playlist.value = [...playlist.value, newSong];
-      songsData.value = playlist.value
+      songsData.value = playlist.value;
       console.log('valor canciones playlist', playlist.value);
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
@@ -1378,6 +1378,22 @@ const addSongToFavorites = async (song) => {
       showPopupMessage(error.message, "popup-error");
    }
 };
+
+// Watcher para mostrar resultados de búsqueda de canciones.
+let searchTimeout = null;
+watch(currentSearch, (newVal) => {
+  clearTimeout(searchTimeout); // Limpiar si el usuario sigue escribiendo
+
+  if (!newVal.trim()) {
+    results.value = { artistas: [], canciones: [], albums: [], playlists: [], playlistsProtegidasDeAmigos: [], playlistsPorGenero: [] };
+    return;
+  }
+
+  // Esperar 400ms antes de hacer la búsqueda
+  searchTimeout = setTimeout(() => {
+    fetchResults();
+  }, 400);
+});
 
 /**
  * Función asíncrona para buscar canciones.
