@@ -942,7 +942,7 @@ const playNewSong = async (song, posicion) => {
       }   
    };
 
-   console.log("JSON enviado:", bodyData);
+   console.log("JSON enviado:", JSON.stringify(bodyData, null, 2));
 
    const response = await fetch(`https://echobeatapi.duckdns.org/cola-reproduccion/play-list-by-position`, {
       method: 'POST',
@@ -1281,10 +1281,11 @@ const addSong = async (song) => {
          portada: song.Portada,
          duracion: song.Duracion,
          numReproducciones: song.NumReproducciones,
-         numFavoritos: song.numFavoritos,
+         numFavoritos: song.NumFavoritos,
          Autor: song.Autor
       };
       playlist.value = [...playlist.value, newSong];
+      songsData.value = playlist.value
       console.log('valor canciones playlist', playlist.value);
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
