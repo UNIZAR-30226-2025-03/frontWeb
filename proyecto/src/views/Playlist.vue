@@ -1286,6 +1286,7 @@ const addSong = async (song) => {
       };
       playlist.value = [...playlist.value, newSong];
       songsData.value = playlist.value;
+      playlistInfo.value.NumCanciones++;
       console.log('valor canciones playlist', playlist.value);
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
@@ -1320,6 +1321,7 @@ const removeSong = async (songId) => {
       }
       // Elimina la canción localmente si la eliminación es exitosa.
       playlist.value = playlist.value.filter(song => song.id !== songId);
+      playlistInfo.value.NumCanciones--;
       showPopupMessage("Canción eliminada con éxito", "popup-success");
    } catch (error) {
       showPopupMessage(error.message, "popup-error");
