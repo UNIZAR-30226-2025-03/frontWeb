@@ -323,7 +323,6 @@ async function fetchFriendRequests(nick) {
  * @throws {Error} Si falla la petición a la API.
  */
 async function fetchChats(email) {
-  loading.value = true;
   try {
     const chatResponse = await fetch(`https://echobeatapi.duckdns.org/chat/chatsDelUsuario?userEmail=${encodeURIComponent(email)}`);
     if (!chatResponse.ok) throw new Error('Error al obtener los chats del usuario');

@@ -52,7 +52,7 @@
                <p :class="{ 'disabled': type !== 'ListaReproduccion' }" @click.stop="toggleEditDescription" v-if="!isEditingDescription">{{ playlistInfo.Descripcion }}</p>
                <input v-if="isEditingDescription && type === 'ListaReproduccion'" ref="descriptionInputRef" v-model="editedDescription" @blur="saveDescription" @keyup.enter="saveDescription" type="text" :class="{'show': isEditingDescription}" />
             </div>
-            <p v-if="type !== 'ajenoPrivado' && ownerPrivacy !== 'privado'">{{ playlistInfo.NumLikes }} Likes</p>
+            <p v-if="!loading && type !== 'ajenoPrivado' && ownerPrivacy !== 'privado'">{{ playlistInfo.NumLikes }} Likes</p>
          </div>
 
       </div>
@@ -157,6 +157,9 @@
             </li>
           </template>
         </draggable>
+        <p v-if="!loading && filteredPlaylist.length === 0" class="empty-message">
+            Todavía no hay ninguna canción en esta playlist. Haz click en el botón de "Añadir canciones" para agregar alguna
+         </p>
       </div>
    </div>
     <div v-if="showPopup" :class="popupType" class="popup">
@@ -235,6 +238,12 @@ const currentSearch = ref('');
  * @type {Ref<boolean>}
  */
 const isLoading = ref(false);
+
+/**
+ * Estado reactivo para controlar la carga de datos de la playlist.
+ * @type {Ref<boolean>}
+ */
+ const loading = ref(true);
 
 /**
  * Estado reactivo que almacena la canción sobre la que se pasa el cursor.
@@ -430,12 +439,6 @@ const popupMessage = ref("");
  * @type {Ref<string>}
  */
  const ownerPrivacy = ref("");
-
-/**
- * Estado reactivo que almacena el filtro actual de la playlist .
- * @type {Ref<string>}
- */
-const currentFilter = ref("");
 
 /**
  * Estado reactivo que define el tipo de popup ("popup-error" o "popup-success").
@@ -727,7 +730,6 @@ async function sortSongs() {
          default:
             filtro = 0;
       }
-      currentFilter.value = filtro;
       const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
       if (!response.ok) throw new Error("Error al ordenar las canciones");
 
@@ -1070,6 +1072,8 @@ onMounted(async () => {
       console.log('Canciones predeterminadas', defaultImages.value);
    } catch (error) {
       console.error('Error al cargar la playlist:', error);
+   } finally {
+      loading.value = false;
    }
 });
 
@@ -1254,7 +1258,7 @@ const playPlaylist = async () => {
 const addSong = async (song) => {
    try {
       console.log("Id playlist: ", Id);
-      console.log("Id canción: ", song.Id);
+      console.log("canción: ", song);
       const playlistId = Number(Id);
       const response = await fetch(`https://echobeatapi.duckdns.org/playlists/add-song/${playlistId}`, {
          method: 'POST',
@@ -1276,7 +1280,9 @@ const addSong = async (song) => {
          nombre: song.Nombre,
          portada: song.Portada,
          duracion: song.Duracion,
-         numReproducciones: song.NumReproducciones
+         numReproducciones: song.NumReproducciones,
+         numFavoritos: song.numFavoritos,
+         Autor: song.Autor
       };
       playlist.value = [...playlist.value, newSong];
       console.log('valor canciones playlist', playlist.value);
@@ -1392,6 +1398,26 @@ const fetchResults = async () => {
       if (!response.ok) throw new Error('Error al obtener los datos de búsqueda');
       results.value = await response.json();
       console.log("Respuesta de la API:", results.value);
+      const rawSongs = results.value.canciones;
+      const cancionesConAutores = [];
+      for (const song of rawSongs) {
+         try {
+            const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song.Id}`);
+            if (!songsResponse.ok) {
+               console.error(`Error al obtener datos de la canción ${song.Id}`);
+               continue;
+            }
+            const songsResponseData = await songsResponse.json();
+            cancionesConAutores.push({
+               ...song,
+               Autor: songsResponseData.Autores.join(', '),
+            });
+         } catch (err) {
+            console.error('Error al procesar canción:', err);
+         }
+      }
+      results.value.canciones = cancionesConAutores;
+      console.log("🕵️‍♂️ Canciones actualizadas:", results.value.canciones);
    } catch (error) {
       console.error('Error:', error);
    } finally {
@@ -2169,6 +2195,13 @@ h1 {
    pointer-events: none;  /* Desactiva la capacidad de hacer clic */
 }
 
+.empty-message {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 1.1rem;
+  color: #eee;
+  opacity: 0.8;
+}
 
 /* Mensaje emergente */
 .popup {

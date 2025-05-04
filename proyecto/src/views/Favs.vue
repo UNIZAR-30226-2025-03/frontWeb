@@ -20,6 +20,16 @@
             </button>
 
              <input v-model="searchTerm" placeholder="Buscar canción" />
+            
+             <div class="select-wrapper tooltip-container">
+               <select class="filterSelect" v-model="sortOption" @change="sortSongs">
+                  <option disabled value="">Orden playlist</option>
+                  <option value="default">Predefinida</option>
+                  <option value="name">Nombre</option>
+                  <option value="plays">Reproducciones</option>
+               </select>
+               <span class="tooltip">Ordenar canciones</span>
+            </div>
 
              <button ref="addButtonRef" class="button-action tooltip-container" @click="toggleSearch">
                <img :src="add_button" alt="Añadir" />
@@ -85,7 +95,7 @@
            </template>
          </draggable>
          <p v-if="!loading && songsData.length === 0" class="empty-message">
-            Todavía no hay ninguna canción guardada. Haz click en el botón de añadir para agregar alguna
+            Todavía no hay ninguna canción guardada. Haz click en el botón de "Añadir canciones" para agregar alguna
          </p>
        </div>
     </div>
@@ -291,6 +301,12 @@ const searchTerm = ref('');
  const currentNick = ref('');
 
 /**
+ * Estado reactivo para almacenar la opción de ordenamiento de canciones.
+ * @type {Ref<string>}
+ */
+const sortOption = ref('default');
+
+/**
  * Objeto reactivo que almacena los resultados de búsqueda agrupados por categoría.
  * @type {Ref<{ artistas: Array, canciones: Array, albums: Array, listas: Array }>}
  */
@@ -459,6 +475,33 @@ onUnmounted(() => {
 });
 
 /**
+ * Hook de ciclo de vida: onUnmounted.
+ * Realiza la actualización de la lista de canciones en el servidor y limpia el listener.
+ */
+ onUnmounted(async () => {
+   console.log("Actualizando lista...");
+   if (sortOption.value === 'default') {
+      try {
+         const canciones = filteredPlaylist.value;
+         const cancionesJson = { canciones };
+         const responde = await fetch("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+               idPlaylist: Number(Id),
+               cancionesJson: cancionesJson
+            })
+         });
+         if (!responde.ok) throw new Error('Error al actualizando lista');
+      } catch (error) {
+         console.error(error);
+      }
+   }
+});
+
+/**
  * Función para manejar errores al cargar imágenes.
  * Si ocurre un error al cargar una imagen, se sustituye por una imagen predeterminada.
  *
@@ -616,6 +659,44 @@ const removeSong = async (songId) => {
 };
 
 /**
+ * Función asíncrona para ordenar las canciones de la playlist.
+ * La opción de ordenamiento se determina por sortOption, que se traduce a un filtro numérico.
+ *
+ * @async
+ */
+ async function sortSongs() {
+   const idLista = Number(Id);
+   try {
+      let filtro;
+      switch (sortOption.value) {
+         case 'default':
+            filtro = 0;
+            break;
+         case 'name': 
+            filtro = 1;
+            break;
+         case 'plays':
+            filtro = 2;
+            break;
+         default:
+            filtro = 0;
+      }
+      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
+      if (!response.ok) throw new Error("Error al ordenar las canciones");
+
+      const data = await response.json();
+      playlist.value = data.canciones;
+      songsData.value = data.canciones;
+      console.log("🕵️‍♂️ Canciones después de ordenar: ", songsData.value);
+
+      showPopupMessage('Playlist ordenada correctamente', 'popup-success');
+   } catch (error) {
+      console.error(error);
+      showPopupMessage(' Error al ordenar la playlist', 'popup-error');
+   }
+}
+
+/**
  * Función asíncrona para obtener resultados de búsqueda para canciones.
  * Si el campo de búsqueda está vacío, resetea los resultados de canciones.
  * Realiza una petición a la API y actualiza el estado reactivo "results".
@@ -734,7 +815,6 @@ hr{
 }
  
 .playlist-actions input,
-.playlist-actions select,
 .playlist-actions button {
    background-color: #2d1405;
    border: none;
@@ -747,18 +827,12 @@ hr{
  
 .playlist-actions input {
    width: 220px;
-   background-color: #8A3A1B;   
+   background-color: #8A3A1B;  
+   border: 1px solid #ccc; 
 }
 
 .playlist-actions input::placeholder {
    color: white; /* Color del placeholder dorado para mejor visibilidad */
-   opacity: 0.5;
-}
-
-.playlist-actions select {
-   width: 160px;
-   background-color: transparent;
-   color: white;
    opacity: 0.5;
 }
  
@@ -831,6 +905,49 @@ hr{
 .button-action:hover img {
    transform: scale(1.2);
    transition: transform 0.2s ease-in-out;
+}
+
+.filterSelect {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #8A3A1B;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.3s ease;
+}
+
+.filterSelect:hover {
+  border-color: #888;
+}
+
+.filterSelect:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+}
+
+.filterSelect option {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #aaa;
 }
 
 .tooltip-container {

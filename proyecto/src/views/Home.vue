@@ -254,6 +254,7 @@ const playAsong = async (song, posicion) => {
          Nombre: songData.Nombre,
          Portada: songData.Portada,
          Duracion: songData.Duracion,
+         Autor: songData.Autores.join(', '),
       };
       //-------------Actualizar posición cola------------------
       const bodyData = {
@@ -405,7 +406,7 @@ onMounted(async () => {
       } else {
          playlists.value = Array.isArray(playlistData) ? playlistData : [playlistData];
       }
-      console.log("playlists data ", playlists.value); // 🔥 Ver en la consola
+      console.log("playlists data ", playlists.value); 
    } catch (error) {
       console.error('Playlist Error:', error);
    } finally {

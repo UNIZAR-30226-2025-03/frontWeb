@@ -14,7 +14,7 @@
           </div>
           <div class="busqueda" ref="searchArea" @click.stop>
              <input class="search-bar" type="text" placeholder="¿Qué quieres reproducir?" v-model="currentSearch" @input="fetchResults"/>
-             <div class="search-results" v-if="currentSearch && !isLoading" ref="resultsArea">
+             <div class="search-results" v-if="currentSearch && !isLoading && showResults" ref="resultsArea">
                  <template v-if="hasResults">
                      <!-- Resultados de artistas -->
                    <div 
@@ -142,8 +142,10 @@
                   <span class="song-name">{{ lastSong.name }}</span>
                   <span class="song-name-artist">{{ lastSong.autor }}</span>
                </div>
-             </div>
-             
+            </div>
+               <!-- Botón para añadir a favoritos -->
+               <button v-if="!isFavorite(currentSong)" class="already-fav-btn"  @click="addToFavorites(currentSong)" title="Añadir a favoritos">🤍</button>
+               <button v-else class="add-to-fav-btn" @click="errorMessage">❤️</button>
          </div>
         
          <!-- Center -->
@@ -459,6 +461,10 @@
  /**
   * @constant {Ref<HTMLElement|null>} resultsArea - Referencia al área que muestra los resultados de búsqueda.
   */
+  const showResults = ref(false);
+ /**
+  * @constant {Ref<boolean>} showResults - Indica si el audio está listo para saltar a una posición determinada.
+  */
  const hoverLike = ref({});
  /**
   * @constant {Ref<Object>} hoverLike - Estado de like en hover para canciones.
@@ -528,6 +534,10 @@
   const showTooltipIndex = ref(null);
  /**
   * @constant {Ref<boolean>} showTooltipIndex - Estado que representa lo que significa cada icono del menú al pasar el ratón por encima.
+  */
+  const favoriteSongs = ref([]);
+  /**
+  * @constant {Ref<HTMLElement|null>} favoriteSongs - Lista de canciones favoritas.
   */
  
  const showPopupMessage = (message, type) => {
@@ -843,13 +853,82 @@
       console.error("Error al cargar liked playlists", error);
    }
  };
+
+ /**
+ * Función asíncrona para obtener las canciones favoritas del usuario.
+ * Realiza una petición a la API y actualiza el estado reactivo "songsData".
+ *
+ * @async
+ * @throws {Error} Si la petición a la API falla.
+ */
+ async function fetchFavourites() {
+   try {
+      // OBTENER CANCIONES FAVORITAS
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(email)}`);
+      if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
+   
+      favoriteSongs.value = await songsResponse.json();
+      console.log(" ✅ Canciones favoritas: ", favoriteSongs.value);
+   
+      // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
+      if (!favoriteSongs.value || !Array.isArray(favoriteSongs.value.canciones)) {
+         throw new Error('Las canciones no llegaron en formato de array');
+      }
+ 
+   } catch (error) {
+      console.error('Error al cargar la playlist:', error);
+   }
+}
+
+/**
+ * Función para comprobar si una canción se encuentra en favoritos o no
+ * @param {string} id - Canción a comprobar.
+ */
+ const isFavorite = (currentSong) => {
+   if (!Array.isArray(favoriteSongs.value.canciones)) return false;
+   return favoriteSongs.value.canciones.some(s => s.id === currentSong.Id);
+}
+
+/**
+  * Función para mostrar error cuando la canción ya se encuentra en favoritos
+ */
+ const errorMessage = () => {
+   showPopupMessage ("La canción ya se encuentra en favoritos", "popup-error");
+}
+
+ /**
+ * Función asíncrona para añadir una canción a favoritos.
+ * Envía una petición POST a la API para marcar la canción como favorita.
+ *
+ * @async
+ * @param {object} song - Objeto de la canción a marcar como favorita.
+ */
+const addToFavorites = async (song) => {
+   try {
+      console.log("Email: ", email);
+      console.log("Id canción: ", song.Id);
+      const response = await fetch(`https://echobeatapi.duckdns.org/cancion/like/${getEmail()}/${song.Id}`, {
+         method: 'POST',
+         headers: {
+            'Accept': '*/*',
+         },
+      });
+      if (!response.ok) {
+         throw new Error('Error al añadir canción a favoritos');
+      }
+      emitter.emit('FavoriteSongs-updated');
+      showPopupMessage("Canción añadida a favoritos con éxito", "popup-success");
+   } catch (error) {
+      showPopupMessage(error.message, "popup-error");
+   }
+};
  /**
   * Función asíncrona para cargar las playlists guardadas.
   */
  
  // Función para cerrar el desplegable de búsqueda
  const closeSearchResults = () => {
-   currentSearch.value = ''; // Limpiar la búsqueda
+   showResults.value = false; 
  };
  /**
   * Función para cerrar y limpiar los resultados de búsqueda.
@@ -896,7 +975,10 @@
    document.addEventListener('click', handleClickOutside);
    document.addEventListener('audio-buffer-ready', bufferReady);
    window.addEventListener('beforeunload', enviarProgreso);
-
+   fetchFavourites();
+   emitter.on('FavoriteSongs-updated', () => {
+      fetchFavourites(); // Vuelve a cargar los favoritos cuando hay un cambio
+   });
    fetchLikedPlaylists();
 
    emitter.on('likedLists-updated', () => {
@@ -969,6 +1051,7 @@
    document.removeEventListener('click', handleClickOutside);
    window.removeEventListener('beforeunload', enviarProgreso)
    emitter.off('likedLists-updated');
+   emitter.off('FavoriteSongs-updated');
    emitter.off('random-changed');
    if (player.value) {
       player.value.removeEventListener('ended', handleSongEnded);
@@ -1321,7 +1404,7 @@
        console.log("Canciones:", JSON.parse(JSON.stringify(results.value.canciones)));
        console.log("Álbumes:", JSON.parse(JSON.stringify(results.value.albums)));
        console.log("Playlists:", JSON.parse(JSON.stringify(results.value.playlists)));
-
+       showResults.value = true;
       const rawSongs = results.value.canciones;
       const cancionesConAutores = [];
       for (const song of rawSongs) {
@@ -1342,7 +1425,7 @@
       }
       results.value.canciones = cancionesConAutores;
       console.log("🕵️‍♂️ Canciones actualizadas:", results.value.canciones);
- 
+      
     } catch (error) {
        console.error('Error:', error);
  
@@ -1762,8 +1845,25 @@
   margin-top: 2px;
 }
 
+.add-to-fav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-left: 8px;
+  color: #f3eeed;
+}
 
- .bottom-bar {
+.already-fav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-left: 8px;
+  color: #e74c3c;
+}
+
+.bottom-bar {
    position: fixed;
    bottom: 0;
    left: 0;
@@ -1776,7 +1876,7 @@
    background-color: #111;
    box-shadow: 0px -7px 6px rgba(1, 1, 1, 0.6);
    z-index: 999;
- }
+}
  
  .now-playing {
    display: flex;
