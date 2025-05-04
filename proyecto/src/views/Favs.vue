@@ -20,16 +20,6 @@
             </button>
 
              <input v-model="searchTerm" placeholder="Buscar canción" />
-            
-             <div class="select-wrapper tooltip-container">
-               <select class="filterSelect" v-model="sortOption" @change="sortSongs">
-                  <option disabled value="">Orden playlist</option>
-                  <option value="default">Predefinida</option>
-                  <option value="name">Nombre</option>
-                  <option value="plays">Reproducciones</option>
-               </select>
-               <span class="tooltip">Ordenar canciones</span>
-            </div>
 
              <button ref="addButtonRef" class="button-action tooltip-container" @click="toggleSearch">
                <img :src="add_button" alt="Añadir" />
@@ -475,33 +465,6 @@ onUnmounted(() => {
 });
 
 /**
- * Hook de ciclo de vida: onUnmounted.
- * Realiza la actualización de la lista de canciones en el servidor y limpia el listener.
- */
- onUnmounted(async () => {
-   console.log("Actualizando lista...");
-   if (sortOption.value === 'default') {
-      try {
-         const canciones = filteredPlaylist.value;
-         const cancionesJson = { canciones };
-         const responde = await fetch("https://echobeatapi.duckdns.org/playlists/reordenar-canciones", {
-            method: 'POST',
-            headers: {
-               'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-               idPlaylist: Number(Id),
-               cancionesJson: cancionesJson
-            })
-         });
-         if (!responde.ok) throw new Error('Error al actualizando lista');
-      } catch (error) {
-         console.error(error);
-      }
-   }
-});
-
-/**
  * Función para manejar errores al cargar imágenes.
  * Si ocurre un error al cargar una imagen, se sustituye por una imagen predeterminada.
  *
@@ -658,43 +621,6 @@ const removeSong = async (songId) => {
    }
 };
 
-/**
- * Función asíncrona para ordenar las canciones de la playlist.
- * La opción de ordenamiento se determina por sortOption, que se traduce a un filtro numérico.
- *
- * @async
- */
- async function sortSongs() {
-   const idLista = Number(Id);
-   try {
-      let filtro;
-      switch (sortOption.value) {
-         case 'default':
-            filtro = 0;
-            break;
-         case 'name': 
-            filtro = 1;
-            break;
-         case 'plays':
-            filtro = 2;
-            break;
-         default:
-            filtro = 0;
-      }
-      const response = await fetch(`https://echobeatapi.duckdns.org/playlists/ordenar-canciones/${idLista}/${filtro}`);
-      if (!response.ok) throw new Error("Error al ordenar las canciones");
-
-      const data = await response.json();
-      playlist.value = data.canciones;
-      songsData.value = data.canciones;
-      console.log("🕵️‍♂️ Canciones después de ordenar: ", songsData.value);
-
-      showPopupMessage('Playlist ordenada correctamente', 'popup-success');
-   } catch (error) {
-      console.error(error);
-      showPopupMessage(' Error al ordenar la playlist', 'popup-error');
-   }
-}
 
 /**
  * Función asíncrona para obtener resultados de búsqueda para canciones.

@@ -147,6 +147,12 @@ const songsData = inject('songsData');
  */
  const progress = inject('progress');
 
+ /**
+ * Variable inyectada que maneja la carga de la última canción.
+ * @type {Ref<Boolean>}
+ */
+ const loadingSong = inject('loadingSong');
+
 /**
  * Email del usuario, obtenido desde el localStorage.
  * @type {string|null}
@@ -369,9 +375,10 @@ async function cargarCancionInicioSesion() {
 
   } catch (error) {
     console.error('Última canción Error:', error)
+  } finally {
+   loadingSong.value = false;
   }
 }
-
 
 /**
  * Hook de ciclo de vida: onMounted.

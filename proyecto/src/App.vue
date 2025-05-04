@@ -135,17 +135,28 @@
        <div class="bottom-bar">
          <!-- Left -->
          <div class="now-playing">
-           <div class="song-info">
-               <!-- Mostrar la portada y el nombre de la canción -->
-               <img :src="lastSong.cover" class="song-icon" />
+            <div class="song-info">
+               <!-- Mostrar disco si no hay canción o está cargando -->
+               <img :src="loadingSong || !lastSong?.cover ? disc : lastSong.cover" :class="['song-icon', { spinning: loadingSong || !lastSong?.cover }]" alt="Portada o disco"/>
                <div class="song-text">
-                  <span class="song-name">{{ lastSong.name }}</span>
-                  <span class="song-name-artist">{{ lastSong.autor }}</span>
+               <span class="song-name">
+                  {{ lastSong?.name || 'Cargando...' }}
+               </span>
+               <span class="song-name-artist">
+                  {{ lastSong?.autor || '' }}
+               </span>
                </div>
             </div>
-               <!-- Botón para añadir a favoritos -->
-               <button v-if="!isFavorite(currentSong)" class="already-fav-btn"  @click="addToFavorites(currentSong)" title="Añadir a favoritos">🤍</button>
-               <button v-else class="add-to-fav-btn" @click="errorMessage">❤️</button>
+            <div v-if="lastSong && !loadingSong" class="fav-button-wrapper">
+               <div class="tooltip-container" @mouseenter="showLiketip = true" @mouseleave="showLiketip = false">
+                  <!-- Botón para añadir a favoritos -->
+                  <button v-if="!isFavorite(currentSong.Id)" class="already-fav-btn"  @click="addToFavorites(currentSong)">🤍</button>
+                  <button v-else class="add-to-fav-btn" @click="errorMessage">❤️</button>
+                  <div class="tooltip" v-if="showLiketip">
+                     {{ isFavorite(currentSong.Id) ? 'Canción ya en favoritos' : 'Añadir canción a favoritos' }}
+                  </div>
+               </div>
+            </div>
          </div>
         
          <!-- Center -->
@@ -310,6 +321,10 @@
  /**
   * @constant {string} logo - Ruta de la imagen del logotipo.
   */
+  import disc from '@/assets/disc.png';
+ /**
+  * @constant {string} disc - Ruta de la imagen del disco.
+  */
  import router from './router';
  /**
   * @constant {object} router - Instancia del router para navegación.
@@ -414,7 +429,15 @@
  
  const isLoading = ref(false);
  /**
-  * @constant {Ref<boolean>} isLoading - Estado que indica si se están cargando datos.
+  * @constant {Ref<boolean>} isLoading - Estado que indica si se están cargando datos del buscador.
+  */
+  const loadingSong = ref(true);
+ /**
+  * @constant {Ref<boolean>} loadingSong - Estado que indica si se está cargando la última canción o no.
+  */
+  provide('loadingSong', loadingSong)
+ /**
+  * Provee la variable loadingSong para uso en componentes hijos.
   */
  const searchOption = ref('Todo');
  /**
@@ -526,6 +549,10 @@
   const showLooptip = ref(false); 
  /**
   * @constant {Ref<boolean>} showLooptip - Estado que indica si la reproducción en bucle está activada o no al pasar el ratón por encima.
+  */
+  const showLiketip = ref(false); 
+ /**
+  * @constant {Ref<boolean>} showLiketip - Estado que indica si la canción en reproducción está en favoritos o no al pasar el ratón por encima.
   */
   const showHometip = ref(false); 
  /**
@@ -884,9 +911,10 @@
  * Función para comprobar si una canción se encuentra en favoritos o no
  * @param {string} id - Canción a comprobar.
  */
- const isFavorite = (currentSong) => {
+ const isFavorite = (currentSongId) => {
+   console.log("Canción actual: ", currentSong)
    if (!Array.isArray(favoriteSongs.value.canciones)) return false;
-   return favoriteSongs.value.canciones.some(s => s.id === currentSong.Id);
+   return favoriteSongs.value.canciones.some(s => s.id === currentSongId);
 }
 
 /**
@@ -971,15 +999,14 @@ const addToFavorites = async (song) => {
   */
  // Registrar el evento al montar el componente
  onMounted(async () => {
-   await updateQueue();
+   
    document.addEventListener('click', handleClickOutside);
    document.addEventListener('audio-buffer-ready', bufferReady);
    window.addEventListener('beforeunload', enviarProgreso);
-   fetchFavourites();
+   
    emitter.on('FavoriteSongs-updated', () => {
       fetchFavourites(); // Vuelve a cargar los favoritos cuando hay un cambio
    });
-   fetchLikedPlaylists();
 
    emitter.on('likedLists-updated', () => {
       fetchLikedPlaylists();
@@ -991,6 +1018,9 @@ const addToFavorites = async (song) => {
    });
 
    emitter.on('user-logged-in', async (email) => {
+      await updateQueue();
+      fetchFavourites();
+      fetchLikedPlaylists();
       try {
          const dataUserResponse = await fetch(
             `https://echobeatapi.duckdns.org/users/profile-with-playlists?userEmail=${encodeURIComponent(getEmail())}`
@@ -1843,6 +1873,31 @@ const addToFavorites = async (song) => {
   color: #888;
   font-style: italic;
   margin-top: 2px;
+}
+
+.song-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+}
+
+.spinning {
+  animation: spin 2s linear infinite;
+  border-radius: 50%; /* hace que parezca un disco */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fav-button-wrapper {
+  position: relative;
+}
+
+.tooltip-container {
+  position: relative;
+  display: inline-block;
 }
 
 .add-to-fav-btn {
