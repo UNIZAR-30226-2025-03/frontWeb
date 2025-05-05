@@ -1114,7 +1114,7 @@ h1 {
    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
    margin-top: 5px;
    margin-left: 5px;
-   max-height: 300px;
+   max-height: 275px;
    overflow-y: auto;
    z-index: 10000;
    scrollbar-width: none;
