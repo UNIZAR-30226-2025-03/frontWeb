@@ -1,7 +1,17 @@
 <template>
-   <!-- Muestra un spinner de carga mientras se verifica el token -->
+   <!-- Muestra el spinner de carga con el texto -->
    <div v-if="isLoading" class="loading-spinner">
-      <div >Cargando...</div>
+      <!-- Contenedor con texto y el SVG debajo -->
+      <div class="loading-content">
+         <div class="loading-text">Cargando...</div>
+
+         <!-- SVG cargando (con un timer) debajo del texto -->
+         <div class="spinner-container">
+            <svg xmlns="http://www.w3.org/2000/svg" height="50px" viewBox="0 -960 960 960" width="50px" fill="#ffffff">
+               <path d="M320-160h320v-120q0-66-47-113t-113-47q-66 0-113 47t-47 113v120ZM160-80v-80h80v-120q0-61 28.5-114.5T348-480q-51-32-79.5-85.5T240-680v-120h-80v-80h640v80h-80v120q0 61-28.5 114.5T612-480q51 32 79.5 85.5T720-280v120h80v80H160Z"/>
+            </svg>
+         </div>
+      </div>
    </div>
 
    <!-- Si isLoading es false, renderiza la pantalla de login -->
@@ -265,8 +275,6 @@ onMounted(async () => {
 </script>
 
 
-
-
 <style scoped>
 .login-container {
    position: fixed;
@@ -383,7 +391,6 @@ button {
    margin-top: 1rem;
 }
 
-
 button:hover {
    opacity: 0.8;
 }
@@ -392,7 +399,7 @@ button:hover {
    width: 100px;
 }
 
-.loading-spinner{ 
+.loading-spinner {
   height: 100vh;
   width: 100vw;
   position: fixed;
@@ -405,10 +412,37 @@ button:hover {
   display: flex;
   justify-content: center; /* centra horizontalmente */
   align-items: center;     /* centra verticalmente */
-   font-size: larger;
-
 }
 
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-text {
+  font-size: 36px; 
+  color: #ffffff;
+  margin-bottom: 10px; 
+}
+
+.spinner-container {
+  margin-top: 10px; /* Separación entre el texto y el spinner */
+}
+
+.spinner-container svg {
+  animation: spin 2s linear infinite; /* Animación de rotación */
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
 /* Mensaje emergente */
 .popup {

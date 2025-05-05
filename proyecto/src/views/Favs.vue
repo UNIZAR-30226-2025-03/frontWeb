@@ -39,7 +39,10 @@
                       <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item" @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
                          <img :src="cancion.Portada || 'ruta/a/imagen/default.jpg'" alt="Canción" />
                          <div class="song-quest-info">
-                            <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                           <div class="song-text">
+                              <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                              <span class="song-name-artist">{{ cancion.Autor }}</span>
+                           </div>
                             <!-- Botón para agregar la canción seleccionada -->
                             <button class="addButton" v-if="hoveredSong === cancion.Nombre" @click="addSong(cancion)">Añadir</button>
                          </div>
@@ -63,7 +66,7 @@
                    <img :src="element.portada" :alt="element.nombre" @error="handleImageError($event)" />
                  </div>
  
-                 <div class="song-name-artist">
+                 <div class="song-name-artista">
                   <p class="song-title">{{ element.nombre }} <span class="duration">({{ formatTime(element.duracion) }})</span></p>
                   <p class="song-author">{{ element.Autor }}</p>
                 </div>
@@ -644,6 +647,26 @@ const fetchResults = async () => {
 
       results.value = await response.json();
       console.log("Respuesta de la API:", results.value);
+      const rawSongs = results.value.canciones;
+      const cancionesConAutores = [];
+      for (const song of rawSongs) {
+         try {
+            const songsResponse = await fetch(`https://echobeatapi.duckdns.org/playlists/song-details/${song.Id}`);
+            if (!songsResponse.ok) {
+               console.error(`Error al obtener datos de la canción ${song.Id}`);
+               continue;
+            }
+            const songsResponseData = await songsResponse.json();
+            cancionesConAutores.push({
+               ...song,
+               Autor: songsResponseData.Autores.join(', '),
+            });
+         } catch (err) {
+            console.error('Error al procesar canción:', err);
+         }
+      }
+      results.value.canciones = cancionesConAutores;
+      console.log("🕵️‍♂️ Canciones actualizadas:", results.value.canciones);
    } catch (error) {
       console.error('Error:', error);
    } finally {
@@ -942,7 +965,7 @@ hr{
    text-align: center;
 }
 
-.song-name-artist,
+.song-name-artista,
 .song-album,
 .song-plays,
 .song-buttons {
@@ -950,7 +973,28 @@ hr{
    text-align: center;  
 }
 
+.song-text {
+  display: flex;
+  flex-direction: column; 
+  overflow: hidden;
+}
+
+.song-name {
+  color: white;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 250px;
+  font-weight: 600;
+}
+
 .song-name-artist {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.song-name-artista {
    padding-top: 8px;
 }
 

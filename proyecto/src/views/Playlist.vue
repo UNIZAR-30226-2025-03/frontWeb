@@ -108,16 +108,20 @@
                      <div v-for="cancion in results.canciones" :key="cancion.Nombre" class="result-item" @mouseover="hoveredSong = cancion.Nombre" @mouseleave="hoveredSong = null">
                         <img :src="cancion.Portada || 'ruta/a/imagen/default.jpg'" alt="Canción" />
                         <div class="song-quest-info">
-                           <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                           <div class="song-text">
+                              <span>{{ cancion.Nombre }} ({{ formatTime(cancion.Duracion) }})</span>
+                              <span class="song-name-artist">{{ cancion.Autor }}</span>
+                           </div>
                            <!-- Botón para agregar la canción seleccionada -->
                            <button class="addButton" v-if="hoveredSong === cancion.Nombre" @click="addSong(cancion)">Añadir</button>
                         </div>
                      </div>
                   </div>
 
-                  <div v-else-if="!isLoading && currentSearch.trim()" class="no-results">
+                  <div v-else-if="!isLoading && currentSearch.trim() && hasSearchedOnce" class="no-results">
                      ❌ Sin resultados
                   </div>
+
                </div>
             </div>
         </div>
@@ -132,7 +136,7 @@
                   <img :src="element.portada" :alt="element.nombre" @error="handleImageError($event)" />
                 </div>
 
-                <div class="song-name-artist">
+                <div class="song-name-artista">
                   <p class="song-title">{{ element.nombre }} <span class="duration">({{ formatTime(element.duracion) }})</span></p>
                   <p class="song-author">{{ element.Autor }}</p>
                 </div>
@@ -238,6 +242,12 @@ const currentSearch = ref('');
  * @type {Ref<boolean>}
  */
 const isLoading = ref(false);
+
+/**
+ * Estado reactivo para indicar si se ha buscado alguna canción.
+ * @type {Ref<boolean>}
+ */
+const hasSearchedOnce = ref(false);
 
 /**
  * Estado reactivo para controlar la carga de datos de la playlist.
@@ -1410,6 +1420,7 @@ const fetchResults = async () => {
       return;
    }
    isLoading.value = true;
+   hasSearchedOnce.value = true;
    console.log("Texto de búsqueda:", currentSearch.value);
    currentNick.value =  localStorage.getItem("Nick");
    try {
@@ -1700,7 +1711,7 @@ hr{
    text-align: center;
 }
 
-.song-name-artist,
+.song-name-artista,
 .song-album,
 .song-plays,
 .song-buttons {
@@ -1708,7 +1719,28 @@ hr{
    text-align: center;  
 }
 
+.song-text {
+  display: flex;
+  flex-direction: column; 
+  overflow: hidden;
+}
+
+.song-name {
+  color: white;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 250px;
+  font-weight: 600;
+}
+
 .song-name-artist {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+.song-name-artista {
    padding-top: 8px;
 }
 
@@ -1829,7 +1861,7 @@ h1 {
    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
    margin-top: 5px;
    margin-left: 5px;
-   max-height: 300px;
+   max-height: 275px;
    overflow-y: auto;
    z-index: 10000;
    scrollbar-width: none;
