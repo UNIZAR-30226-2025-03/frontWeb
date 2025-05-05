@@ -907,11 +907,15 @@ watch(currentSearch, (newVal) => {
  async function fetchFavourites() {
    try {
       // OBTENER CANCIONES FAVORITAS
-      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(email)}`);
+      const songsResponse = await fetch(`https://echobeatapi.duckdns.org/cancion/favorites?email=${encodeURIComponent(getEmail())}`);
       if (!songsResponse.ok) throw new Error('Error al obtener las canciones de la playlist');
    
-      favoriteSongs.value = await songsResponse.json();
-      console.log(" ✅ Canciones favoritas: ", favoriteSongs.value);
+      // Imprime la respuesta para asegurarse de que es lo que esperas
+      const responseData = await songsResponse.json();
+      console.log("✅ Respuesta de la API:", responseData);
+      
+      favoriteSongs.value = responseData;
+      console.log("✅ Canciones favoritas:", favoriteSongs.value);
    
       // VERIFICAR SI LOS DATOS ESTÁN BIEN FORMATEADOS
       if (!favoriteSongs.value || !Array.isArray(favoriteSongs.value.canciones)) {
