@@ -899,7 +899,7 @@ watch(currentSearch, (newVal) => {
 
  /**
  * Función asíncrona para obtener las canciones favoritas del usuario.
- * Realiza una petición a la API y actualiza el estado reactivo "songsData".
+ * Realiza una petición a la API y actualiza el estado reactivo "favoriteSongs".
  *
  * @async
  * @throws {Error} Si la petición a la API falla.
@@ -928,9 +928,11 @@ watch(currentSearch, (newVal) => {
  * @param {string} id - Canción a comprobar.
  */
  const isFavorite = (currentSongId) => {
-   console.log("Canción actual: ", currentSong)
    if (!Array.isArray(favoriteSongs.value.canciones)) return false;
-   return favoriteSongs.value.canciones.some(s => s.id === currentSongId);
+   const isInFavorites = favoriteSongs.value.canciones.some(s => s.id === currentSongId);
+  console.log('Is the song in favorites?', isInFavorites);
+
+  return isInFavorites;
 }
 
 /**
